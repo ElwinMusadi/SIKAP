@@ -1,0 +1,511 @@
+
+
+=== STEP 00 — Project Brief.docx ===
+STEP 00 — Project Brief
+1. Informasi Umum
+Nama Proyek: Sistem Informasi Data dan Dokumen Kepegawaian UPTD Pendapatan Daerah Wilayah Kota Kupang (SAMSAT).
+Jenis Sistem: Internal Web Application / Employee Information System.
+Platform: Google Apps Script (Backend & Hosting), Google Spreadsheet (Database), Google Drive (File Storage), Tailwind CSS v4 (Frontend Styling).
+2. Latar Belakang & Tujuan
+Sub-bagian Tata Usaha (TU) di UPTD Pendapatan Daerah Wilayah Kota Kupang saat ini membutuhkan sebuah sistem terpusat untuk mendigitalisasi data dan dokumen kepegawaian. Sistem ini bertujuan untuk:
+Menyimpan data dan rekam jejak pegawai secara terstruktur dalam satu platform (Single Source of Truth).
+Mengelola dokumen krusial pegawai seperti SK, SPMT, KTP, KK, NPWP, dan dokumen lainnya dengan aman.
+Memudahkan proses pencarian (searchability), pembaruan data, serta pengarsipan bagi pegawai berstatus CPNS, PNS, maupun P3K.
+3. Ruang Lingkup (Scope)
+Manajemen Data Pegawai: Input, edit, hapus, dan lihat detail data profil pegawai (CPNS, PNS, P3K).
+Manajemen Dokumen: Fitur upload, download, dan preview dokumen yang terintegrasi langsung dengan Google Drive.
+Pencarian & Filter: Kemampuan untuk mencari pegawai berdasarkan nama, NIP, status kepegawaian, atau dokumen yang belum lengkap.
+Dashboard Sederhana: Menampilkan rekapitulasi jumlah pegawai berdasarkan status (PNS, CPNS, P3K) dan kelengkapan dokumen.
+4. Analisis Berdasarkan Peran (Role Perspectives)
+Senior Product Manager: Fokus pada kemudahan operasional TU. Aplikasi harus mengurangi waktu pencarian dokumen dari menit/jam menjadi hitungan detik. Ketersediaan dashboard status kelengkapan dokumen sangat penting untuk compliance.
+Senior System Analyst: Integrasi antara input UI dengan Google Drive harus mulus. Struktur folder di Google Drive perlu diotomatisasi agar tidak berantakan saat aplikasi membesar.
+Senior UX Designer: Karena menggunakan Tailwind v4, UI harus bersih, responsif, dan mudah digunakan oleh staf TU yang mungkin terbiasa dengan dokumen fisik. Formulir input panjang harus dibagi menjadi beberapa tab atau step.
+Senior Software Architect: Penggunaan Google Spreadsheet sebagai database memiliki batasan kuota read/write. Harus diimplementasikan arsitektur pengiriman data secara efisien (batch) dan pemanfaatan penamaan file/dokumen otomatis di Drive.
+5. Rekomendasi (Di Luar Kebutuhan Awal)
+Standarisasi Penamaan File (File Naming Convention): Dokumen yang diunggah harus otomatis berganti nama sesuai format (contoh: [NIP]_[Nama]_[JenisDokumen].pdf) agar rapi di dalam Google Drive.
+Otomatisasi Folder Struktur: Saat data pegawai baru ditambahkan, sistem otomatis membuat sub-folder spesifik di Google Drive (contoh: Data Kepegawaian/PNS/NIP_NamaPegawai/).
+Role-Based Access Control (RBAC): Membagi role antara "Admin TU" (bisa edit dan hapus) dan "Pegawai Biasa" (hanya bisa melihat atau mengajukan update data dirinya sendiri).
+Notifikasi Masa Berlaku/Kenaikan Pangkat (Future Feature): Pengingat otomatis jika ada dokumen SK yang akan memasuki masa evaluasi atau kenaikan pangkat.
+Quality Gate
+Status:
+⚠️ NEEDS REVIEW
+Validation Summary
+Completeness: PASS
+Consistency: PASS
+Business Logic: REVIEW
+User Perspective: PASS
+Technical Feasibility: PASS (Google Stack sangat mumpuni, tetapi batasan unggah file dan timeout GAS perlu diantisipasi di step selanjutnya).
+Missing Requirements: REVIEW
+Contradiction: PASS
+Issues Found
+Business Logic: Belum jelas apakah akses ke sistem ini eksklusif 100% hanya untuk staf Sub-bagian TU, atau apakah pegawai (PNS/CPNS/P3K) juga diberikan akses untuk login dan mengunggah/memperbarui data mereka sendiri secara mandiri.
+Recommendations
+Menerapkan standar folder dinamis di Google Drive melalui Apps Script.
+Membatasi format unggahan file (misalnya hanya PDF, JPG, PNG) dan ukuran maksimal file untuk menjaga kuota Google Drive.
+Required Decisions
+Mohon jawab/konfirmasi hal berikut sebelum kita lanjut:
+Hak Akses: Apakah aplikasi ini HANYA dipakai oleh staf Tata Usaha (Admin), atau setiap Pegawai akan login dengan akun mereka sendiri untuk mengunggah dokumennya masing-masing?
+Autentikasi (Login): Apakah kita akan menggunakan sistem Login dengan username/password, atau hanya whitelist email berbasis Google Account yang bisa mengakses link Web App ini?
+Ringkasan & Next Step
+Ringkasan: Proyek "Sistem Informasi Data dan Dokumen Kepegawaian" telah didefinisikan secara umum. Platform GAS, Sheet, Drive, dan Tailwind v4 adalah pilihan yang ringan dan tanpa biaya server (serverless). Tujuan utamanya adalah memudahkan Sub-bagian TU mengatur dan mencari dokumen seluruh pegawai (CPNS, PNS, P3K).
+STEP berikutnya: STEP 01 — Product Discovery
+Perintah untuk melanjutkan:
+Harap jawab pertanyaan pada bagian Required Decisions di atas, lalu ketik:
+"Lanjut ke STEP 01"
+
+
+=== STEP 01 — Product Discovery.docx ===
+STEP 01 — Product Discovery
+Berdasarkan Project Brief dan konfirmasi keputusan sebelumnya (hak akses mandiri untuk pegawai dan sistem autentikasi NIP), berikut adalah fase Product Discovery untuk menggali lebih dalam siapa penggunanya, apa masalah utamanya, dan bagaimana sistem ini memberikan solusi.
+1. Target Pengguna (User Personas)
+Terdapat dua kelompok pengguna utama dalam sistem ini:
+A. Administrator (Staf Sub-bagian Tata Usaha)
+Karakteristik: Bertanggung jawab penuh atas kelengkapan dan keabsahan data kepegawaian di UPTD Pendapatan Daerah Wilayah Kota Kupang.
+Tugas Utama: Menambahkan data pegawai baru, memverifikasi dokumen yang diunggah pegawai, mencari dokumen/data spesifik saat dibutuhkan (misal untuk pengajuan pangkat), dan melihat rekapitulasi data.
+B. Pegawai (PNS, CPNS, P3K)
+Karakteristik: Individu yang bekerja di UPTD SAMSAT Kota Kupang. Memiliki mobilitas dan kesibukan masing-masing.
+Tugas Utama: Login ke sistem, memperbarui data diri secara berkala, dan mengunggah dokumen-dokumen persyaratan (SK, SPMT, KTP, dll) secara mandiri.
+2. Masalah & Solusi (Pain Points & Solutions)
+Pain Points (Masalah)
+Solusi yang Ditawarkan Sistem
+Beban Kerja TU Tinggi: Staf TU harus menagih dan menginput dokumen secara manual satu per satu dari setiap pegawai.
+Self-Service System: Pegawai login dan mengunggah dokumen mereka sendiri, TU hanya bertugas memantau dan memverifikasi.
+Pencarian Lama: Mencari berkas fisik atau file yang tersebar di komputer/WhatsApp memakan waktu lama.
+Digitalisasi Terpusat: Fitur pencarian instan berdasarkan Nama, NIP, atau Jenis Dokumen.
+Dokumen Tidak Lengkap/Hilang: Seringkali pegawai tidak tahu dokumen apa yang kurang atau hilang diarsipkan.
+Indikator Kelengkapan: Dashboard pegawai menampilkan status kelengkapan dokumen (misal: "KTP belum diunggah").
+3. Proporsi Nilai (Value Proposition)
+Sistem informasi ini mengubah proses birokrasi arsip kepegawaian dari yang sebelumnya reaktif dan manual menjadi proaktif, terpusat, dan paperless (bebas kertas).
+4. Alur Kerja Utama (High-Level Workflows)
+A. Alur Autentikasi (Authentication Flow)
+Pengguna membuka URL Web App.
+Memasukkan NIP sebagai Username dan 6 digit terakhir NIP sebagai Password default.
+Sistem memvalidasi ke Google Spreadsheet. Jika valid, pengguna masuk ke Dashboard sesuai perannya (Admin atau Pegawai).
+B. Alur Self-Service Pegawai (Employee Flow)
+Pegawai login dan melihat Dashboard (menampilkan persentase kelengkapan profil/dokumen).
+Pegawai masuk ke menu "Profil Saya".
+Pegawai melengkapi data teks (Alamat, No HP, dll) dan mengunggah file (SK, KTP, dll).
+Status dokumen berubah menjadi "Menunggu Verifikasi" (Pending).
+C. Alur Pengelolaan Admin (Admin Flow)
+Admin login dan melihat Dashboard rekapitulasi (Total PNS, CPNS, P3K, dan notifikasi dokumen baru yang perlu diverifikasi).
+Admin mengecek dokumen yang baru diunggah pegawai. Jika sesuai, status diubah menjadi "Terverifikasi" (Verified). Jika salah sasaran (misal gambar buram), status diubah menjadi "Ditolak" (Rejected) dengan catatan.
+Admin dapat menggunakan fitur pencarian untuk menemukan data dan mendownload dokumen pegawai kapan saja.
+5. Perspektif Peran (Role Perspectives)
+Senior Product Manager: Fokus pada metrik completion rate dokumen. Adanya indikator kelengkapan dokumen pada dashboard pegawai akan memotivasi mereka untuk melengkapi data tanpa harus selalu ditagih oleh TU.
+Senior System Analyst: Mengingat pegawai akan mengubah datanya sendiri, perlu ada mekanisme Verifikasi oleh Admin. Jika pegawai mengunggah dokumen baru, data tidak boleh langsung dianggap "sah" sebelum TU memvalidasinya.
+Senior UX Designer: Login screen harus sangat sederhana. Untuk pegawai, interface harus fokus pada "Apa yang harus saya lengkapi hari ini?". Indikator warna (Merah = Kosong/Ditolak, Kuning = Menunggu Verifikasi, Hijau = Lengkap) akan sangat membantu visualisasi.
+Senior Software Architect: Autentikasi menggunakan Google Apps Script memerlukan pengelolaan sesi (Session Management). Kita bisa menggunakan Token ringan yang disimpan di Local Storage browser. Selain itu, karena menggunakan NIP dan 6 digit terakhir sebagai password default, ada risiko keamanan jika password tidak diubah.
+6. Rekomendasi (Di Luar Kebutuhan Awal)
+Wajib Ganti Password (Force Change Password): Saat pegawai login untuk pertama kalinya menggunakan password default (6 digit terakhir NIP), sistem harus memaksa mereka untuk mengganti password dengan yang baru demi keamanan data pribadi.
+Status Dokumen (Verifikasi): Dokumen yang diunggah pegawai harus memiliki status: Kosong, Menunggu Verifikasi, Terverifikasi, atau Revisi/Ditolak. Ini untuk memastikan TU tetap memegang kendali atas validitas data.
+Session Management di GAS: Menggunakan JSON Web Token (JWT) sederhana atau Session Token (UUID) yang disimpan di Google Sheet dan Local Storage untuk menjaga pengguna tetap login tanpa harus mengetik password setiap kali refresh halaman.
+Quality Gate
+Status:
+⚠️ NEEDS REVIEW
+Validation Summary
+Completeness: PASS
+Consistency: PASS
+Business Logic: REVIEW
+User Perspective: PASS
+Technical Feasibility: PASS
+Missing Requirements: REVIEW
+Contradiction: PASS
+Issues Found
+Business Logic & Missing Requirements: Mekanisme verifikasi oleh Admin sangat krusial karena pegawai mengunggah datanya sendiri. Jika tidak diverifikasi, bisa saja pegawai mengunggah file gambar kosong atau file yang salah, dan sistem menganggap datanya sudah lengkap. Selain itu, keamanan login dengan password default sangat berisiko jika tidak ada mekanisme ganti password.
+Recommendations
+Menambahkan fitur "Verifikasi Dokumen" untuk Admin TU.
+Menambahkan fitur "Ganti Password" bagi pengguna, dan kewajiban ganti password saat login pertama kali.
+Required Decisions
+Mohon jawab/konfirmasi hal berikut sebelum kita lanjut:
+Fitur Verifikasi Admin: Apakah Anda setuju bahwa setiap dokumen yang diunggah pegawai harus diverifikasi/disetujui (Approve/Reject) oleh Admin TU sebelum dianggap sah?
+Keamanan Akun: Apakah Anda setuju untuk menambahkan fitur "Ubah Password" agar pegawai dapat mengganti password default mereka demi keamanan?
+Next Step
+STEP berikutnya: STEP 02 — Feature & Requirement
+Perintah untuk melanjutkan:
+Harap jawab pertanyaan pada bagian Required Decisions di atas, lalu ketik:
+"Lanjut ke STEP 02"
+
+
+=== STEP 02 — Feature & Requirement.docx ===
+STEP 02 — Feature & Requirement
+Berdasarkan hasil Product Discovery di STEP 01 dan keputusan Anda terkait alur verifikasi serta keamanan akun, berikut adalah rincian fitur dan kebutuhan sistem (features & requirements) yang dikelompokkan berdasarkan modul aplikasi.
+1. Modul Autentikasi & Keamanan (Authentication & Security)
+Modul ini mengatur akses masuk dan keamanan akun pengguna.
+Login: Pengguna (Admin/Pegawai) masuk menggunakan NIP dan Password.
+Sesi Pengguna (Session Management): Menggunakan token sederhana berbasis UUID/JWT yang disimpan di Local Storage dan divalidasi ke Spreadsheet agar sesi tetap aktif tanpa harus login berulang kali.
+Force Change Password: Sistem memaksa pengguna untuk mengganti password default (6 digit terakhir NIP) saat login untuk pertama kalinya.
+Ganti Password: Fitur bagi pengguna untuk mengganti password mereka kapan saja demi keamanan akun.
+Logout: Mengakhiri sesi pengguna dan menghapus token dari perangkat.
+2. Modul Dashboard
+Halaman utama yang memberikan ringkasan informasi, disesuaikan dengan peran (Role) yang login.
+Dashboard Admin (TU):
+Menampilkan total pegawai terdaftar (dibagi berdasarkan CPNS, PNS, P3K).
+Menampilkan notifikasi/angka dokumen yang berstatus "Menunggu Verifikasi".
+Menampilkan grafik atau persentase keseluruhan kelengkapan dokumen instansi.
+Dashboard Pegawai:
+Menampilkan persentase kelengkapan profil dan dokumen pribadi.
+Menampilkan notifikasi/daftar dokumen yang berstatus "Ditolak/Revisi" beserta catatan dari Admin.
+3. Modul Manajemen Pegawai (Employee Self-Service)
+Fitur yang dapat diakses oleh Pegawai untuk memperbarui data mereka sendiri.
+Lihat Profil: Menampilkan biodata lengkap dan status dokumen saat ini.
+Edit Data Dasar: Memperbarui informasi non-kritis seperti Alamat Domisili, Nomor HP, Email, atau Golongan Darah.
+Upload Dokumen: Formulir untuk mengunggah berkas digital (SK, SPMT, KTP, KK, NPWP, dll). Mendukung format PDF, JPG, dan PNG dengan batasan ukuran tertentu.
+Riwayat Dokumen (View/Download): Pegawai dapat melihat atau mengunduh kembali dokumen yang sudah mereka unggah sebelumnya.
+4. Modul Manajemen Admin (TU Administration)
+Kumpulan fitur eksklusif untuk Admin Tata Usaha dalam mengelola data master dan dokumen.
+Manajemen Data Master Pegawai:
+Create: Menambahkan data pegawai baru dan generate akses login.
+Read: Melihat detail profil seluruh pegawai.
+Update: Mengedit data kepegawaian (termasuk status aktif/pensiun/mutasi).
+Delete/Deactivate: Menonaktifkan akses pegawai yang sudah mutasi atau pensiun.
+Verifikasi Dokumen (Approval Workflow):
+Melihat daftar dokumen yang baru diunggah oleh pegawai.
+Memberikan status: Terverifikasi (Approve) atau Ditolak (Reject).
+Menambahkan kolom "Catatan" jika dokumen ditolak (contoh: "Scan KTP buram, mohon upload ulang").
+Pencarian & Filter (Search & Filter):
+Mencari pegawai berdasarkan Nama atau NIP.
+Memfilter data berdasarkan Status Kepegawaian (PNS, CPNS, P3K).
+Memfilter berdasarkan kelengkapan dokumen (misal: "Siapa saja yang belum upload NPWP?").
+Akses File Drive: Tombol cepat untuk mengunduh (Download) atau melihat (Preview) dokumen langsung tanpa harus membuka Google Drive secara manual.
+5. Modul Otomatisasi Sistem (Backend / GAS Automation)
+Fitur berjalan di latar belakang (invisible) untuk menjaga kerapian database dan storage.
+Otomatisasi Struktur Folder: Saat Admin menambahkan pegawai baru, sistem otomatis membuat folder di Google Drive dengan format: Data Pegawai/[Status]/[NIP]_[Nama Pegawai].
+Standardisasi Penamaan File: File yang diunggah pegawai secara otomatis diubah namanya (rename) oleh sistem menjadi [NIP]_[Nama]_[JenisDokumen].[ext].
+6. Perspektif Peran (Role Perspectives)
+Senior Product Manager: Fitur verifikasi dokumen dan notifikasi "Revisi" akan meminimalkan bottleneck komunikasi antara TU dan Pegawai. Ini memastikan target 100% kelengkapan dokumen yang valid dapat tercapai lebih cepat.
+Senior System Analyst: Adanya 4 state dokumen (Kosong, Menunggu Verifikasi, Terverifikasi, Ditolak) memerlukan kolom status khusus di Google Spreadsheet per masing-masing jenis dokumen, bukan hanya sekadar link file.
+Senior UX Designer: Upload form untuk pegawai harus dibuat ringkas. Daripada menampilkan 20 tombol upload sekaligus, lebih baik dikelompokkan ke dalam tab (misal: "Dokumen Pribadi" dan "Dokumen Kepegawaian") dengan indikator warna status yang jelas.
+Senior Software Architect: Mengelola upload file ke Google Drive melalui Google Apps Script membutuhkan base64 encoding dari sisi client (Tailwind/HTML) yang dikirim ke fungsi .gs. Perlu diterapkan batas maksimal ukuran file (maksimal 2MB atau 5MB per file) agar tidak memicu timeout eksekusi (batas GAS adalah 6 menit per proses).
+Quality Gate
+Status:
+✅ PASSED
+Validation Summary
+Completeness: PASS
+Consistency: PASS
+Business Logic: PASS
+User Perspective: PASS
+Technical Feasibility: PASS (dengan catatan limitasi ukuran file pada GAS).
+Missing Requirements: PASS
+Contradiction: PASS
+Issues Found
+Tidak ada isu kritikal. Alur kerja pegawai dan admin sudah saling melengkapi.
+Recommendations
+Batasan Ukuran File: Disarankan untuk mengunci maksimal ukuran file upload sebesar 2MB - 5MB per dokumen. Hal ini selain mencegah timeout di Google Apps Script, juga menjaga agar kapasitas Google Drive (terutama jika menggunakan akun gratis 15GB) tidak cepat penuh.
+Penanganan Dokumen Lama (Versioning): Jika pegawai mengunggah dokumen KTP baru, sistem disarankan untuk menimpa (overwrite) file lama di Google Drive atau memindahkannya ke folder "Archive" agar tidak terjadi penumpukan file dengan nama yang sama. Mengingat batas penyimpanan, melakukan overwrite adalah opsi paling logis.
+Required Decisions
+Konfirmasi apakah Anda setuju dengan:
+Batasan Ukuran File: Maksimal 5MB per dokumen untuk menghindari error sistem.
+Penanganan Dokumen: Jika pegawai mengunggah ulang dokumen yang ditolak, file lama di Google Drive akan otomatis dihapus/ditimpa (overwrite) oleh sistem untuk menghemat kapasitas.
+Next Step
+STEP berikutnya: STEP 03 — Product Requirements Document (PRD)
+Perintah untuk melanjutkan:
+Ketik persetujuan/keputusan Anda terhadap bagian Required Decisions, lalu ketik:
+"Lanjut ke STEP 03"
+
+
+=== STEP 03 — Product Requirements Document (PRD).docx ===
+STEP 03 — Product Requirements Document (PRD)
+Dokumen ini merupakan panduan utama yang mendefinisikan secara rinci fungsionalitas, alur, dan batasan teknis dari Sistem Informasi Data dan Dokumen Kepegawaian UPTD Pendapatan Daerah Wilayah Kota Kupang.
+1. Ikhtisar Proyek (Project Overview)
+Membangun aplikasi web internal berbasis serverless menggunakan ekosistem Google (Apps Script, Spreadsheet, Drive) dan Tailwind CSS v4. Sistem ini bertujuan untuk mendigitalisasi, memusatkan, dan mengotomatisasi pengarsipan dokumen serta data pegawai (PNS, CPNS, P3K) agar mudah dicari, divalidasi, dan dikelola oleh Sub-bagian Tata Usaha (TU).
+2. Peran Pengguna (User Roles)
+Admin (Tata Usaha): Memiliki hak akses penuh untuk mengelola data master pegawai, membuat akun baru, memverifikasi dokumen, dan melihat dashboard rekapitulasi.
+Pegawai (User): Memiliki hak akses terbatas hanya untuk melihat profilnya sendiri, memperbarui data dasar, dan mengunggah dokumen persyaratannya.
+3. Kebutuhan Fungsional (Functional Requirements)
+FR-01: Autentikasi & Keamanan
+FR-01.1 Login: Sistem harus mengizinkan pengguna login menggunakan NIP (Username) dan Password.
+FR-01.2 Force Change Password: Jika pengguna login menggunakan password default (6 digit terakhir NIP), sistem harus mengalihkan pengguna ke halaman "Ubah Password" dan mencegah akses ke dashboard sebelum password diganti.
+FR-01.3 Session Management: Sistem harus memelihara sesi pengguna (menggunakan Token di Local Storage) agar pengguna tidak perlu login setiap kali memuat ulang halaman (refresh).
+FR-01.4 Ganti Password: Tersedia menu bagi pengguna untuk mengganti password kapan saja.
+FR-01.5 Akses Terblokir: Pegawai yang statusnya dinonaktifkan (mutasi/pensiun) oleh Admin tidak dapat melakukan login.
+FR-02: Dashboard
+FR-02.1 Dashboard Admin: Menampilkan total pegawai aktif (PNS, CPNS, P3K), persentase kelengkapan dokumen instansi, dan shortcut ke daftar dokumen yang menunggu verifikasi.
+FR-02.2 Dashboard Pegawai: Menampilkan status kelengkapan profil (%), status masing-masing dokumen (Kosong, Menunggu Verifikasi, Terverifikasi, Ditolak), dan notifikasi penolakan beserta catatan Admin (jika ada).
+FR-03: Manajemen Pegawai (Self-Service)
+FR-03.1 Update Data Dasar: Pegawai dapat mengedit data teks dasar (seperti Alamat, No HP, Golongan Darah). NIP dan Status Kepegawaian dikunci (hanya bisa diubah Admin).
+FR-03.2 Upload Dokumen: Pegawai dapat mengunggah dokumen (SK, SPMT, KTP, KK, NPWP, dll). Saat berhasil, status dokumen berubah menjadi "Menunggu Verifikasi".
+FR-03.3 Validasi Upload: File yang diunggah harus berformat PDF, JPG, atau PNG dengan ukuran maksimum 5MB.
+FR-03.4 Penanganan Re-Upload: Jika dokumen sebelumnya berstatus "Ditolak" dan pegawai mengunggah ulang, file lama di Google Drive akan dihapus/ditimpa (overwrite) secara otomatis oleh sistem untuk menghemat storage.
+FR-04: Manajemen Admin (TU)
+FR-04.1 Data Master Pegawai: Admin dapat menambah (Create), membaca (Read), mengubah (Update), dan menonaktifkan (Deactivate) data pegawai.
+FR-04.2 Proses Verifikasi Dokumen: Admin melihat queue (antrean) dokumen. Admin dapat menekan tombol "Setujui" (status menjadi Terverifikasi) atau "Tolak" (memunculkan modal/popup wajib isi alasan penolakan).
+FR-04.3 Cari & Filter: Admin dapat mencari pegawai menggunakan search bar (berdasarkan Nama/NIP) dan memfilter berdasarkan Status Kepegawaian atau kelengkapan dokumen.
+FR-04.4 Lihat/Unduh Dokumen: Admin dapat melihat (preview) atau mengunduh dokumen langsung dari antarmuka aplikasi.
+FR-05: Otomatisasi Sistem (Backend)
+FR-05.1 Auto-Folder: Pembuatan data pegawai baru oleh Admin akan memicu (trigger) pembuatan folder otomatis di Google Drive: [Tahun]/[Status Kepegawaian]/[NIP]_[Nama].
+FR-05.2 Auto-Rename: Setiap file yang masuk akan di-rename oleh sistem backend menjadi [NIP]_[Nama]_[JenisDokumen].[ext].
+4. Kebutuhan Non-Fungsional (Non-Functional Requirements)
+NFR-01 (Kinerja/Performance): Karena menggunakan Google Apps Script, sistem harus menggunakan teknik pemuatan asinkron (AJAX/Fetch API) dengan indikator loading (spinner) yang jelas agar pengguna tahu proses sedang berjalan.
+NFR-02 (Antarmuka/UI): Dibangun menggunakan Tailwind CSS v4, desain harus Mobile-Responsive, minimalis, dan menggunakan hierarki warna yang jelas (Hijau untuk berhasil/valid, Kuning untuk proses/menunggu, Merah untuk gagal/ditolak).
+NFR-03 (Keamanan/Security): Password tidak boleh disimpan dalam bentuk plain text. Minimal menggunakan fungsi hashing sederhana (misal SHA-256) di sisi backend Apps Script.
+5. Perspektif Peran (Role Perspectives)
+Senior Product Manager: PRD ini memastikan tujuan "Single Source of Truth" tercapai. Adanya aturan penamaan file (auto-rename) memastikan standardisasi tetap terjaga walau human error terjadi.
+Senior System Analyst: Aturan "overwrite file jika re-upload" berarti database (Spreadsheet) harus menyimpan File ID Google Drive dari setiap dokumen, bukan hanya URL-nya, agar backend bisa melacak file mana yang harus dihapus.
+Senior UX Designer: Form pada halaman verifikasi Admin harus split-view (sebelah kiri menampilkan data/dokumen, sebelah kanan tombol Approve/Reject) agar Admin tidak perlu membuka banyak tab.
+Senior Software Architect: Hashing password di GAS cukup tricky, kita akan menggunakan metode Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password) untuk memastikan keamanan kredensial. Untuk upload 5MB, transfer base64 payload via google.script.run harus dilakukan secara chunking (dibagi beberapa bagian) jika memungkinkan, atau memastikan koneksi internet stabil dengan penanganan timeout error.
+Quality Gate
+Status:
+✅ PASSED
+Validation Summary
+Completeness: PASS (Semua fitur dari Step 02 sudah diturunkan menjadi requirements).
+Consistency: PASS (Limit 5MB dan logika overwrite file lama sudah masuk di FR-03.3 dan FR-03.4).
+Business Logic: PASS (Workflow verifikasi dan ganti password sudah sangat jelas).
+User Perspective: PASS
+Technical Feasibility: PASS
+Missing Requirements: PASS
+Contradiction: PASS
+Issues Found
+Tidak ada masalah. Struktur logika aplikasi sudah solid dan siap dilanjutkan ke arsitektur informasi.
+Recommendations
+Untuk proses unggah file maksimum 5MB, sisi frontend (JavaScript) harus melakukan validasi ukuran sebelum mengirimkan ke Google Apps Script agar menghemat bandwidth dan waktu proses, serta memberikan respon error secara instan kepada pengguna jika file terlalu besar.
+Required Decisions
+Tidak ada keputusan fundamental yang tertunda. Sistem sudah terdefinisi dengan jelas. Jika Anda setuju dengan PRD ini, kita bisa mendesain kerangka halamannya.
+Next Step
+STEP berikutnya: STEP 04 — Information Architecture
+Perintah untuk melanjutkan:
+Ketik:
+"Lanjut ke STEP 04"
+
+
+=== STEP 04 — Information Architecture.docx ===
+STEP 04 — Information Architecture
+Dokumen ini memetakan struktur navigasi, hierarki halaman, dan alur perpindahan antarmuka dalam Sistem Informasi Data dan Dokumen Kepegawaian UPTD Pendapatan Daerah Wilayah Kota Kupang. Arsitektur ini dirancang untuk mendukung pendekatan Single Page Application (SPA) guna memberikan pengalaman pengguna yang cepat dan mulus di atas Google Apps Script.
+1. Peta Situs (Sitemap) Utama
+Sistem dibagi menjadi tiga area utama berdasarkan status autentikasi dan peran (Role) pengguna.
+Area Publik (Unauthenticated)
+Halaman Login (/login)
+Area Transisi (Semi-Authenticated)
+Halaman Ubah Password Wajib (/force-change-password) - Hanya muncul jika terdeteksi menggunakan password default.
+Area Terotentikasi (Authenticated)
+A. Akses Pegawai (User Role)
+Dashboard (/dashboard-user)
+Profil Saya (/my-profile)
+Edit Data Dasar
+Dokumen Saya (/my-documents)
+Form Upload Dokumen
+Riwayat & Status Verifikasi
+Pengaturan (/settings)
+Ubah Password
+B. Akses Admin (TU Role)
+Dashboard (/dashboard-admin)
+Data Pegawai (/employee-management)
+Tambah Pegawai Baru
+Detail & Edit Pegawai
+Verifikasi Dokumen (/document-verification)
+Antrean Dokumen Masuk
+Riwayat Dokumen Ditolak/Disetujui
+Pengaturan (/settings)
+Ubah Password
+2. Struktur Navigasi (Navigation Layout)
+Navigasi dirancang menggunakan desain Sidebar (kolom sisi kiri) untuk desktop dan Hamburger Menu untuk perangkat mobile (menyesuaikan kemampuan responsif Tailwind CSS v4).
+Menu Navigasi Pegawai
+🏠 Beranda (Dashboard)
+👤 Profil Pegawai (Lihat & Edit Biodata)
+📁 Arsip Dokumen (Upload & Cek Status)
+🔒 Keamanan Akun (Ganti Password)
+🚪 Keluar (Logout)
+Menu Navigasi Admin (Tata Usaha)
+🏠 Beranda (Dashboard Rekapitulasi)
+👥 Master Data Pegawai (Kelola CPNS, PNS, P3K)
+✅ Verifikasi Dokumen (Beri Approve/Reject)
+🔒 Keamanan Akun (Ganti Password)
+🚪 Keluar (Logout)
+3. Alur Halaman (Page Flow)
+3.1 Alur Login & Kewajiban Ganti Password
+Pengguna membuka aplikasi, melihat Halaman Login.
+Memasukkan NIP dan Password.
+Sistem memeriksa status kredensial.
+Kondisi A: Jika kredensial valid dan password BUKAN default, arahkan ke Dashboard sesuai Role.
+Kondisi B: Jika kredensial valid tetapi password adalah default (6 digit terakhir NIP), arahkan ke Halaman Ubah Password Wajib.
+Pengguna memasukkan password baru.
+Setelah sukses disimpan, arahkan ke Dashboard.
+3.2 Alur Pengelolaan Dokumen oleh Pegawai
+Pegawai memilih menu Arsip Dokumen.
+Tampil daftar dokumen yang wajib diunggah (SK, KTP, NPWP, dll) beserta indikator status (Misal: 🔴 Kosong, 🟡 Menunggu, 🟢 Terverifikasi, 🟠 Ditolak).
+Pegawai menekan tombol "Upload" pada dokumen yang berstatus 🔴 Kosong atau 🟠 Ditolak.
+Sebuah Modal/Pop-up terbuka untuk memilih file (Maks 5MB, format PDF/JPG/PNG).
+Setelah proses upload selesai, indikator berubah menjadi 🟡 Menunggu.
+3.3 Alur Verifikasi oleh Admin
+Admin memilih menu Verifikasi Dokumen.
+Tampil tabel daftar dokumen dengan status "Menunggu Verifikasi", diurutkan dari yang paling lama.
+Admin menekan tombol "Periksa" pada sebuah baris data.
+Layar terbagi dua (Split-view): Kiri menampilkan Preview dokumen, Kanan menampilkan data pemilik dokumen beserta dua tombol: Setujui atau Tolak.
+Jika "Tolak" ditekan, muncul input field wajib isi untuk menulis alasan penolakan. Data tersimpan dan kembali ke antrean berikutnya.
+4. Perspektif Peran (Role Perspectives)
+Senior Product Manager: Struktur arsitektur informasi ini sangat efisien. Dengan menempatkan menu "Arsip Dokumen" terpisah dari "Profil", kita mengurangi kebingungan pengguna (Pegawai). Alur verifikasi split-view akan secara signifikan mempercepat penyelesaian kerja TU.
+Senior System Analyst: Alur Force Change Password di Area Transisi (Semi-Authenticated) sudah tepat. Secara sistem, token yang diberikan pada tahap ini harus berstatus restricted (hanya bisa mengakses API ganti password), untuk mencegah bypass URL ke halaman dashboard.
+Senior UX Designer: Menggunakan Modal untuk proses upload pada halaman "Arsip Dokumen" lebih baik daripada memindahkan pengguna ke halaman baru, karena mempertahankan konteks. Indikator warna yang konsisten (Merah, Kuning, Hijau, Oranye) di seluruh struktur menu akan mempermudah scanning visual.
+Senior Software Architect: Arsitektur Single Page Application (SPA) pada Google Apps Script berarti perpindahan halaman (/dashboard, /my-profile, dll) tidak akan me-reload halaman utama. Hal ini diimplementasikan dengan memanipulasi DOM (menyembunyikan/menampilkan div kontainer) menggunakan JavaScript, yang jauh lebih responsif.
+Quality Gate
+Status:
+✅ PASSED
+Validation Summary
+Completeness: PASS
+Consistency: PASS
+Business Logic: PASS
+User Perspective: PASS
+Technical Feasibility: PASS
+Missing Requirements: PASS
+Contradiction: PASS
+Issues Found
+Tidak ada isu signifikan. Struktur sudah mematuhi logika bisnis dan batasan platform GAS.
+Recommendations
+Untuk implementasi SPA di GAS, sangat disarankan menggunakan sistem kerangka HTML (template) di mana masing-masing bagian (Sidebar, Header, Konten) dipisah ke file HTML berbeda (misal: Sidebar.html, DashboardAdmin.html) dan digabungkan (include) secara dinamis melalui Apps Script. Hal ini akan mempermudah pemeliharaan kode saat sistem bertambah besar.
+Required Decisions
+Tidak ada hal fundamental yang memerlukan keputusan lanjutan. Dokumen sudah selaras dengan PRD.
+Next Step
+STEP berikutnya: STEP 05 — Database Concept
+Perintah untuk melanjutkan:
+"Lanjut ke STEP 05"
+
+
+=== STEP 05 — Database Concept.docx ===
+STEP 05 — Database Concept
+Dokumen ini menjelaskan struktur penyimpanan data untuk Sistem Informasi Data dan Dokumen Kepegawaian. Karena kita menggunakan Google Spreadsheet sebagai database (berkonsep serverless), setiap Sheet (tab) akan bertindak sebagai sebuah Tabel, setiap Baris sebagai Record, dan setiap Kolom sebagai Field.
+1. Arsitektur Database (Spreadsheet-Based)
+Google Spreadsheet memiliki karakteristik khusus. Untuk menjaga performa Google Apps Script (GAS) agar tidak terkena timeout, struktur tabel harus dibuat pipih (flat) dan direlasikan menggunakan Primary Key sederhana seperti NIP (Nomor Induk Pegawai).
+Berikut adalah daftar Sheet (Tabel) yang dibutuhkan:
+A. Sheet: Data_Pegawai
+Menyimpan data autentikasi (login) yang digabung dengan biodata dasar pegawai untuk mengurangi beban pencarian antar-sheet (VLOOKUP di GAS).
+NIP (Primary Key, Text) - Berfungsi sebagai Username.
+Password_Hash (Text) - Kata sandi yang sudah dienkripsi (SHA-256).
+Role (Text) - "Admin" atau "Pegawai".
+Status_Akun (Text) - "Aktif", "Nonaktif" (jika pensiun/mutasi), "Ganti_Password" (status awal login default).
+Nama_Lengkap (Text)
+Status_Kepegawaian (Text) - "PNS", "CPNS", atau "P3K".
+Pangkat_Golongan (Text) - Contoh: "Penata / III.c".
+Jabatan (Text)
+No_HP (Text)
+Alamat (Text)
+Folder_Drive_ID (Text) - ID Folder personal di Google Drive (digunakan untuk menyimpan file pegawai tersebut secara spesifik).
+B. Sheet: Master_Dokumen
+Menyimpan daftar referensi jenis dokumen yang wajib atau opsional diunggah oleh pegawai.
+ID_Dokumen (Primary Key, Text) - Contoh: "DOC-KTP", "DOC-SK-CPNS".
+Nama_Dokumen (Text) - Contoh: "Kartu Tanda Penduduk (KTP)".
+Kategori (Text) - "Dokumen Pribadi", "Dokumen Kepegawaian".
+Status_Wajib (Boolean/Text) - "Ya" (Wajib) / "Tidak" (Opsional).
+C. Sheet: Arsip_Dokumen
+Tabel transaksional utama yang merekam setiap dokumen yang diunggah pegawai beserta status verifikasinya.
+ID_Arsip (Primary Key, Text/UUID)
+NIP (Foreign Key, Text) - Relasi ke Data_Pegawai.
+ID_Dokumen (Foreign Key, Text) - Relasi ke Master_Dokumen.
+File_Drive_ID (Text) - ID asli file di Google Drive (sangat krusial untuk fitur overwrite / hapus file lama).
+File_URL (Text) - Link untuk preview atau unduh langsung.
+Status_Verifikasi (Text) - "Menunggu", "Terverifikasi", "Ditolak".
+Catatan_Admin (Text) - Alasan penolakan jika statusnya "Ditolak".
+Waktu_Upload (Datetime)
+Waktu_Verifikasi (Datetime)
+NIP_Verifier (Text) - NIP Admin yang melakukan verifikasi.
+D. Sheet: Sesi_Login
+Mengelola Session Management (Token JWT/UUID sederhana) agar pengguna tetap login tanpa harus mengetik password berulang kali.
+Token_ID (Primary Key, Text)
+NIP (Foreign Key, Text)
+Waktu_Dibuat (Datetime)
+Waktu_Expired (Datetime)
+2. Relasi Entitas (Entity Relationship Concept)
+Satu Pegawai (NIP) memiliki banyak Arsip Dokumen (1 to Many).
+Setiap Arsip Dokumen merujuk pada satu Master Dokumen (ID_Dokumen).
+Sistem dapat membandingkan jumlah Master_Dokumen yang berstatus "Wajib" dengan jumlah Arsip_Dokumen milik seorang NIP yang berstatus "Terverifikasi" untuk menghitung persentase (%) kelengkapan dokumen pada Dashboard.
+3. Strategi Optimasi Data (GAS & Google Sheet)
+Kolom Indexing (Posisi Pertama): Kolom yang sering dijadikan parameter pencarian (seperti NIP, ID_Arsip, dan Token_ID) wajib diletakkan di Kolom A pada masing-masing Sheet. Hal ini mempercepat proses filter Array di dalam Apps Script.
+Batch Data Retrieval: Untuk menghitung dashboard Admin (Total PNS, Dokumen Menunggu), Apps Script akan menarik seluruh data dalam 1 panggilan (contoh: sheet.getDataRange().getValues()) ke dalam memori (RAM), lalu menghitungnya menggunakan manipulasi Array JavaScript, alih-alih menghitung satu per satu dari sel (Cell).
+4. Perspektif Peran (Role Perspectives)
+Senior Product Manager: Pemisahan Master_Dokumen sangat penting. Jika tahun depan BKD mewajibkan dokumen baru (misal: "Sertifikat Kompetensi"), Admin TU cukup menambah 1 baris di sheet Master_Dokumen, dan sistem otomatis akan meminta dokumen tersebut ke seluruh dashboard Pegawai.
+Senior System Analyst: Menyimpan File_Drive_ID di tabel Arsip_Dokumen adalah keputusan krusial. Saat pegawai mengunggah ulang dokumen yang ditolak, sistem bisa langsung memanggil DriveApp.getFileById(File_Drive_ID).setTrashed(true) untuk menghapus file lama, sehingga kapasitas Google Drive tetap terjaga (sesuai keputusan di Step 03).
+Senior UX Designer: Struktur ini memungkinkan frontend menampilkan riwayat dengan mudah. Adanya Catatan_Admin dan NIP_Verifier membuat proses komunikasi lebih transparan bagi pegawai (misal: "Ditolak oleh Admin Budi: Scan KTP terlalu gelap").
+Senior Software Architect: Menyimpan Password_Hash di kolom terpisah memastikan keamanan. Kita juga menambahkan Sheet Sesi_Login untuk manajemen akses SPA (Single Page Application) guna memastikan stateless token validation berjalan aman dan cepat.
+Rekomendasi (Di Luar Kebutuhan Awal)
+Sheet Log_Aktivitas (Audit Trail): Untuk aplikasi pemerintahan yang mengelola dokumen sensitif (SK, KTP), sangat disarankan menambahkan satu sheet Log_Aktivitas yang mencatat setiap tindakan kritis (Contoh: Kapan Admin A menghapus dokumen Pegawai B, atau Kapan Pegawai C merubah profilnya). Ini berguna sebagai jejak rekam jika terjadi kesalahan data.
+Quality Gate
+Status:
+✅ PASSED
+Validation Summary
+Completeness: PASS
+Consistency: PASS (Konsisten dengan logika overwrite file dan login menggunakan session/token).
+Business Logic: PASS (Struktur database mendukung logika penolakan dan approval dokumen).
+User Perspective: PASS
+Technical Feasibility: PASS (Sangat realistis untuk dijalankan di ekosistem Google Sheets).
+Missing Requirements: PASS (Sudah di-cover dengan rekomendasi Audit Trail).
+Contradiction: PASS
+Issues Found
+Tidak ditemukan masalah konflik atau logika.
+Recommendations
+Menambahkan Sheet Log_Aktivitas untuk merekam jejak audit (Audit Trail) demi keamanan dan transparansi perubahan data.
+Required Decisions
+Konfirmasi apakah Anda setuju untuk menambahkan Sheet Log_Aktivitas sebagai Audit Trail (merekam riwayat aktivitas siapa melakukan apa dan kapan)?
+Next Step
+STEP berikutnya: STEP 06 — UI/UX Requirement
+Perintah untuk melanjutkan:
+Jawab konfirmasi di atas, lalu ketik:
+"Lanjut ke STEP 06"
+
+
+=== Step 06 - UI_UX Requirement.docx ===
+STEP 06 — UI/UX Requirement
+Berdasarkan struktur informasi dan konsep database dari langkah sebelumnya (termasuk penambahan Log Aktivitas), dokumen ini merumuskan panduan antarmuka dan pengalaman pengguna (UI/UX) untuk Sistem Informasi Data dan Dokumen Kepegawaian UPTD Pendapatan Daerah Wilayah Kota Kupang. Desain akan menggunakan Tailwind CSS v4 untuk menghasilkan Single Page Application (SPA) yang ringan, modern, dan responsif.
+1. Prinsip Desain (Design Principles)
+Formal namun Modern: Sebagai aplikasi instansi pemerintah (SAMSAT / UPTD), UI harus terlihat bersih, profesional, dan mudah dibaca, menghindari elemen dekoratif yang tidak perlu.
+Responsive First: Tata letak harus beradaptasi dengan sempurna baik saat diakses melalui desktop PC di kantor TU maupun melalui smartphone oleh pegawai yang sedang berada di luar kantor.
+Clear State Indicators (Visual Cues): Menggunakan warna secara konsisten untuk mengomunikasikan status dokumen tanpa pengguna harus membaca teks secara mendetail.
+Feedback Instan: Mengingat arsitektur Google Apps Script memiliki jeda pemrosesan (latency), setiap interaksi wajib memiliki indikator loading (spinner) dan Toast Notification (pesan sukses/gagal yang muncul sekilas).
+2. Palet Warna & Tipografi (Tailwind)
+Warna Utama (Primary): blue-700 hingga blue-900 (Merepresentasikan profesionalisme dan kepercayaan, identik dengan instansi resmi).
+Warna Status (Semantic Colors):
+🔴 Danger/Kosong: red-100 (background), red-600 (text/border).
+🟡 Warning/Menunggu Verifikasi: yellow-100 (background), yellow-600 (text/border).
+🟢 Success/Terverifikasi: green-100 (background), green-700 (text/border).
+🟠 Alert/Ditolak (Revisi): orange-100 (background), orange-600 (text/border).
+Tipografi: Font Sans-serif standar (misal: Inter atau Roboto). Teks utama berukuran text-sm atau text-base untuk keterbacaan maksimal.
+3. Tata Letak Global (Global Layout)
+Header: Berisi logo SAMSAT/Pemerintah Daerah, nama aplikasi, dan dropdown profil pengguna (untuk Logout atau masuk ke Settings).
+Sidebar (Desktop): Navigasi tetap di sebelah kiri.
+Bottom/Hamburger Nav (Mobile): Sidebar disembunyikan di balik tombol hamburger, atau menggunakan Bottom Navigation untuk menu utama pegawai.
+Content Area: Area putih/abu-abu terang (bg-slate-50) di sebelah kanan sidebar yang memuat konten spesifik secara dinamis (SPA) tanpa reload halaman.
+4. Komponen Halaman Utama (Key Interface Components)
+A. Layar Login & Force Change Password
+UI: Desain Card (kotak) di tengah layar dengan bayangan lembut (shadow-lg).
+UX: Input field untuk NIP dan Password. Terdapat tombol mata (ikon eye) untuk melihat/menyembunyikan password. Saat login berhasil namun menggunakan password default, Card berubah secara halus (animasi transisi) menjadi formulir "Ubah Password Wajib" tanpa memuat ulang halaman.
+B. Dashboard Pegawai
+UI:
+Widget Progress Bar melingkar atau horizontal di bagian atas: "Kelengkapan Dokumen: 80%".
+Grid Cards menampilkan status cepat: "3 Dokumen Terverifikasi", "1 Menunggu", "1 Perlu Revisi".
+UX: Jika ada dokumen berstatus "Ditolak", kotak tersebut diberi highlight (warna oranye/merah) dengan tombol "Lihat Catatan" yang langsung membuka Modal detail.
+C. Arsip Dokumen (Pegawai)
+UI: Tabel atau List View yang memuat nama dokumen (misal: SK PNS, KTP) dan Badge warna status di sebelahnya.
+UX (Upload Modal):
+Saat tombol "Upload" ditekan, muncul Modal pop-up.
+Area Upload memiliki indikator teks "Pilih File (PDF/JPG/PNG, Maks. 5MB)".
+Saat tombol submit ditekan, tombol berubah menjadi tulisan "Mengunggah..." disertai spinner. Tombol dikunci (disabled) untuk mencegah klik ganda (mencegah duplikasi upload ke Google Drive).
+D. Verifikasi Dokumen (Admin TU)
+UI (Split-View): Ini adalah fitur andalan (killer feature) untuk Admin. Layar dibagi dua secara vertikal.
+Kolom Kiri (60% layar): Menampilkan iframe pratinjau dokumen dari Google Drive atau tag <img> jika formatnya JPG/PNG.
+Kolom Kanan (40% layar): Menampilkan data pegawai (Nama, NIP, Jenis Dokumen yang sedang dicek) dan tombol aksi besar: ✅ Setujui (Hijau) dan ❌ Tolak (Merah).
+UX: Jika "Tolak" ditekan, muncul text area yang wajib diisi: "Alasan penolakan". Setelah submit, layar langsung memuat dokumen berikutnya di antrean secara otomatis tanpa refresh.
+5. Perspektif Peran (Role Perspectives)
+Senior Product Manager: Desain UI ini memastikan adopsi aplikasi berjalan cepat. Visualisasi persentase kelengkapan di dashboard pegawai akan memicu efek psikologis agar mereka segera melengkapi dokumen yang kurang.
+Senior System Analyst: Toast Notification dan Loading State pada setiap operasi Create/Update/Delete akan meminimalkan keluhan "Apakah data saya sudah masuk?" yang sering terjadi pada aplikasi berbasis Google Apps Script akibat latensi eksekusi script .gs.
+Senior UX Designer: Split-view pada layar verifikasi Admin akan memangkas waktu kerja secara drastis. Admin tidak perlu lagi mengunduh file, membukanya di aplikasi lain, lalu kembali ke browser untuk memberikan persetujuan. Semuanya terjadi di satu layar.
+Senior Software Architect: Pengiriman file 5MB ke GAS memakan waktu. Secara arsitektur frontend, UI wajib menampilkan overlay loading yang memblokir layar belakang (prevent background interaction) selama proses google.script.run mengeksekusi payload base64 ke Drive.
+Quality Gate
+Status:
+✅ PASSED
+Validation Summary
+Completeness: PASS (Mencakup komponen utama, warna, layout, dan interaksi).
+Consistency: PASS (Selaras dengan keputusan SPA, Tailwind v4, batas ukuran file, dan fitur verifikasi).
+Business Logic: PASS (Desain memfasilitasi kebutuhan TU dan Pegawai secara spesifik).
+User Perspective: PASS (Split-view untuk Admin dan upload modal untuk Pegawai sangat efektif).
+Technical Feasibility: PASS (Tailwind CSS v4 berjalan mulus di HTML GAS, iframe preview dari Google Drive didukung asalkan izin file sesuai).
+Missing Requirements: PASS (Sudah memperhitungkan state loading dan pencegahan klik ganda yang krusial untuk arsitektur serverless GAS).
+Contradiction: PASS
+Issues Found
+Tidak ada masalah. Konsep UI/UX sudah mengantisipasi batasan teknis Apps Script (seperti latensi jaringan) dengan memanipulasi DOM dan indikator proses.
+Recommendations
+Implementasi Toast Notification: Tambahkan komponen Toast (notifikasi kecil yang melayang di sudut layar lalu menghilang otomatis) untuk memberikan pesan sukses/gagal (misalnya: "✅ File KTP berhasil diunggah" atau "❌ Gagal: File terlalu besar"). Ini sangat meningkatkan UX.
+Fitur Preview Drive: Google Drive terkadang menolak pratinjau (preview) jika menggunakan iframe langsung. Pastikan URL yang digunakan untuk preview adalah format [https://drive.google.com/file/d/FILE_ID/preview](https://drive.google.com/file/d/FILE_ID/preview).
+Required Decisions
+Konfirmasi apakah Anda setuju dengan konsep Split-view untuk Admin dan penggunaan Toast Notification sebagai standar umpan balik (feedback) pengguna?
+Next Step
+STEP berikutnya: STEP 07 — Google Stitch Prompt
+Perintah untuk melanjutkan:
+Jawab konfirmasi terkait Split-view dan Toast Notification, lalu ketik:
+"Lanjut ke STEP 07"

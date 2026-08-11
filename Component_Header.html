@@ -1,0 +1,71 @@
+<!-- ============================================================ -->
+<!-- Component_Header.html — Shared Header Bar                   -->
+<!-- Faithfully reproduces the Stitch Dashboard Admin header      -->
+<!-- ============================================================ -->
+
+<header class="fixed top-0 left-0 right-0 h-16 bg-surface/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-[60] px-4 lg:px-container-margin flex items-center justify-between">
+  <!-- Left: Logo + Title -->
+  <div class="flex items-center gap-3">
+    <!-- Mobile Hamburger -->
+    <button class="lg:hidden p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors" onclick="SIKAP.UI.toggleSidebar()" aria-label="Toggle menu">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+    <!-- Logo -->
+    <img alt="Logo Pemprov NTT" class="h-8 w-auto object-contain hidden sm:block" src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Coat_of_arms_of_East_Nusa_Tenggara.svg/150px-Coat_of_arms_of_East_Nusa_Tenggara.svg.png">
+    <div class="flex flex-col">
+      <span class="font-label-md text-primary leading-tight tracking-tight text-[13px] sm:text-label-md" style="letter-spacing: -0.4px;">UPTD Pendapatan Daerah Wilayah Kota Kupang</span>
+      <span class="font-body-sm text-on-surface-variant hidden sm:block">Sistem Informasi Data dan Dokumen Kepegawaian</span>
+    </div>
+  </div>
+
+  <!-- Right: Actions + Profile -->
+  <div class="flex items-center gap-2 sm:gap-4">
+    <button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors hidden sm:block" aria-label="Pengaturan" onclick="SIKAP.Router.navigate('view-pengaturan')">
+      <span class="material-symbols-outlined">settings</span>
+    </button>
+    <div class="h-8 w-px bg-outline-variant/50 hidden sm:block"></div>
+    <!-- User Dropdown -->
+    <div class="relative" id="header-profile-dropdown">
+      <button class="flex items-center gap-2 px-2 sm:px-3 py-1.5 hover:bg-surface-container-high rounded-lg transition-colors" onclick="SIKAP.UI.toggleProfileDropdown()">
+        <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+          <span class="material-symbols-outlined text-on-primary text-[18px] user-initials">U</span>
+        </div>
+        <span class="material-symbols-outlined text-on-surface-variant">arrow_drop_down</span>
+      </button>
+      <!-- Dropdown Menu -->
+      <div id="profile-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-56 bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant/30 overflow-hidden z-50">
+        <div class="px-4 py-3 border-b border-outline-variant/20">
+          <p class="font-label-md text-on-surface truncate" id="header-user-name">—</p>
+          <p class="font-body-sm text-on-surface-variant" id="header-user-role-text">—</p>
+        </div>
+        <div class="py-1">
+          <button class="w-full px-4 py-2.5 text-left font-body-md text-on-surface hover:bg-surface-container-high transition-colors flex items-center gap-3" onclick="SIKAP.Router.navigate('view-pengaturan'); SIKAP.UI.toggleProfileDropdown();">
+            <span class="material-symbols-outlined text-[20px] text-on-surface-variant">settings</span>
+            Pengaturan
+          </button>
+          <button class="w-full px-4 py-2.5 text-left font-body-md text-error hover:bg-error-container transition-colors flex items-center gap-3" onclick="SIKAP.Auth.logout()">
+            <span class="material-symbols-outlined text-[20px]">logout</span>
+            Keluar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+  // Profile dropdown toggle
+  SIKAP.UI.toggleProfileDropdown = function() {
+    var menu = document.getElementById('profile-dropdown-menu');
+    menu.classList.toggle('hidden');
+  };
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    var dropdown = document.getElementById('header-profile-dropdown');
+    var menu = document.getElementById('profile-dropdown-menu');
+    if (dropdown && menu && !dropdown.contains(e.target)) {
+      menu.classList.add('hidden');
+    }
+  });
+</script>

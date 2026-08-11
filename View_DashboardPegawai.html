@@ -1,0 +1,149 @@
+<!-- ============================================================ -->
+<!-- View_DashboardPegawai.html — Employee Dashboard             -->
+<!-- Faithfully reproduces Halaman Beranda Pegawai.html           -->
+<!-- Placeholder data — will be connected to backend later       -->
+<!-- ============================================================ -->
+
+<div class="px-6 py-8 lg:px-container-margin lg:py-10 max-w-[1440px] mx-auto w-full space-y-8">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div class="space-y-1">
+      <h1 class="font-h1 text-on-surface">Selamat datang, <span id="pegawai-greeting-name">—</span></h1>
+      <p class="font-body-lg text-on-surface-variant">Berikut adalah ringkasan status kelengkapan data dan dokumen kepegawaian Anda.</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button class="px-4 py-2 rounded-lg bg-surface-container-high text-on-surface font-label-md hover:bg-surface-container transition-colors shadow-sm"
+              onclick="SIKAP.Router.navigate('view-profil-pegawai')">Lihat Profil</button>
+      <button class="px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
+              onclick="SIKAP.Router.navigate('view-arsip-dokumen')">
+        <span class="material-symbols-outlined text-[18px]">upload_file</span>
+        Lengkapi Dokumen
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Progress Card (Left Column) -->
+    <div class="col-span-1 lg:col-span-4 rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-6 flex flex-col justify-between">
+      <div class="space-y-2 mb-6">
+        <h2 class="font-h3 text-on-surface">Kelengkapan Data &amp; Dokumen</h2>
+        <p class="font-body-md text-on-surface-variant">Status kelengkapan berkas wajib untuk pemutakhiran data mandiri.</p>
+      </div>
+      <div class="flex items-center justify-center flex-1 py-8 relative">
+        <!-- Circular Progress Ring -->
+        <svg class="w-48 h-48 transform -rotate-90" viewBox="0 0 100 100">
+          <circle class="stroke-surface-container-highest" cx="50" cy="50" fill="none" r="45" stroke-width="8"></circle>
+          <circle class="stroke-primary transition-all duration-700" cx="50" cy="50" fill="none" r="45"
+                  id="pegawai-progress-ring"
+                  stroke-dasharray="282.74" stroke-dashoffset="282.74" stroke-linecap="round" stroke-width="8"></circle>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span class="font-h1 text-primary" id="pegawai-progress-pct">—</span>
+          <span class="font-label-sm text-on-surface-variant uppercase tracking-wider mt-1">Lengkap</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary & Alerts (Right Column) -->
+    <div class="col-span-1 lg:col-span-8 space-y-6">
+      <!-- Summary Cards Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Terverifikasi -->
+        <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-4 hover:shadow-md transition-shadow">
+          <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
+            <span class="material-symbols-outlined text-emerald-700 text-[18px]">verified</span>
+          </div>
+          <div class="font-h2 text-on-surface" id="pegawai-stat-verified">—</div>
+          <div class="font-label-sm text-on-surface-variant mt-1">Dokumen Terverifikasi</div>
+        </div>
+        <!-- Menunggu -->
+        <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-4 hover:shadow-md transition-shadow">
+          <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center mb-3">
+            <span class="material-symbols-outlined text-amber-700 text-[18px]">pending</span>
+          </div>
+          <div class="font-h2 text-on-surface" id="pegawai-stat-pending">—</div>
+          <div class="font-label-sm text-on-surface-variant mt-1">Menunggu Verifikasi</div>
+        </div>
+        <!-- Perlu Revisi -->
+        <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-4 hover:shadow-md transition-shadow">
+          <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center mb-3">
+            <span class="material-symbols-outlined text-orange-700 text-[18px]">edit_note</span>
+          </div>
+          <div class="font-h2 text-on-surface" id="pegawai-stat-rejected">—</div>
+          <div class="font-label-sm text-on-surface-variant mt-1">Perlu Revisi</div>
+        </div>
+        <!-- Belum Diunggah -->
+        <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-4 hover:shadow-md transition-shadow">
+          <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mb-3">
+            <span class="material-symbols-outlined text-red-700 text-[18px]">warning</span>
+          </div>
+          <div class="font-h2 text-on-surface" id="pegawai-stat-empty">—</div>
+          <div class="font-label-sm text-on-surface-variant mt-1">Belum Diunggah</div>
+        </div>
+      </div>
+
+      <!-- Alert Card (shown when there are rejected docs) -->
+      <div class="rounded-xl bg-error-container p-5 items-start gap-4 hidden" id="pegawai-alert-card">
+        <span class="material-symbols-outlined text-on-error-container mt-0.5">error</span>
+        <div class="flex-1">
+          <h3 class="font-label-md text-on-error-container">Perlu Perhatian</h3>
+          <p class="font-body-md text-on-error-container/80 mt-1" id="pegawai-alert-text">Ada dokumen yang perlu direvisi.</p>
+        </div>
+        <button class="px-3 py-1.5 rounded-lg bg-surface-container-lowest text-error font-label-sm shadow-sm hover:bg-surface-container-lowest/90 transition-colors whitespace-nowrap"
+                onclick="SIKAP.Router.navigate('view-arsip-dokumen')">
+          Lihat Catatan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Document Status List Section -->
+  <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 overflow-hidden">
+    <div class="px-6 py-4 border-b border-outline-variant/30 bg-surface flex justify-between items-center">
+      <h3 class="font-h3 text-on-surface">Daftar Status Dokumen</h3>
+      <button class="text-primary font-label-md hover:underline flex items-center gap-1"
+              onclick="SIKAP.Router.navigate('view-arsip-dokumen')">
+        Lihat Semua <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+      </button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-surface">
+            <th class="px-6 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider">Nama Dokumen</th>
+            <th class="px-6 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider hidden sm:table-cell">Kategori</th>
+            <th class="px-6 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider">Status</th>
+            <th class="px-6 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider text-right">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-outline-variant/30" id="pegawai-doc-table-body">
+          <!-- Populated dynamically in future phase -->
+          <tr>
+            <td colspan="4" class="px-6 py-8 text-center text-on-surface-variant font-body-md">
+              <span class="material-symbols-outlined text-3xl text-outline mb-2 block">description</span>
+              Data dokumen akan dimuat dari sistem.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Update employee greeting when view is shown
+  document.addEventListener('DOMContentLoaded', function() {
+    // Set employee greeting name from user state
+    var originalShow = SIKAP.UI.showView;
+    SIKAP.UI.showView = function(viewId) {
+      originalShow(viewId);
+      if (viewId === 'view-dashboard-pegawai' && SIKAP.state.user) {
+        var greetEl = document.getElementById('pegawai-greeting-name');
+        if (greetEl) {
+          greetEl.textContent = SIKAP.state.user.nama || '—';
+        }
+      }
+    };
+  });
+</script>

@@ -1,0 +1,397 @@
+// ============================================================
+// Auth.gs — Authentication & Session Management
+// ============================================================
+
+// Session expiry in hours
+var SESSION_EXPIRY_HOURS = 12;
+
+/**
+ * Authenticates a user by NIP and password.
+ * Called from frontend via google.script.run.
+ * @param {string} nip - The NIP (username).
+ * @param {string} password - The plain text password.
+ * @returns {Object} Result object with success, data, message.
+ */
+function login(nip, password) {
+  try {
+    if (!nip || !password) {
+      return { success: false, message: 'NIP dan Password harus diisi.' };
+    }
+
+    // Find user by NIP
+    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, nip);
+    if (!user) {
+      return { success: false, message: 'Kredensial tidak valid.' };
+    }
+
+    var userData = user.data;
+
+    // Check account status
+    var statusAkun = userData[COL_PEGAWAI.STATUS_AKUN];
+    if (statusAkun === 'Nonaktif') {
+      return { success: false, message: 'Akun tidak aktif. Silakan hubungi administrator.' };
+    }
+
+    // Verify password
+    var passwordHash = hashPassword(password);
+    if (passwordHash !== userData[COL_PEGAWAI.PASSWORD_HASH]) {
+      return { success: false, message: 'Kredensial tidak valid.' };
+    }
+
+    // Check if using default password (last 6 digits of NIP)
+    var defaultPassword = getDefaultPassword(nip);
+    var isDefaultPassword = (password === defaultPassword);
+
+    // Create session token
+    var token = generateUUID();
+    var now = new Date();
+    var expiry = new Date(now.getTime() + SESSION_EXPIRY_HOURS * 60 * 60 * 1000);
+
+    // Store session in Sesi_Login sheet
+    appendRow(SHEET_NAMES.SESI_LOGIN, [
+      token,
+      nip,
+      getTimestamp(),
+      Utilities.formatDate(expiry, 'Asia/Makassar', "yyyy-MM-dd'T'HH:mm:ss")
+    ]);
+
+    // Log the login action
+    logActivity(nip, userData[COL_PEGAWAI.ROLE], 'LOGIN', 'USER', nip, 'Login berhasil', 'SUCCESS');
+
+    return {
+      success: true,
+      data: {
+        token: token,
+        nip: nip,
+        nama: userData[COL_PEGAWAI.NAMA_LENGKAP],
+        role: userData[COL_PEGAWAI.ROLE],
+        statusKepegawaian: userData[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
+        pangkatGolongan: userData[COL_PEGAWAI.PANGKAT_GOLONGAN],
+        jabatan: userData[COL_PEGAWAI.JABATAN],
+        forceChangePassword: isDefaultPassword
+      },
+      message: 'Login berhasil.'
+    };
+  } catch (e) {
+    Logger.log('Login error: ' + e.toString());
+    return { success: false, message: 'Terjadi kesalahan sistem. Silakan coba lagi.' };
+  }
+}
+
+/**
+ * Validates a session token server-side.
+ * CRITICAL: This is called before every protected operation.
+ * @param {string} token - The session token from localStorage.
+ * @returns {Object|null} User session data or null if invalid.
+ */
+function validateSession(token) {
+  if (!token) return null;
+
+  var allSessions = getAllData(SHEET_NAMES.SESI_LOGIN);
+  var now = new Date();
+
+  for (var i = 0; i < allSessions.length; i++) {
+    if (allSessions[i][COL_SESI.TOKEN_ID] === token) {
+      var expiryStr = allSessions[i][COL_SESI.WAKTU_EXPIRED];
+      var expiry = new Date(expiryStr);
+
+      if (now < expiry) {
+        // Token is valid — retrieve user data
+        var nip = allSessions[i][COL_SESI.NIP];
+        var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, nip);
+        if (user && user.data[COL_PEGAWAI.STATUS_AKUN] !== 'Nonaktif') {
+          var defaultPw = getDefaultPassword(nip);
+          var defaultPwHash = hashPassword(defaultPw);
+          var isDefaultPassword = (user.data[COL_PEGAWAI.PASSWORD_HASH] === defaultPwHash);
+
+          return {
+            nip: nip,
+            nama: user.data[COL_PEGAWAI.NAMA_LENGKAP],
+            role: user.data[COL_PEGAWAI.ROLE],
+            statusKepegawaian: user.data[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
+            pangkatGolongan: user.data[COL_PEGAWAI.PANGKAT_GOLONGAN],
+            jabatan: user.data[COL_PEGAWAI.JABATAN],
+            forceChangePassword: isDefaultPassword
+          };
+        }
+      }
+      break;
+    }
+  }
+  return null;
+}
+
+/**
+ * Checks session validity. Called from frontend.
+ * @param {string} token - Session token.
+ * @returns {Object} Result with user data or error.
+ */
+function checkSession(token) {
+  try {
+    var session = validateSession(token);
+    if (session) {
+      return { success: true, data: session };
+    }
+    return { success: false, message: 'Sesi tidak valid atau sudah berakhir.' };
+  } catch (e) {
+    Logger.log('CheckSession error: ' + e.toString());
+    return { success: false, message: 'Terjadi kesalahan sistem.' };
+  }
+}
+
+/**
+ * Changes a user's password.
+ * Used for both force-change and voluntary change.
+ * @param {string} token - Session token.
+ * @param {string} newPassword - The new password.
+ * @param {string} currentPassword - Current password (optional for force-change).
+ * @returns {Object} Result object.
+ */
+function changePassword(token, newPassword, currentPassword) {
+  try {
+    var session = validateSession(token);
+    if (!session) {
+      return { success: false, message: 'Sesi tidak valid.' };
+    }
+
+    // Validate new password requirements
+    if (!newPassword || newPassword.length < 8) {
+      return { success: false, message: 'Password minimal 8 karakter.' };
+    }
+    if (!/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword)) {
+      return { success: false, message: 'Password harus mengandung huruf besar dan kecil.' };
+    }
+    if (!/\d/.test(newPassword)) {
+      return { success: false, message: 'Password harus mengandung minimal 1 angka.' };
+    }
+
+    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, session.nip);
+    if (!user) {
+      return { success: false, message: 'Data pengguna tidak ditemukan.' };
+    }
+
+    // If this is a voluntary password change (not force-change), verify current password
+    if (currentPassword) {
+      var currentHash = hashPassword(currentPassword);
+      if (currentHash !== user.data[COL_PEGAWAI.PASSWORD_HASH]) {
+        return { success: false, message: 'Password saat ini salah.' };
+      }
+    }
+
+    // Ensure new password is not the same as default
+    var defaultPw = getDefaultPassword(session.nip);
+    if (newPassword === defaultPw) {
+      return { success: false, message: 'Password baru tidak boleh sama dengan password default.' };
+    }
+
+    // Update password hash
+    var newHash = hashPassword(newPassword);
+    updateCell(SHEET_NAMES.DATA_PEGAWAI, user.rowIndex, COL_PEGAWAI.PASSWORD_HASH + 1, newHash);
+
+    // Update account status to 'Aktif' if it was 'Ganti_Password'
+    if (user.data[COL_PEGAWAI.STATUS_AKUN] === 'Ganti_Password') {
+      updateCell(SHEET_NAMES.DATA_PEGAWAI, user.rowIndex, COL_PEGAWAI.STATUS_AKUN + 1, 'Aktif');
+    }
+
+    // Log the action
+    logActivity(session.nip, session.role, 'PASSWORD_CHANGE', 'USER', session.nip, 'Password berhasil diubah', 'SUCCESS');
+
+    return { success: true, message: 'Password berhasil diubah.' };
+  } catch (e) {
+    Logger.log('ChangePassword error: ' + e.toString());
+    return { success: false, message: 'Terjadi kesalahan sistem.' };
+  }
+}
+
+/**
+ * Logs out a user by deleting their session.
+ * @param {string} token - Session token.
+ * @returns {Object} Result object.
+ */
+function logout(token) {
+  try {
+    if (token) {
+      // Get user info before deleting session for audit log
+      var session = validateSession(token);
+      
+      // Delete the session
+      deleteByPrimaryKey(SHEET_NAMES.SESI_LOGIN, token);
+
+      if (session) {
+        logActivity(session.nip, session.role, 'LOGOUT', 'USER', session.nip, 'Logout berhasil', 'SUCCESS');
+      }
+    }
+    return { success: true, message: 'Berhasil keluar.' };
+  } catch (e) {
+    Logger.log('Logout error: ' + e.toString());
+    return { success: true, message: 'Berhasil keluar.' }; // Always return success for logout
+  }
+}
+
+/**
+ * Logs an activity to the Log_Aktivitas sheet.
+ * @param {string} actorNip - NIP of the actor.
+ * @param {string} actorRole - Role of the actor.
+ * @param {string} action - Action identifier.
+ * @param {string} targetType - Target type (USER, DOCUMENT, etc.).
+ * @param {string} targetId - Target identifier.
+ * @param {string} description - Human-readable description.
+ * @param {string} result - Result (SUCCESS, FAILURE).
+ */
+function logActivity(actorNip, actorRole, action, targetType, targetId, description, result) {
+  try {
+    appendRow(SHEET_NAMES.LOG_AKTIVITAS, [
+      generateUUID(),
+      getTimestamp(),
+      actorNip,
+      actorRole,
+      action,
+      targetType,
+      targetId,
+      description,
+      result
+    ]);
+  } catch (e) {
+    Logger.log('LogActivity error: ' + e.toString());
+    // Don't throw — logging failure should not break main operations
+  }
+}
+
+/**
+ * Seeds initial data for development/testing.
+ * Run this manually once to populate the spreadsheet.
+ */
+function seedData() {
+  var ss = getSpreadsheet();
+  
+  // --- Create or get sheets ---
+  var sheets = {};
+  for (var key in SHEET_NAMES) {
+    var name = SHEET_NAMES[key];
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) {
+      sheet = ss.insertSheet(name);
+    }
+    sheets[name] = sheet;
+  }
+
+  // --- Data_Pegawai ---
+  var pegawaiSheet = sheets[SHEET_NAMES.DATA_PEGAWAI];
+  pegawaiSheet.clear();
+  pegawaiSheet.appendRow([
+    'NIP', 'Password_Hash', 'Role', 'Status_Akun', 'Nama_Lengkap',
+    'Status_Kepegawaian', 'Pangkat_Golongan', 'Jabatan', 'No_HP', 'Alamat', 'Folder_Drive_ID'
+  ]);
+  
+  // Admin user — default password is last 6 digits of NIP: "011002"
+  pegawaiSheet.appendRow([
+    '198506122010011002',
+    hashPassword('011002'),
+    'Admin',
+    'Aktif',
+    'Maria Klementina, S.Sos',
+    'PNS',
+    'Penata / III.c',
+    'Staf Sub-bagian TU',
+    '081234567890',
+    'Jl. Timor Raya No. 12, Kupang',
+    ''
+  ]);
+
+  // Employee user — default password: "022003"
+  pegawaiSheet.appendRow([
+    '199003152015022003',
+    hashPassword('022003'),
+    'Pegawai',
+    'Aktif',
+    'Budi Santoso, S.Kom',
+    'PNS',
+    'Penata Muda / III.a',
+    'Staf Pelayanan',
+    '085678901234',
+    'Jl. El Tari No. 5, Kupang',
+    ''
+  ]);
+
+  // Another employee — default password: "033001"
+  pegawaiSheet.appendRow([
+    '198812012020033001',
+    hashPassword('033001'),
+    'Pegawai',
+    'Aktif',
+    'Antonius Ola, A.Md',
+    'CPNS',
+    'Pengatur / II.c',
+    'Staf Pendataan',
+    '082345678901',
+    'Jl. Lalamentik No. 8, Kupang',
+    ''
+  ]);
+
+  // P3K employee — default password: "044001"
+  pegawaiSheet.appendRow([
+    '200105202022044001',
+    hashPassword('044001'),
+    'Pegawai',
+    'Aktif',
+    'Siti Aminah',
+    'P3K',
+    '-',
+    'Staf Administrasi',
+    '087654321098',
+    'Jl. Soekarno No. 3, Kupang',
+    ''
+  ]);
+
+  // Inactive employee for testing — default password: "055001"
+  pegawaiSheet.appendRow([
+    '197501012005055001',
+    hashPassword('055001'),
+    'Pegawai',
+    'Nonaktif',
+    'Ahmad Fauzi, S.H',
+    'PNS',
+    'Pembina / IV.a',
+    'Staf (Pensiun)',
+    '089012345678',
+    'Jl. Veteran No. 20, Kupang',
+    ''
+  ]);
+
+  // --- Master_Dokumen ---
+  var dokumenSheet = sheets[SHEET_NAMES.MASTER_DOKUMEN];
+  dokumenSheet.clear();
+  dokumenSheet.appendRow(['ID_Dokumen', 'Nama_Dokumen', 'Kategori', 'Status_Wajib']);
+  dokumenSheet.appendRow(['DOC-KTP', 'Kartu Tanda Penduduk (KTP)', 'Dokumen Pribadi', 'Ya']);
+  dokumenSheet.appendRow(['DOC-KK', 'Kartu Keluarga (KK)', 'Dokumen Pribadi', 'Ya']);
+  dokumenSheet.appendRow(['DOC-NPWP', 'NPWP', 'Dokumen Pribadi', 'Ya']);
+  dokumenSheet.appendRow(['DOC-SK-CPNS', 'SK CPNS', 'Dokumen Kepegawaian', 'Ya']);
+  dokumenSheet.appendRow(['DOC-SK-PNS', 'SK PNS', 'Dokumen Kepegawaian', 'Ya']);
+  dokumenSheet.appendRow(['DOC-SPMT', 'Surat Pernyataan Melaksanakan Tugas (SPMT)', 'Dokumen Kepegawaian', 'Ya']);
+  dokumenSheet.appendRow(['DOC-KARPEG', 'Kartu Pegawai (KARPEG)', 'Dokumen Kepegawaian', 'Tidak']);
+  dokumenSheet.appendRow(['DOC-TASPEN', 'Kartu TASPEN', 'Dokumen Kepegawaian', 'Tidak']);
+
+  // --- Arsip_Dokumen ---
+  var arsipSheet = sheets[SHEET_NAMES.ARSIP_DOKUMEN];
+  arsipSheet.clear();
+  arsipSheet.appendRow([
+    'ID_Arsip', 'NIP', 'ID_Dokumen', 'File_Drive_ID', 'File_URL',
+    'Status_Verifikasi', 'Catatan_Admin', 'Waktu_Upload', 'Waktu_Verifikasi', 'NIP_Verifier'
+  ]);
+
+  // --- Sesi_Login ---
+  var sesiSheet = sheets[SHEET_NAMES.SESI_LOGIN];
+  sesiSheet.clear();
+  sesiSheet.appendRow(['Token_ID', 'NIP', 'Waktu_Dibuat', 'Waktu_Expired']);
+
+  // --- Log_Aktivitas ---
+  var logSheet = sheets[SHEET_NAMES.LOG_AKTIVITAS];
+  logSheet.clear();
+  logSheet.appendRow([
+    'Log_ID', 'Timestamp', 'Actor_NIP', 'Actor_Role', 'Action',
+    'Target_Type', 'Target_ID', 'Description', 'Result'
+  ]);
+
+  Logger.log('Seed data created successfully.');
+  return 'Seed data berhasil dibuat.';
+}

@@ -1,0 +1,97 @@
+<!-- ============================================================ -->
+<!-- Component_Toast.html — Toast Notification System             -->
+<!-- Reproduces the Stitch Global UI System toast design          -->
+<!-- ============================================================ -->
+
+<!-- Toast Container (Fixed Top Right) -->
+<div id="toast-container" class="fixed top-20 right-4 sm:right-container-margin flex flex-col gap-sm z-[150] max-w-sm w-full pointer-events-none">
+</div>
+
+<script>
+  SIKAP.Toast = {};
+
+  /**
+   * Shows a toast notification.
+   * @param {string} message - The message to display.
+   * @param {string} type - 'success', 'error', 'warning', 'info'.
+   * @param {number} duration - Auto-dismiss duration in ms (default 4000).
+   */
+  SIKAP.Toast.show = function(message, type, duration) {
+    type = type || 'info';
+    duration = duration || 4000;
+
+    var container = document.getElementById('toast-container');
+    if (!container) return;
+
+    // Define toast styles per type (from Stitch Global UI System Components)
+    var styles = {
+      success: {
+        border: 'border-primary',
+        icon: 'check_circle',
+        iconColor: 'text-primary'
+      },
+      error: {
+        border: 'border-error',
+        icon: 'error',
+        iconColor: 'text-error'
+      },
+      warning: {
+        border: 'border-[#f59e0b]',
+        icon: 'warning',
+        iconColor: 'text-[#f59e0b]'
+      },
+      info: {
+        border: 'border-[#3b82f6]',
+        icon: 'info',
+        iconColor: 'text-[#3b82f6]'
+      }
+    };
+
+    var s = styles[type] || styles.info;
+
+    var toast = document.createElement('div');
+    toast.className = 'bg-surface-container-lowest shadow-md rounded border-l-4 ' + s.border + ' p-md flex items-start gap-sm pointer-events-auto toast-enter';
+    toast.innerHTML =
+      '<span class="material-symbols-outlined ' + s.iconColor + ' shrink-0">' + s.icon + '</span>' +
+      '<div class="flex-1"><p class="font-label-md text-label-md text-on-surface">' + SIKAP.Toast.escapeHtml(message) + '</p></div>' +
+      '<button class="text-outline hover:text-on-surface transition-colors shrink-0" onclick="SIKAP.Toast.dismiss(this.parentElement)">' +
+      '<span class="material-symbols-outlined text-[18px]">close</span>' +
+      '</button>';
+
+    container.appendChild(toast);
+
+    // Auto-dismiss
+    var timer = setTimeout(function() {
+      SIKAP.Toast.dismiss(toast);
+    }, duration);
+
+    toast._timer = timer;
+  };
+
+  /**
+   * Dismisses a toast.
+   * @param {HTMLElement} toast - The toast element.
+   */
+  SIKAP.Toast.dismiss = function(toast) {
+    if (!toast || toast._dismissed) return;
+    toast._dismissed = true;
+    if (toast._timer) clearTimeout(toast._timer);
+
+    toast.classList.remove('toast-enter');
+    toast.classList.add('toast-exit');
+    setTimeout(function() {
+      if (toast.parentElement) toast.parentElement.removeChild(toast);
+    }, 300);
+  };
+
+  /**
+   * Escapes HTML to prevent XSS in toast messages.
+   * @param {string} str - The raw string.
+   * @returns {string} Escaped string.
+   */
+  SIKAP.Toast.escapeHtml = function(str) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  };
+</script>

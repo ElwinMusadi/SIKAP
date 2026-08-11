@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistem Informasi Data dan Dokumen Kepegawaian UPTD Pendapatan Daerah Wilayah Kota Kupang">
+  <title>SIKAP — Sistem Informasi Kepegawaian</title>
+
+  <!-- Tailwind CSS v4 CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-container": "#e5eeff",
+            "primary-fixed": "#dce1ff",
+            "secondary-fixed-dim": "#b9c7e0",
+            "on-surface": "#0b1c30",
+            "surface-container-highest": "#d3e4fe",
+            "on-tertiary-container": "#f39461",
+            "on-secondary-fixed": "#0d1c2f",
+            "on-secondary-fixed-variant": "#3a485c",
+            "secondary-container": "#d5e3fd",
+            "on-surface-variant": "#444651",
+            "error": "#ba1a1a",
+            "on-primary-container": "#90a8ff",
+            "on-secondary-container": "#57657b",
+            "on-background": "#0b1c30",
+            "tertiary-fixed-dim": "#ffb691",
+            "error-container": "#ffdad6",
+            "surface-container-lowest": "#ffffff",
+            "on-primary-fixed-variant": "#264191",
+            "secondary": "#515f74",
+            "on-tertiary-fixed-variant": "#773205",
+            "tertiary-fixed": "#ffdbcb",
+            "surface-dim": "#cbdbf5",
+            "inverse-primary": "#b6c4ff",
+            "primary-fixed-dim": "#b6c4ff",
+            "primary": "#00236f",
+            "surface-container-high": "#dce9ff",
+            "inverse-surface": "#213145",
+            "outline-variant": "#c5c5d3",
+            "outline": "#757682",
+            "background": "#f8f9ff",
+            "surface-tint": "#4059aa",
+            "surface-container-low": "#eff4ff",
+            "on-tertiary-fixed": "#341100",
+            "on-primary": "#ffffff",
+            "tertiary": "#4b1c00",
+            "on-tertiary": "#ffffff",
+            "inverse-on-surface": "#eaf1ff",
+            "secondary-fixed": "#d5e3fd",
+            "on-primary-fixed": "#00164e",
+            "surface": "#f8f9ff",
+            "on-secondary": "#ffffff",
+            "tertiary-container": "#6e2c00",
+            "surface-bright": "#f8f9ff",
+            "on-error-container": "#93000a",
+            "on-error": "#ffffff",
+            "primary-container": "#1e3a8a",
+            "surface-variant": "#d3e4fe"
+          },
+          borderRadius: {
+            DEFAULT: "0.125rem",
+            lg: "0.25rem",
+            xl: "0.5rem",
+            full: "0.75rem"
+          },
+          spacing: {
+            xs: "4px",
+            xl: "32px",
+            gutter: "16px",
+            md: "16px",
+            unit: "4px",
+            "container-margin": "24px",
+            lg: "24px",
+            sm: "8px"
+          },
+          fontFamily: {
+            "label-sm": ["Inter", "sans-serif"],
+            "h1-mobile": ["Inter", "sans-serif"],
+            "body-md": ["Inter", "sans-serif"],
+            "body-lg": ["Inter", "sans-serif"],
+            "label-md": ["Inter", "sans-serif"],
+            "h3": ["Inter", "sans-serif"],
+            "h2": ["Inter", "sans-serif"],
+            "h1": ["Inter", "sans-serif"],
+            "body-sm": ["Inter", "sans-serif"]
+          },
+          fontSize: {
+            "label-sm": ["12px", { lineHeight: "16px", fontWeight: "500" }],
+            "h1-mobile": ["24px", { lineHeight: "32px", fontWeight: "700" }],
+            "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+            "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+            "label-md": ["14px", { lineHeight: "20px", fontWeight: "600" }],
+            "h3": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+            "h2": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "h1": ["30px", { lineHeight: "38px", letterSpacing: "-0.02em", fontWeight: "700" }],
+            "body-sm": ["12px", { lineHeight: "18px", fontWeight: "400" }]
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <!-- Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+  <!-- Custom Styles -->
+  <?!= include('CSS'); ?>
+</head>
+<body class="bg-background font-body-md text-on-surface min-h-screen">
+
+  <!-- ============================================ -->
+  <!-- FULL-PAGE INITIAL LOADING SCREEN             -->
+  <!-- ============================================ -->
+  <div id="app-loading" class="fixed inset-0 bg-background z-[200] flex flex-col items-center justify-center gap-4 transition-opacity duration-300">
+    <svg class="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+    </svg>
+    <p class="font-label-md text-on-surface-variant">Memuat SIKAP...</p>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- LOGIN VIEW (No shell — standalone)           -->
+  <!-- ============================================ -->
+  <div id="view-login" class="hidden">
+    <?!= include('View_Login'); ?>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- FORCE CHANGE PASSWORD VIEW (standalone)      -->
+  <!-- ============================================ -->
+  <div id="view-force-change-password" class="hidden">
+    <?!= include('View_ForceChangePassword'); ?>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- APP SHELL (Header + Sidebar + Content)       -->
+  <!-- ============================================ -->
+  <div id="app-shell" class="hidden">
+    <!-- Header -->
+    <?!= include('Component_Header'); ?>
+
+    <!-- Sidebar -->
+    <?!= include('Component_Sidebar'); ?>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-inverse-surface/40 backdrop-blur-sm z-40 hidden lg:hidden" onclick="SIKAP.UI.toggleSidebar()"></div>
+
+    <!-- Main Content Area -->
+    <div class="lg:pl-72 pt-16 min-h-screen transition-all duration-300">
+      <main class="relative">
+        <!-- Dashboard Admin -->
+        <div id="view-dashboard-admin" class="hidden view-container">
+          <?!= include('View_DashboardAdmin'); ?>
+        </div>
+
+        <!-- Dashboard Pegawai -->
+        <div id="view-dashboard-pegawai" class="hidden view-container">
+          <?!= include('View_DashboardPegawai'); ?>
+        </div>
+
+        <!-- Profil Pegawai (Placeholder) -->
+        <div id="view-profil-pegawai" class="hidden view-container">
+          <div class="px-6 py-8 lg:px-container-margin lg:py-10 max-w-[1440px] mx-auto">
+            <h1 class="font-h1 text-h1 text-on-surface">Profil Pegawai</h1>
+            <p class="font-body-lg text-body-lg text-on-surface-variant mt-2">Halaman ini akan diimplementasikan di fase selanjutnya.</p>
+          </div>
+        </div>
+
+        <!-- Arsip Dokumen (Placeholder) -->
+        <div id="view-arsip-dokumen" class="hidden view-container">
+          <div class="px-6 py-8 lg:px-container-margin lg:py-10 max-w-[1440px] mx-auto">
+            <h1 class="font-h1 text-h1 text-on-surface">Arsip Dokumen</h1>
+            <p class="font-body-lg text-body-lg text-on-surface-variant mt-2">Halaman ini akan diimplementasikan di fase selanjutnya.</p>
+          </div>
+        </div>
+
+        <!-- Master Data Pegawai (Placeholder) -->
+        <div id="view-master-data-pegawai" class="hidden view-container">
+          <div class="px-6 py-8 lg:px-container-margin lg:py-10 max-w-[1440px] mx-auto">
+            <h1 class="font-h1 text-h1 text-on-surface">Master Data Pegawai</h1>
+            <p class="font-body-lg text-body-lg text-on-surface-variant mt-2">Halaman ini akan diimplementasikan di fase selanjutnya.</p>
+          </div>
+        </div>
+
+        <!-- Verifikasi Dokumen (Placeholder) -->
+        <div id="view-verifikasi-dokumen" class="hidden view-container">
+          <div class="px-6 py-8 lg:px-container-margin lg:py-10 max-w-[1440px] mx-auto">
+            <h1 class="font-h1 text-h1 text-on-surface">Verifikasi Dokumen</h1>
+            <p class="font-body-lg text-body-lg text-on-surface-variant mt-2">Halaman ini akan diimplementasikan di fase selanjutnya.</p>
+          </div>
+        </div>
+
+        <!-- Pengaturan (Placeholder) -->
+        <div id="view-pengaturan" class="hidden view-container">
+          <div class="px-6 py-8 lg:px-container-margin lg:py-10 max-w-[1440px] mx-auto">
+            <h1 class="font-h1 text-h1 text-on-surface">Pengaturan</h1>
+            <p class="font-body-lg text-body-lg text-on-surface-variant mt-2">Halaman ini akan diimplementasikan di fase selanjutnya.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- GLOBAL COMPONENTS                            -->
+  <!-- ============================================ -->
+  <?!= include('Component_Toast'); ?>
+  <?!= include('Component_Loading'); ?>
+
+  <!-- ============================================ -->
+  <!-- SCRIPTS                                      -->
+  <!-- ============================================ -->
+  <?!= include('JS_App'); ?>
+  <?!= include('JS_Router'); ?>
+  <?!= include('JS_Auth'); ?>
+
+</body>
+</html>

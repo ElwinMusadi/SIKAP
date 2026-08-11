@@ -1,0 +1,186 @@
+<!-- ============================================================ -->
+<!-- View_DashboardAdmin.html — Admin Dashboard                  -->
+<!-- Faithfully reproduces Halaman Dashboard Admin.html           -->
+<!-- Placeholder data — will be connected to backend later       -->
+<!-- ============================================================ -->
+
+<div class="px-6 lg:px-container-margin py-8 w-full max-w-[1440px] mx-auto space-y-8">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 w-full">
+    <div class="flex flex-col space-y-2">
+      <h1 class="font-h1 text-h1 text-on-surface">Dashboard</h1>
+      <p class="font-body-lg text-body-lg text-on-surface-variant">Ringkasan data kepegawaian dan aktivitas terbaru.</p>
+    </div>
+    <div class="flex gap-3">
+      <button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-primary-container transition-colors shadow-sm"
+              onclick="SIKAP.Router.navigate('view-master-data-pegawai')">
+        <span class="material-symbols-outlined text-[20px]">person_add</span>
+        Tambah Pegawai
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Cards Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+    <!-- Total -->
+    <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group">
+      <div class="flex justify-between items-start z-10 relative">
+        <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Total Pegawai</span>
+        <span class="material-symbols-outlined text-secondary opacity-70 group-hover:opacity-100 transition-opacity">group</span>
+      </div>
+      <div class="z-10 relative">
+        <span class="font-h1-mobile text-[40px] leading-tight font-bold text-on-surface" id="admin-stat-total">—</span>
+      </div>
+      <div class="absolute -bottom-6 -right-6 w-24 h-24 bg-primary/5 rounded-full blur-xl group-hover:bg-primary/10 transition-colors"></div>
+    </div>
+
+    <!-- PNS -->
+    <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group">
+      <div class="flex justify-between items-start z-10 relative">
+        <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">PNS</span>
+        <span class="material-symbols-outlined text-secondary opacity-70 group-hover:opacity-100 transition-opacity">badge</span>
+      </div>
+      <div class="z-10 relative">
+        <span class="font-h1-mobile text-[40px] leading-tight font-bold text-on-surface" id="admin-stat-pns">—</span>
+      </div>
+      <div class="absolute -bottom-6 -right-6 w-24 h-24 bg-secondary-fixed/30 rounded-full blur-xl group-hover:bg-secondary-fixed/50 transition-colors"></div>
+    </div>
+
+    <!-- CPNS & P3K Split -->
+    <div class="grid grid-rows-2 gap-4 h-32">
+      <div class="bg-surface-container-lowest px-6 py-3 rounded-xl shadow-sm flex justify-between items-center h-full">
+        <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">CPNS</span>
+        <span class="font-h2 text-h2 text-on-surface" id="admin-stat-cpns">—</span>
+      </div>
+      <div class="bg-surface-container-lowest px-6 py-3 rounded-xl shadow-sm flex justify-between items-center h-full">
+        <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">P3K</span>
+        <span class="font-h2 text-h2 text-on-surface" id="admin-stat-p3k">—</span>
+      </div>
+    </div>
+
+    <!-- Verification Alert -->
+    <div class="bg-[#fff8e1] p-6 rounded-xl shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group">
+      <div class="flex justify-between items-start z-10 relative">
+        <span class="font-label-md text-label-md text-[#8f6d00] uppercase tracking-wider">Menunggu Verifikasi</span>
+        <span class="material-symbols-outlined text-[#ffc107] opacity-90 group-hover:opacity-100 transition-opacity" style="font-variation-settings: 'FILL' 1;">warning</span>
+      </div>
+      <div class="z-10 relative flex items-end gap-2">
+        <span class="font-h1-mobile text-[40px] leading-tight font-bold text-[#8f6d00]" id="admin-stat-pending">—</span>
+        <span class="font-body-sm text-body-sm text-[#8f6d00] mb-2">Dokumen</span>
+      </div>
+      <div class="absolute top-0 right-0 w-32 h-32 bg-[#ffe082]/20 rounded-full blur-2xl -mr-8 -mt-8"></div>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
+    <!-- Left Column (Wider) -->
+    <div class="lg:col-span-2 flex flex-col space-y-8">
+      <!-- Document Completeness -->
+      <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+        <div class="p-6">
+          <h2 class="font-h3 text-h3 text-on-surface mb-2">Kelengkapan Dokumen Kepegawaian</h2>
+          <p class="font-body-md text-body-md text-on-surface-variant mb-6">Status terkini dari keseluruhan dokumen wajib yang diunggah oleh pegawai.</p>
+          <div class="flex items-end gap-4 mb-4">
+            <span class="font-h1 text-[48px] leading-none text-primary" id="admin-completeness-pct">—</span>
+            <span class="font-body-md text-body-md text-on-surface-variant pb-1">Tingkat Kelengkapan Keseluruhan</span>
+          </div>
+          <!-- Breakdown Bar -->
+          <div class="w-full h-4 rounded-full overflow-hidden flex shadow-inner bg-surface-container-highest mb-4">
+            <div class="h-full bg-primary transition-all duration-500" id="admin-bar-verified" style="width: 0%;"></div>
+            <div class="h-full bg-[#ffc107] transition-all duration-500" id="admin-bar-pending" style="width: 0%;"></div>
+            <div class="h-full bg-[#ff9800] transition-all duration-500" id="admin-bar-rejected" style="width: 0%;"></div>
+            <div class="h-full bg-error transition-all duration-500" id="admin-bar-empty" style="width: 0%;"></div>
+          </div>
+          <!-- Legend -->
+          <div class="flex flex-wrap gap-4 mt-6">
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 rounded-full bg-primary"></div>
+              <span class="font-body-sm text-body-sm text-on-surface-variant" id="admin-legend-verified">Lengkap (—)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 rounded-full bg-[#ffc107]"></div>
+              <span class="font-body-sm text-body-sm text-on-surface-variant" id="admin-legend-pending">Menunggu (—)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 rounded-full bg-[#ff9800]"></div>
+              <span class="font-body-sm text-body-sm text-on-surface-variant" id="admin-legend-rejected">Perlu Revisi (—)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 rounded-full bg-error"></div>
+              <span class="font-body-sm text-body-sm text-on-surface-variant" id="admin-legend-empty">Belum Lengkap (—)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Card -->
+      <div class="bg-primary p-6 rounded-xl shadow-md relative overflow-hidden group">
+        <div class="absolute inset-0 z-0 bg-primary-container/30"></div>
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <h3 class="font-h2 text-h2 text-on-primary mb-1">Dokumen Menunggu Verifikasi</h3>
+            <p class="font-body-md text-body-md text-on-primary/80" id="admin-pending-text">Terdapat dokumen yang membutuhkan pemeriksaan segera.</p>
+          </div>
+          <button class="shrink-0 px-6 py-3 bg-surface-container-lowest text-primary font-label-md text-label-md rounded shadow-sm hover:bg-surface-container transition-colors"
+                  onclick="SIKAP.Router.navigate('view-verifikasi-dokumen')">
+            Periksa Sekarang
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="flex flex-col space-y-8">
+      <!-- Quick Actions -->
+      <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
+        <h2 class="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-4">Aksi Cepat</h2>
+        <div class="flex flex-col space-y-2">
+          <button class="flex items-center justify-between w-full p-3 bg-surface hover:bg-surface-container-high text-on-surface rounded-lg transition-colors group"
+                  onclick="SIKAP.Router.navigate('view-master-data-pegawai')">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">person_add</span>
+              <span class="font-label-md text-label-md">Tambah Pegawai</span>
+            </div>
+            <span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+          </button>
+          <button class="flex items-center justify-between w-full p-3 bg-surface hover:bg-surface-container-high text-on-surface rounded-lg transition-colors group"
+                  onclick="SIKAP.Router.navigate('view-verifikasi-dokumen')">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">verified</span>
+              <span class="font-label-md text-label-md">Verifikasi Dokumen</span>
+            </div>
+            <span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+          </button>
+          <button class="flex items-center justify-between w-full p-3 bg-surface hover:bg-surface-container-high text-on-surface rounded-lg transition-colors group"
+                  onclick="SIKAP.Router.navigate('view-master-data-pegawai')">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">database</span>
+              <span class="font-label-md text-label-md">Master Data Pegawai</span>
+            </div>
+            <span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex-1">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="font-label-md text-label-md text-on-surface uppercase tracking-wider">Aktivitas Terbaru</h2>
+        </div>
+        <div class="relative pl-4 space-y-6" id="admin-activity-timeline">
+          <!-- Vertical Timeline Line -->
+          <div class="absolute left-1 top-2 bottom-2 w-px bg-surface-container-highest"></div>
+          <!-- Placeholder items -->
+          <div class="relative flex gap-4">
+            <div class="absolute -left-[22px] top-1 w-3 h-3 rounded-full bg-surface-container-highest ring-4 ring-surface-container-lowest z-10"></div>
+            <div class="flex flex-col">
+              <span class="font-label-sm text-label-sm text-on-surface-variant mb-1">—</span>
+              <p class="font-body-sm text-body-sm text-on-surface-variant">Belum ada aktivitas terbaru.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

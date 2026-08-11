@@ -1,0 +1,221 @@
+<script>
+// ============================================================
+// JS_App.html — Application State & Initialization
+// ============================================================
+
+/**
+ * SIKAP Global Namespace
+ * All application state and shared functions live here.
+ */
+var SIKAP = SIKAP || {};
+
+// ---- Application State ----
+SIKAP.state = {
+  token: null,
+  user: null,       // { nip, nama, role, statusKepegawaian, pangkatGolongan, jabatan, forceChangePassword }
+  currentView: null,
+  isLoading: false,
+  sidebarOpen: false
+};
+
+// ---- Constants ----
+SIKAP.STORAGE_KEY = 'sikap_session_token';
+
+// ---- UI Utilities ----
+SIKAP.UI = {};
+
+/**
+ * Shows a specific view and hides all others.
+ * @param {string} viewId - The DOM id of the view to show.
+ */
+SIKAP.UI.showView = function(viewId) {
+  // Determine if this is a shell view or standalone view
+  var isStandalone = (viewId === 'view-login' || viewId === 'view-force-change-password');
+  
+  // Toggle shell visibility
+  var shell = document.getElementById('app-shell');
+  var loginView = document.getElementById('view-login');
+  var forceView = document.getElementById('view-force-change-password');
+  
+  if (isStandalone) {
+    shell.classList.add('hidden');
+    loginView.classList.add('hidden');
+    forceView.classList.add('hidden');
+    document.getElementById(viewId).classList.remove('hidden');
+  } else {
+    loginView.classList.add('hidden');
+    forceView.classList.add('hidden');
+    shell.classList.remove('hidden');
+    
+    // Hide all view containers inside the shell
+    var views = document.querySelectorAll('.view-container');
+    views.forEach(function(v) { v.classList.add('hidden'); });
+    
+    var target = document.getElementById(viewId);
+    if (target) {
+      target.classList.remove('hidden');
+    }
+  }
+  
+  // Update sidebar active state
+  SIKAP.UI.updateSidebarActive(viewId);
+  
+  // Close mobile sidebar after navigation
+  if (SIKAP.state.sidebarOpen) {
+    SIKAP.UI.toggleSidebar();
+  }
+  
+  SIKAP.state.currentView = viewId;
+};
+
+/**
+ * Updates the active state on sidebar navigation links.
+ * @param {string} activeViewId - The current view ID.
+ */
+SIKAP.UI.updateSidebarActive = function(activeViewId) {
+  var links = document.querySelectorAll('#app-sidebar nav a[data-view]');
+  links.forEach(function(link) {
+    var viewId = link.getAttribute('data-view');
+    if (viewId === activeViewId) {
+      link.classList.add('bg-secondary-container', 'text-on-secondary-container');
+      link.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-high', 'hover:text-on-surface');
+    } else {
+      link.classList.remove('bg-secondary-container', 'text-on-secondary-container');
+      link.classList.add('text-on-surface-variant', 'hover:bg-surface-container-high', 'hover:text-on-surface');
+    }
+  });
+};
+
+/**
+ * Toggles the mobile sidebar.
+ */
+SIKAP.UI.toggleSidebar = function() {
+  var sidebar = document.getElementById('app-sidebar');
+  var overlay = document.getElementById('sidebar-overlay');
+  
+  SIKAP.state.sidebarOpen = !SIKAP.state.sidebarOpen;
+  
+  if (SIKAP.state.sidebarOpen) {
+    sidebar.classList.add('sidebar-open');
+    overlay.classList.remove('hidden');
+  } else {
+    sidebar.classList.remove('sidebar-open');
+    overlay.classList.add('hidden');
+  }
+};
+
+/**
+ * Updates the header user info display.
+ */
+SIKAP.UI.updateUserDisplay = function() {
+  var user = SIKAP.state.user;
+  if (!user) return;
+  
+  // Update header username
+  var headerName = document.getElementById('header-user-name');
+  if (headerName) {
+    headerName.textContent = user.nama || '';
+  }
+  
+  // Update header initials
+  var headerInitials = document.querySelectorAll('.user-initials');
+  headerInitials.forEach(function(el) {
+    var parts = (user.nama || 'U').split(' ');
+    el.textContent = parts[0].charAt(0).toUpperCase();
+  });
+  
+  // Update sidebar user info
+  var sidebarName = document.getElementById('sidebar-user-name');
+  var sidebarRole = document.getElementById('sidebar-user-role');
+  if (sidebarName) sidebarName.textContent = user.nama || '';
+  if (sidebarRole) sidebarRole.textContent = user.role === 'Admin' ? 'Administrator TU' : 'Pegawai';
+  
+  // Show/hide menu items based on role
+  SIKAP.UI.applyRoleVisibility(user.role);
+};
+
+/**
+ * Shows/hides sidebar items based on user role.
+ * @param {string} role - 'Admin' or 'Pegawai'.
+ */
+SIKAP.UI.applyRoleVisibility = function(role) {
+  var adminItems = document.querySelectorAll('[data-role="admin"]');
+  var pegawaiItems = document.querySelectorAll('[data-role="pegawai"]');
+  
+  adminItems.forEach(function(el) {
+    el.style.display = (role === 'Admin') ? '' : 'none';
+  });
+  pegawaiItems.forEach(function(el) {
+    el.style.display = (role === 'Pegawai') ? '' : 'none';
+  });
+};
+
+/**
+ * Gets the default dashboard view for a given role.
+ * @param {string} role - 'Admin' or 'Pegawai'.
+ * @returns {string} View ID.
+ */
+SIKAP.UI.getDashboardView = function(role) {
+  return role === 'Admin' ? 'view-dashboard-admin' : 'view-dashboard-pegawai';
+};
+
+/**
+ * Hides the initial loading screen.
+ */
+SIKAP.UI.hideAppLoading = function() {
+  var loader = document.getElementById('app-loading');
+  if (loader) {
+    loader.style.opacity = '0';
+    setTimeout(function() {
+      loader.style.display = 'none';
+    }, 300);
+  }
+};
+
+// ---- Application Initialization ----
+
+/**
+ * Initializes the application.
+ * Checks for existing session token and validates it server-side.
+ */
+SIKAP.init = function() {
+  var storedToken = localStorage.getItem(SIKAP.STORAGE_KEY);
+  
+  if (storedToken) {
+    // Validate session server-side
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (result.success) {
+          SIKAP.state.token = storedToken;
+          SIKAP.state.user = result.data;
+          
+          if (result.data.forceChangePassword) {
+            // Must change password first
+            SIKAP.UI.showView('view-force-change-password');
+          } else {
+            SIKAP.UI.updateUserDisplay();
+            SIKAP.UI.showView(SIKAP.UI.getDashboardView(result.data.role));
+          }
+        } else {
+          // Invalid session — clear and show login
+          localStorage.removeItem(SIKAP.STORAGE_KEY);
+          SIKAP.UI.showView('view-login');
+        }
+        SIKAP.UI.hideAppLoading();
+      })
+      .withFailureHandler(function(error) {
+        localStorage.removeItem(SIKAP.STORAGE_KEY);
+        SIKAP.UI.showView('view-login');
+        SIKAP.UI.hideAppLoading();
+      })
+      .checkSession(storedToken);
+  } else {
+    // No stored session — show login
+    SIKAP.UI.showView('view-login');
+    SIKAP.UI.hideAppLoading();
+  }
+};
+
+// Run initialization when DOM is ready
+document.addEventListener('DOMContentLoaded', SIKAP.init);
+</script>

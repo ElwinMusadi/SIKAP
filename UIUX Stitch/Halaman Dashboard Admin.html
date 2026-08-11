@@ -1,0 +1,203 @@
+<!DOCTYPE html><html lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"surface-container":"#e5eeff","primary-fixed":"#dce1ff","secondary-fixed-dim":"#b9c7e0","on-surface":"#0b1c30","surface-container-highest":"#d3e4fe","on-tertiary-container":"#f39461","on-secondary-fixed":"#0d1c2f","on-secondary-fixed-variant":"#3a485c","secondary-container":"#d5e3fd","on-surface-variant":"#444651","error":"#ba1a1a","on-primary-container":"#90a8ff","on-secondary-container":"#57657b","on-background":"#0b1c30","tertiary-fixed-dim":"#ffb691","error-container":"#ffdad6","surface-container-lowest":"#ffffff","on-primary-fixed-variant":"#264191","secondary":"#515f74","on-tertiary-fixed-variant":"#773205","tertiary-fixed":"#ffdbcb","surface-dim":"#cbdbf5","inverse-primary":"#b6c4ff","primary-fixed-dim":"#b6c4ff","primary":"#00236f","surface-container-high":"#dce9ff","inverse-surface":"#213145","outline-variant":"#c5c5d3","outline":"#757682","background":"#f8f9ff","surface-tint":"#4059aa","surface-container-low":"#eff4ff","on-tertiary-fixed":"#341100","on-primary":"#ffffff","tertiary":"#4b1c00","on-tertiary":"#ffffff","inverse-on-surface":"#eaf1ff","secondary-fixed":"#d5e3fd","on-primary-fixed":"#00164e","surface":"#f8f9ff","on-secondary":"#ffffff","tertiary-container":"#6e2c00","surface-bright":"#f8f9ff","on-error-container":"#93000a","on-error":"#ffffff","primary-container":"#1e3a8a","surface-variant":"#d3e4fe"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"xs":"4px","xl":"32px","gutter":"16px","md":"16px","unit":"4px","container-margin":"24px","lg":"24px","sm":"8px"},"fontFamily":{"label-sm":["Inter"],"h1-mobile":["Inter"],"body-md":["Inter"],"body-lg":["Inter"],"label-md":["Inter"],"h3":["Inter"],"h2":["Inter"],"h1":["Inter"],"body-sm":["Inter"]},"fontSize":{"label-sm":["12px",{"lineHeight":"16px","fontWeight":"500"}],"h1-mobile":["24px",{"lineHeight":"32px","fontWeight":"700"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"label-md":["14px",{"lineHeight":"20px","fontWeight":"600"}],"h3":["20px",{"lineHeight":"28px","fontWeight":"600"}],"h2":["24px",{"lineHeight":"32px","letterSpacing":"-0.01em","fontWeight":"600"}],"h1":["30px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"700"}],"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}]}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"></head><body class="bg-background font-body-md text-on-surface"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-low border-r border-outline-variant/30 z-50 flex flex-col pt-20"><nav class="flex-1 px-4 space-y-1" data-active-classes="bg-secondary-container text-on-secondary-container font-label-md"><a aria-current="page" class="flex items-center px-4 py-3 rounded-xl transition-all group bg-secondary-container text-on-secondary-container font-label-md" data-path="dashboard-admin" href="#"><span class="material-symbols-outlined mr-3">dashboard</span><span class="font-label-md">Beranda</span></a><a class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="profil-pegawai" href="#"><span class="material-symbols-outlined mr-3">person</span><span class="font-label-md">Profil Pegawai</span></a><a class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="arsip-dokumen" href="#"><span class="material-symbols-outlined mr-3">folder_open</span><span class="font-label-md">Arsip Dokumen</span></a><div class="my-4 border-t border-outline-variant/20 mx-4"></div><a class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="master-data-pegawai" href="#"><span class="material-symbols-outlined mr-3">database</span><span class="font-label-md">Master Data Pegawai</span></a><a class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="verifikasi-dokumen" href="#"><span class="material-symbols-outlined mr-3">verified</span><span class="font-label-md">Verifikasi Dokumen</span></a><a class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="keamanan-akun" href="#"><span class="material-symbols-outlined mr-3">security</span><span class="font-label-md">Keamanan Akun</span></a></nav><div class="px-8 py-6 border-t border-outline-variant/20"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col"><span class="font-label-sm text-on-surface">Operator Admin</span><span class="text-[10px] text-on-surface-variant uppercase tracking-wider">SAMSAT Kupang</span></div></div></div></aside><div class="pl-72"><header class="fixed top-0 left-0 right-0 h-16 bg-surface/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-[60] px-6 lg:px-container-margin flex items-center justify-between"><div class="flex items-center gap-4"><img alt="LOGO-NTT.png" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AP1WRLspNmfyUt_cEWZ4YrtJ90tRjgTIVYNeKPqjU3vwb4TUZ2AB2EIBFvKcVKOs_6uWasXDw2ZN9HQKmxTa02Zmqwvx5CZBy52ahbw81260i000DMtlTr-3cHX9nM0qkYrjIHidyPwQxLMKXXTfvnE6WWfhv6jwHzsKltytd_-MOCtYC8ZjIbf7VLamsln7Bp90uEEuUNs2VimHf3D8_cv7NPkcDXEaKqGe7NwB4w6MTY27-otBCaIUrtUtXD8tEsCIHL2t4ZnAX0K1"><div class="flex flex-col"><span class="font-label-md text-primary leading-tight tracking-tight">UPTD Pendapatan Daerah Wilayah Kota Kupang</span><span class="font-body-sm text-on-surface-variant">Sistem Informasi Data dan Dokumen Kepegawaian</span></div></div><div class="flex items-center gap-4"><button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors"><span class="material-symbols-outlined">notifications</span></button><button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors"><span class="material-symbols-outlined">settings</span></button><div class="h-8 w-px bg-outline-variant/50"></div><button class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface-container-high rounded-lg transition-colors"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><span class="material-symbols-outlined text-on-surface-variant">arrow_drop_down</span></button></div></header><main class="relative pt-16 min-h-screen"><div class="flex flex-col w-full">
+<div class="px-6 lg:px-container-margin py-8 w-full max-w-[1440px] mx-auto space-y-8">
+<!-- Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 w-full">
+<div class="flex flex-col space-y-2">
+<h1 class="font-h1 text-h1 text-on-surface">Dashboard</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Ringkasan data kepegawaian dan aktivitas terbaru.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-primary-container transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+          Tambah Pegawai
+        </button>
+</div>
+</div>
+<!-- Summary Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+<!-- Total -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group">
+<div class="flex justify-between items-start z-10 relative">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Total Pegawai</span>
+<span class="material-symbols-outlined text-secondary opacity-70 group-hover:opacity-100 transition-opacity">group</span>
+</div>
+<div class="z-10 relative">
+<span class="font-h1-mobile text-[40px] leading-tight font-bold text-on-surface">128</span>
+</div>
+<div class="absolute -bottom-6 -right-6 w-24 h-24 bg-primary/5 rounded-full blur-xl group-hover:bg-primary/10 transition-colors"></div>
+</div>
+<!-- PNS -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group">
+<div class="flex justify-between items-start z-10 relative">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">PNS</span>
+<span class="material-symbols-outlined text-secondary opacity-70 group-hover:opacity-100 transition-opacity">badge</span>
+</div>
+<div class="z-10 relative">
+<span class="font-h1-mobile text-[40px] leading-tight font-bold text-on-surface">94</span>
+</div>
+<div class="absolute -bottom-6 -right-6 w-24 h-24 bg-secondary-fixed/30 rounded-full blur-xl group-hover:bg-secondary-fixed/50 transition-colors"></div>
+</div>
+<!-- CPNS & P3K Split -->
+<div class="grid grid-rows-2 gap-4 h-32">
+<div class="bg-surface-container-lowest px-6 py-3 rounded-xl shadow-sm flex justify-between items-center h-full">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">CPNS</span>
+<span class="font-h2 text-h2 text-on-surface">18</span>
+</div>
+<div class="bg-surface-container-lowest px-6 py-3 rounded-xl shadow-sm flex justify-between items-center h-full">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">P3K</span>
+<span class="font-h2 text-h2 text-on-surface">16</span>
+</div>
+</div>
+<!-- Verification Alert -->
+<div class="bg-[#fff8e1] p-6 rounded-xl shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group">
+<div class="flex justify-between items-start z-10 relative">
+<span class="font-label-md text-label-md text-[#8f6d00] uppercase tracking-wider">Menunggu Verifikasi</span>
+<span class="material-symbols-outlined text-[#ffc107] opacity-90 group-hover:opacity-100 transition-opacity" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div class="z-10 relative flex items-end gap-2">
+<span class="font-h1-mobile text-[40px] leading-tight font-bold text-[#8f6d00]">7</span>
+<span class="font-body-sm text-body-sm text-[#8f6d00] mb-2">Dokumen</span>
+</div>
+<div class="absolute top-0 right-0 w-32 h-32 bg-[#ffe082]/20 rounded-full blur-2xl -mr-8 -mt-8"></div>
+</div>
+</div>
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
+<!-- Left Column (Wider) -->
+<div class="lg:col-span-2 flex flex-col space-y-8">
+<!-- Document Completeness -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<div class="p-6">
+<h2 class="font-h3 text-h3 text-on-surface mb-2">Kelengkapan Dokumen Kepegawaian</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">Status terkini dari keseluruhan dokumen wajib yang diunggah oleh pegawai.</p>
+<div class="flex items-end gap-4 mb-4">
+<span class="font-h1 text-[48px] leading-none text-primary">91%</span>
+<span class="font-body-md text-body-md text-on-surface-variant pb-1">Tingkat Kelengkapan Keseluruhan</span>
+</div>
+<!-- Breakdown Bar -->
+<div class="w-full h-4 rounded-full overflow-hidden flex shadow-inner bg-surface-container-highest mb-4">
+<div class="h-full bg-primary" style="width: 70%;" title="Lengkap (70%)"></div>
+<div class="h-full bg-[#ffc107]" style="width: 15%;" title="Menunggu (15%)"></div>
+<div class="h-full bg-[#ff9800]" style="width: 10%;" title="Perlu Revisi (10%)"></div>
+<div class="h-full bg-error" style="width: 5%;" title="Belum Lengkap (5%)"></div>
+</div>
+<!-- Legend -->
+<div class="flex flex-wrap gap-4 mt-6">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Lengkap (70%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-[#ffc107]"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Menunggu (15%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-[#ff9800]"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Perlu Revisi (10%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-error"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Belum Lengkap (5%)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Card -->
+<div class="bg-primary p-6 rounded-xl shadow-md relative overflow-hidden group">
+<div class="absolute inset-0 z-0">
+<svg class="text-primary-container/30" height="100%" preserveAspectRatio="none" viewBox="0 0 400 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 200 L400 200 L400 0 L0 0 Z" fill="currentColor"></path>
+<path d="M-50 250 C 150 150, 250 50, 450 -50" fill="none" stroke="white" stroke-opacity="0.1" stroke-width="2"></path>
+<path d="M-50 300 C 150 200, 250 100, 450 0" fill="none" stroke="white" stroke-opacity="0.05" stroke-width="2"></path>
+<circle blur="20" cx="350" cy="50" fill="white" fill-opacity="0.05" r="100"></circle>
+</svg>
+</div>
+<div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+<div>
+<h3 class="font-h2 text-h2 text-on-primary mb-1">Dokumen Menunggu Verifikasi</h3>
+<p class="font-body-md text-body-md text-on-primary/80">Terdapat 7 dokumen yang membutuhkan pemeriksaan segera.</p>
+</div>
+<button class="shrink-0 px-6 py-3 bg-surface-container-lowest text-primary font-label-md text-label-md rounded shadow-sm hover:bg-surface-container transition-colors">
+              Periksa Sekarang
+            </button>
+</div>
+</div>
+</div>
+<!-- Right Column -->
+<div class="flex flex-col space-y-8">
+<!-- Quick Actions -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
+<h2 class="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-4">Aksi Cepat</h2>
+<div class="flex flex-col space-y-2">
+<button class="flex items-center justify-between w-full p-3 bg-surface hover:bg-surface-container-high text-on-surface rounded-lg transition-colors group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">person_add</span>
+<span class="font-label-md text-label-md">Tambah Pegawai</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<button class="flex items-center justify-between w-full p-3 bg-surface hover:bg-surface-container-high text-on-surface rounded-lg transition-colors group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">verified</span>
+<span class="font-label-md text-label-md">Verifikasi Dokumen</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<button class="flex items-center justify-between w-full p-3 bg-surface hover:bg-surface-container-high text-on-surface rounded-lg transition-colors group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">database</span>
+<span class="font-label-md text-label-md">Master Data Pegawai</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Recent Activity -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex-1">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-label-md text-label-md text-on-surface uppercase tracking-wider">Aktivitas Terbaru</h2>
+<button class="text-primary font-label-sm text-label-sm hover:underline">Lihat Semua</button>
+</div>
+<div class="relative pl-4 space-y-6">
+<!-- Vertical Timeline Line -->
+<div class="absolute left-1 top-2 bottom-2 w-px bg-surface-container-highest"></div>
+<!-- Item 1 -->
+<div class="relative flex gap-4">
+<div class="absolute -left-[22px] top-1 w-3 h-3 rounded-full bg-primary ring-4 ring-surface-container-lowest z-10"></div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant mb-1">10 Menit yang lalu</span>
+<p class="font-body-sm text-body-sm text-on-surface"><span class="font-label-md text-on-surface">Budi Santoso</span> mengunggah dokumen <span class="font-label-md text-on-surface">KTP</span>.</p>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="relative flex gap-4">
+<div class="absolute -left-[22px] top-1 w-3 h-3 rounded-full bg-[#ff9800] ring-4 ring-surface-container-lowest z-10"></div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant mb-1">1 Jam yang lalu</span>
+<p class="font-body-sm text-body-sm text-on-surface"><span class="font-label-md text-on-surface">Maria Klementina</span> memperbarui dokumen <span class="font-label-md text-on-surface">SK PNS</span>.</p>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="relative flex gap-4">
+<div class="absolute -left-[22px] top-1 w-3 h-3 rounded-full bg-surface-container-highest ring-4 ring-surface-container-lowest z-10"></div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant mb-1">Kemarin, 14:30</span>
+<p class="font-body-sm text-body-sm text-on-surface">Admin memverifikasi 3 dokumen milik <span class="font-label-md text-on-surface">Antonius Ola</span>.</p>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="relative flex gap-4">
+<div class="absolute -left-[22px] top-1 w-3 h-3 rounded-full bg-surface-container-highest ring-4 ring-surface-container-lowest z-10"></div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant mb-1">Kemarin, 09:15</span>
+<p class="font-body-sm text-body-sm text-on-surface">Pegawai baru <span class="font-label-md text-on-surface">Siti Aminah</span> ditambahkan ke sistem.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div></main></div></body></html>

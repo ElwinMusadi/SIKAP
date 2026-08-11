@@ -1,0 +1,297 @@
+<script>
+// ============================================================
+// JS_Auth.html — Frontend Authentication Logic
+// ============================================================
+
+SIKAP.Auth = {};
+
+/**
+ * Handles login form submission.
+ * @param {Event} event - The form submit event.
+ */
+SIKAP.Auth.handleLogin = function(event) {
+  event.preventDefault();
+
+  var nip = document.getElementById('login-nip').value.trim();
+  var password = document.getElementById('login-password').value;
+  var button = document.getElementById('login-btn');
+  var buttonText = document.getElementById('login-btn-text');
+  var buttonIcon = document.getElementById('login-btn-icon');
+  var spinner = document.getElementById('login-spinner');
+  var globalError = document.getElementById('login-global-error');
+  var globalErrorMsg = document.getElementById('login-global-error-msg');
+
+  // Reset errors
+  SIKAP.Auth.resetLoginErrors();
+
+  // Client-side validation
+  var hasError = false;
+  if (!nip) {
+    SIKAP.Auth.showFieldError('login-nip', 'NIP harus diisi');
+    hasError = true;
+  }
+  if (!password) {
+    SIKAP.Auth.showFieldError('login-password', 'Password harus diisi');
+    hasError = true;
+  }
+  if (hasError) return;
+
+  // Show loading state
+  button.disabled = true;
+  buttonText.style.opacity = '0';
+  buttonIcon.style.opacity = '0';
+  spinner.style.opacity = '1';
+
+  // Call backend
+  google.script.run
+    .withSuccessHandler(function(result) {
+      // Reset button
+      button.disabled = false;
+      buttonText.style.opacity = '1';
+      buttonIcon.style.opacity = '1';
+      spinner.style.opacity = '0';
+
+      if (result.success) {
+        // Store token
+        SIKAP.state.token = result.data.token;
+        SIKAP.state.user = result.data;
+        localStorage.setItem(SIKAP.STORAGE_KEY, result.data.token);
+
+        // Success animation
+        button.classList.add('!bg-emerald-600');
+        buttonText.textContent = 'Berhasil';
+        buttonIcon.textContent = 'check';
+
+        setTimeout(function() {
+          button.classList.remove('!bg-emerald-600');
+          buttonText.textContent = 'Masuk';
+          buttonIcon.textContent = 'arrow_forward';
+
+          // Clear form
+          document.getElementById('login-nip').value = '';
+          document.getElementById('login-password').value = '';
+
+          if (result.data.forceChangePassword) {
+            SIKAP.UI.showView('view-force-change-password');
+          } else {
+            SIKAP.UI.updateUserDisplay();
+            SIKAP.UI.showView(SIKAP.UI.getDashboardView(result.data.role));
+          }
+        }, 800);
+
+      } else {
+        // Show error
+        globalError.classList.remove('hidden');
+        globalErrorMsg.textContent = result.message;
+        setTimeout(function() { globalError.style.opacity = '1'; }, 10);
+      }
+    })
+    .withFailureHandler(function(error) {
+      button.disabled = false;
+      buttonText.style.opacity = '1';
+      buttonIcon.style.opacity = '1';
+      spinner.style.opacity = '0';
+
+      globalError.classList.remove('hidden');
+      globalErrorMsg.textContent = 'Terjadi kesalahan koneksi. Silakan coba lagi.';
+      setTimeout(function() { globalError.style.opacity = '1'; }, 10);
+    })
+    .login(nip, password);
+};
+
+/**
+ * Shows a field-level error on the login form.
+ */
+SIKAP.Auth.showFieldError = function(fieldId, message) {
+  var input = document.getElementById(fieldId);
+  var errorText = document.getElementById(fieldId + '-error');
+  if (input) {
+    input.classList.remove('shadow-[inset_0_0_0_1px_var(--color-outline-variant)]');
+    input.classList.add('shadow-[inset_0_0_0_1px_var(--color-error)]');
+  }
+  if (errorText) {
+    errorText.textContent = message;
+    errorText.style.opacity = '1';
+  }
+};
+
+/**
+ * Resets all login form errors.
+ */
+SIKAP.Auth.resetLoginErrors = function() {
+  var fields = ['login-nip', 'login-password'];
+  fields.forEach(function(id) {
+    var input = document.getElementById(id);
+    var errorText = document.getElementById(id + '-error');
+    if (input) {
+      input.classList.add('shadow-[inset_0_0_0_1px_var(--color-outline-variant)]');
+      input.classList.remove('shadow-[inset_0_0_0_1px_var(--color-error)]');
+    }
+    if (errorText) {
+      errorText.style.opacity = '0';
+    }
+  });
+  var globalError = document.getElementById('login-global-error');
+  if (globalError) {
+    globalError.style.opacity = '0';
+    setTimeout(function() { globalError.classList.add('hidden'); }, 300);
+  }
+};
+
+/**
+ * Toggles password visibility.
+ * @param {string} inputId - The password input element id.
+ * @param {string} iconId - The visibility icon element id.
+ */
+SIKAP.Auth.togglePasswordVisibility = function(inputId, iconId) {
+  var input = document.getElementById(inputId);
+  var icon = document.getElementById(iconId);
+  if (!input || !icon) return;
+
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.textContent = 'visibility_off';
+  } else {
+    input.type = 'password';
+    icon.textContent = 'visibility';
+  }
+};
+
+/**
+ * Handles the force-change password form.
+ * @param {Event} event - The form submit event.
+ */
+SIKAP.Auth.handleForceChangePassword = function(event) {
+  event.preventDefault();
+
+  var newPw = document.getElementById('fcp-new-password').value;
+  var confirmPw = document.getElementById('fcp-confirm-password').value;
+  var submitBtn = document.getElementById('fcp-submit-btn');
+
+  if (newPw !== confirmPw) {
+    SIKAP.Toast.show('Password tidak cocok.', 'error');
+    return;
+  }
+
+  // Show loading
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 text-on-primary" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path></svg> Menyimpan...';
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (result.success) {
+        SIKAP.Toast.show('Password berhasil diubah!', 'success');
+        
+        // Update user state
+        SIKAP.state.user.forceChangePassword = false;
+        
+        submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span> Berhasil!';
+        submitBtn.classList.remove('bg-primary');
+        submitBtn.classList.add('bg-emerald-600');
+
+        setTimeout(function() {
+          // Clear form
+          document.getElementById('fcp-new-password').value = '';
+          document.getElementById('fcp-confirm-password').value = '';
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('bg-emerald-600');
+          submitBtn.classList.add('bg-primary');
+          submitBtn.innerHTML = 'Simpan Password & Lanjutkan <span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
+
+          SIKAP.UI.updateUserDisplay();
+          SIKAP.UI.showView(SIKAP.UI.getDashboardView(SIKAP.state.user.role));
+        }, 1200);
+      } else {
+        SIKAP.Toast.show(result.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Simpan Password & Lanjutkan <span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
+      }
+    })
+    .withFailureHandler(function(error) {
+      SIKAP.Toast.show('Gagal menyimpan password. Coba lagi.', 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Simpan Password & Lanjutkan <span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
+    })
+    .changePassword(SIKAP.state.token, newPw, null);
+};
+
+/**
+ * Validates force-change password form in real-time.
+ */
+SIKAP.Auth.validateForceChangePassword = function() {
+  var newPw = document.getElementById('fcp-new-password').value;
+  var confirmPw = document.getElementById('fcp-confirm-password').value;
+  var submitBtn = document.getElementById('fcp-submit-btn');
+  var matchMsg = document.getElementById('fcp-match-message');
+
+  var reqLength = document.getElementById('fcp-req-length');
+  var reqCase = document.getElementById('fcp-req-case');
+  var reqNumber = document.getElementById('fcp-req-number');
+
+  var hasLength = newPw.length >= 8;
+  var hasCase = /[a-z]/.test(newPw) && /[A-Z]/.test(newPw);
+  var hasNumber = /\d/.test(newPw);
+  var isMatch = newPw === confirmPw && newPw !== '';
+
+  SIKAP.Auth.updateReqStyle(reqLength, hasLength);
+  SIKAP.Auth.updateReqStyle(reqCase, hasCase);
+  SIKAP.Auth.updateReqStyle(reqNumber, hasNumber);
+
+  if (confirmPw !== '') {
+    if (!isMatch) {
+      matchMsg.textContent = 'Password tidak cocok.';
+      matchMsg.classList.remove('opacity-0');
+    } else {
+      matchMsg.textContent = '';
+      matchMsg.classList.add('opacity-0');
+    }
+  } else {
+    matchMsg.classList.add('opacity-0');
+  }
+
+  var isValid = hasLength && hasCase && hasNumber && isMatch;
+  submitBtn.disabled = !isValid;
+  if (isValid) {
+    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+  } else {
+    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+  }
+};
+
+/**
+ * Updates a password requirement indicator.
+ */
+SIKAP.Auth.updateReqStyle = function(element, isValid) {
+  if (!element) return;
+  var icon = element.querySelector('span');
+  if (isValid) {
+    element.classList.remove('text-secondary');
+    element.classList.add('text-primary');
+    if (icon) icon.textContent = 'check';
+  } else {
+    element.classList.remove('text-primary');
+    element.classList.add('text-secondary');
+    if (icon) icon.textContent = 'close';
+  }
+};
+
+/**
+ * Handles logout.
+ */
+SIKAP.Auth.logout = function() {
+  var token = SIKAP.state.token;
+  
+  // Immediately clear frontend state
+  SIKAP.state.token = null;
+  SIKAP.state.user = null;
+  localStorage.removeItem(SIKAP.STORAGE_KEY);
+  SIKAP.UI.showView('view-login');
+  
+  // Notify backend (fire-and-forget)
+  if (token) {
+    google.script.run.logout(token);
+  }
+  
+  SIKAP.Toast.show('Berhasil keluar dari sistem.', 'success');
+};
+</script>
