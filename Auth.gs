@@ -5,6 +5,12 @@
 // Session expiry in hours
 var SESSION_EXPIRY_HOURS = 12;
 
+// Valid roles for RBAC
+var ROLES = {
+  ADMIN: 'Admin',
+  PEGAWAI: 'Pegawai'
+};
+
 /**
  * Authenticates a user by NIP and password.
  * Called from frontend via google.script.run.
@@ -122,6 +128,40 @@ function validateSession(token) {
 }
 
 /**
+ * RBAC Authorization Middleware.
+ * Validates token, checks role, and enforces force-change-password restriction.
+ * CRITICAL: Every protected backend function MUST call this.
+ * @param {string} token - Session token from frontend.
+ * @param {Array|null} allowedRoles - Array of allowed roles (e.g. ['Admin']) or null for any authenticated user.
+ * @param {boolean} allowForceChange - If true, allows access even when forceChangePassword is true.
+ * @returns {Object} { authorized: boolean, session: Object|null, error: string|null }
+ */
+function authorize(token, allowedRoles, allowForceChange) {
+  if (!token) {
+    return { authorized: false, session: null, error: 'Sesi tidak valid. Silakan login kembali.' };
+  }
+
+  var session = validateSession(token);
+  if (!session) {
+    return { authorized: false, session: null, error: 'Sesi tidak valid atau sudah berakhir.' };
+  }
+
+  // Enforce force-change-password restriction
+  if (session.forceChangePassword && !allowForceChange) {
+    return { authorized: false, session: session, error: 'Anda harus mengganti password terlebih dahulu.' };
+  }
+
+  // Check role if specified
+  if (allowedRoles && allowedRoles.length > 0) {
+    if (allowedRoles.indexOf(session.role) === -1) {
+      return { authorized: false, session: session, error: 'Anda tidak memiliki izin untuk melakukan aksi ini.' };
+    }
+  }
+
+  return { authorized: true, session: session, error: null };
+}
+
+/**
  * Checks session validity. Called from frontend.
  * @param {string} token - Session token.
  * @returns {Object} Result with user data or error.
@@ -140,19 +180,94 @@ function checkSession(token) {
 }
 
 /**
+ * Gets the current user's profile for the Settings page.
+ * Returns non-sensitive user data.
+ * @param {string} token - Session token.
+ * @returns {Object} Result with user profile data.
+ */
+function getUserProfile(token) {
+  try {
+    var auth = authorize(token, null, false);
+    if (!auth.authorized) {
+      return { success: false, message: auth.error };
+    }
+
+    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, auth.session.nip);
+    if (!user) {
+      return { success: false, message: 'Data pengguna tidak ditemukan.' };
+    }
+
+    return {
+      success: true,
+      data: {
+        nip: auth.session.nip,
+        nama: user.data[COL_PEGAWAI.NAMA_LENGKAP],
+        role: user.data[COL_PEGAWAI.ROLE],
+        statusKepegawaian: user.data[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
+        pangkatGolongan: user.data[COL_PEGAWAI.PANGKAT_GOLONGAN],
+        jabatan: user.data[COL_PEGAWAI.JABATAN],
+        noHp: user.data[COL_PEGAWAI.NO_HP],
+        alamat: user.data[COL_PEGAWAI.ALAMAT]
+      }
+    };
+  } catch (e) {
+    Logger.log('getUserProfile error: ' + e.toString());
+    return { success: false, message: 'Terjadi kesalahan sistem.' };
+  }
+}
+
+/**
+ * Cleans up expired sessions from the Sesi_Login sheet.
+ * Can be run as a time-driven trigger or manually.
+ */
+function cleanExpiredSessions() {
+  try {
+    var sheet = getSheet(SHEET_NAMES.SESI_LOGIN);
+    if (!sheet) return;
+    var data = sheet.getDataRange().getValues();
+    var now = new Date();
+    var deletedCount = 0;
+
+    // Delete from bottom to top
+    for (var i = data.length - 1; i >= 1; i--) {
+      var expiryStr = data[i][COL_SESI.WAKTU_EXPIRED];
+      if (expiryStr) {
+        var expiry = new Date(expiryStr);
+        if (now > expiry) {
+          sheet.deleteRow(i + 1);
+          deletedCount++;
+        }
+      }
+    }
+    Logger.log('Cleaned ' + deletedCount + ' expired sessions.');
+    return deletedCount;
+  } catch (e) {
+    Logger.log('cleanExpiredSessions error: ' + e.toString());
+    return 0;
+  }
+}
+
+/**
  * Changes a user's password.
  * Used for both force-change and voluntary change.
+ * Force-change: currentPassword is null, only token validation required.
+ * Voluntary change: currentPassword is required and verified.
  * @param {string} token - Session token.
  * @param {string} newPassword - The new password.
- * @param {string} currentPassword - Current password (optional for force-change).
+ * @param {string} currentPassword - Current password (required for voluntary change, null for force-change).
  * @returns {Object} Result object.
  */
 function changePassword(token, newPassword, currentPassword) {
   try {
-    var session = validateSession(token);
-    if (!session) {
-      return { success: false, message: 'Sesi tidak valid.' };
+    // For force-change: allow even when forceChangePassword is true
+    // For voluntary change (currentPassword provided): normal auth
+    var isForceChange = !currentPassword;
+    var auth = authorize(token, null, isForceChange);
+    if (!auth.authorized) {
+      return { success: false, message: auth.error };
     }
+
+    var session = auth.session;
 
     // Validate new password requirements
     if (!newPassword || newPassword.length < 8) {
@@ -170,7 +285,7 @@ function changePassword(token, newPassword, currentPassword) {
       return { success: false, message: 'Data pengguna tidak ditemukan.' };
     }
 
-    // If this is a voluntary password change (not force-change), verify current password
+    // If this is a voluntary password change, verify current password
     if (currentPassword) {
       var currentHash = hashPassword(currentPassword);
       if (currentHash !== user.data[COL_PEGAWAI.PASSWORD_HASH]) {

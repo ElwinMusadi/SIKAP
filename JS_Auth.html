@@ -76,6 +76,10 @@ SIKAP.Auth.handleLogin = function(event) {
           } else {
             SIKAP.UI.updateUserDisplay();
             SIKAP.UI.showView(SIKAP.UI.getDashboardView(result.data.role));
+            // Start session heartbeat
+            if (SIKAP.Router && SIKAP.Router.startHeartbeat) {
+              SIKAP.Router.startHeartbeat();
+            }
           }
         }, 800);
 

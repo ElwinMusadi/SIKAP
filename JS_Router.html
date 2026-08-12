@@ -33,10 +33,11 @@ SIKAP.Router.routes = {
  */
 SIKAP.Router.navigate = function(viewId) {
   var user = SIKAP.state.user;
+  var token = SIKAP.state.token;
   
-  // If not logged in, redirect to login
-  if (!user) {
-    SIKAP.UI.showView('view-login');
+  // If not logged in or no token, redirect to login
+  if (!user || !token) {
+    SIKAP.Auth.handleSessionExpired();
     return;
   }
   
@@ -54,6 +55,27 @@ SIKAP.Router.navigate = function(viewId) {
   }
   
   SIKAP.UI.showView(viewId);
+};
+
+/**
+ * Session heartbeat — periodically validates the session server-side.
+ * Runs every 5 minutes to detect expired sessions proactively.
+ */
+SIKAP.Router.startHeartbeat = function() {
+  setInterval(function() {
+    if (!SIKAP.state.token) return;
+    
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result.success) {
+          SIKAP.Auth.handleSessionExpired();
+        }
+      })
+      .withFailureHandler(function() {
+        // Network error — don't force logout, user might be offline temporarily
+      })
+      .checkSession(SIKAP.state.token);
+  }, 5 * 60 * 1000); // 5 minutes
 };
 
 /**

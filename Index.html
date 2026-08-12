@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -113,7 +113,7 @@
   <!-- Custom Styles -->
   <?!= include('CSS'); ?>
 </head>
-<body class="bg-background font-body-md text-on-surface min-h-screen">
+<body class="bg-background font-body-md text-on-surface h-full">
 
   <!-- ============================================ -->
   <!-- FULL-PAGE INITIAL LOADING SCREEN             -->
@@ -129,14 +129,14 @@
   <!-- ============================================ -->
   <!-- LOGIN VIEW (No shell — standalone)           -->
   <!-- ============================================ -->
-  <div id="view-login" class="hidden">
+  <div id="view-login" class="hidden h-full">
     <?!= include('View_Login'); ?>
   </div>
 
   <!-- ============================================ -->
   <!-- FORCE CHANGE PASSWORD VIEW (standalone)      -->
   <!-- ============================================ -->
-  <div id="view-force-change-password" class="hidden">
+  <div id="view-force-change-password" class="hidden h-full">
     <?!= include('View_ForceChangePassword'); ?>
   </div>
 
@@ -198,12 +198,9 @@
           </div>
         </div>
 
-        <!-- Pengaturan (Placeholder) -->
+        <!-- Pengaturan -->
         <div id="view-pengaturan" class="hidden view-container">
-          <div class="px-6 py-8 lg:px-container-margin lg:py-10 max-w-[1440px] mx-auto">
-            <h1 class="font-h1 text-h1 text-on-surface">Pengaturan</h1>
-            <p class="font-body-lg text-body-lg text-on-surface-variant mt-2">Halaman ini akan diimplementasikan di fase selanjutnya.</p>
-          </div>
+          <?!= include('View_Pengaturan'); ?>
         </div>
       </main>
     </div>

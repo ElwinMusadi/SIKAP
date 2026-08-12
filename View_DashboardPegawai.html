@@ -131,19 +131,4 @@
   </div>
 </div>
 
-<script>
-  // Update employee greeting when view is shown
-  document.addEventListener('DOMContentLoaded', function() {
-    // Set employee greeting name from user state
-    var originalShow = SIKAP.UI.showView;
-    SIKAP.UI.showView = function(viewId) {
-      originalShow(viewId);
-      if (viewId === 'view-dashboard-pegawai' && SIKAP.state.user) {
-        var greetEl = document.getElementById('pegawai-greeting-name');
-        if (greetEl) {
-          greetEl.textContent = SIKAP.state.user.nama || '—';
-        }
-      }
-    };
-  });
-</script>
+

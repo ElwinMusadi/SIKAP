@@ -4,16 +4,18 @@
 // UPTD Pendapatan Daerah Wilayah Kota Kupang
 // ============================================================
 
+// AKfycbxgtqzd0pU96Z7MChma9GwfW-ESy-7PDPAlsUSPMl6-oh78m1aVJ5BRl5cdyWnhfgue
+
 /**
  * Serves the main SPA HTML page.
  * This is the single entry point for the web application.
  */
 function doGet(e) {
-  return HtmlService.createTemplateFromFile('Index')
+  return HtmlService.createTemplateFromFile("Index")
     .evaluate()
-    .setTitle('SIKAP — Sistem Informasi Kepegawaian')
-    .setFaviconUrl('https://www.google.com/s2/favicons?domain=nttprov.go.id')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
+    .setTitle("SIKAP — Sistem Informasi Kepegawaian")
+    .setFaviconUrl("https://raw.githubusercontent.com/ElwinMusadi/app-assets/main/logo-ntt.png")
+    .addMetaTag("viewport", "width=device-width, initial-scale=1.0")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 

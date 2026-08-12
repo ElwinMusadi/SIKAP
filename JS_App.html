@@ -66,6 +66,9 @@ SIKAP.UI.showView = function(viewId) {
   }
   
   SIKAP.state.currentView = viewId;
+
+  // --- View Lifecycle Hooks ---
+  SIKAP.UI.onViewEnter(viewId);
 };
 
 /**
@@ -115,6 +118,12 @@ SIKAP.UI.updateUserDisplay = function() {
   var headerName = document.getElementById('header-user-name');
   if (headerName) {
     headerName.textContent = user.nama || '';
+  }
+
+  // Update header role text
+  var headerRoleText = document.getElementById('header-user-role-text');
+  if (headerRoleText) {
+    headerRoleText.textContent = user.role === 'Admin' ? 'Administrator TU' : 'Pegawai';
   }
   
   // Update header initials
@@ -195,6 +204,10 @@ SIKAP.init = function() {
           } else {
             SIKAP.UI.updateUserDisplay();
             SIKAP.UI.showView(SIKAP.UI.getDashboardView(result.data.role));
+            // Start session heartbeat
+            if (SIKAP.Router && SIKAP.Router.startHeartbeat) {
+              SIKAP.Router.startHeartbeat();
+            }
           }
         } else {
           // Invalid session — clear and show login
@@ -218,4 +231,41 @@ SIKAP.init = function() {
 
 // Run initialization when DOM is ready
 document.addEventListener('DOMContentLoaded', SIKAP.init);
+
+/**
+ * View lifecycle hooks.
+ * Called every time a view becomes visible.
+ * Use this to load data, reset forms, etc.
+ * @param {string} viewId - The view that just became visible.
+ */
+SIKAP.UI.onViewEnter = function(viewId) {
+  switch(viewId) {
+    case 'view-pengaturan':
+      // Load profile data when entering settings
+      if (SIKAP.Settings && SIKAP.Settings.loadProfile) {
+        SIKAP.Settings.loadProfile();
+      }
+      break;
+    case 'view-dashboard-pegawai':
+      // Update greeting name
+      if (SIKAP.state.user) {
+        var greetEl = document.getElementById('pegawai-greeting-name');
+        if (greetEl) greetEl.textContent = SIKAP.state.user.nama || '—';
+      }
+      break;
+  }
+};
+
+/**
+ * Handles session expiry detected during an operation.
+ * Clears local state and redirects to login.
+ */
+SIKAP.Auth = SIKAP.Auth || {};
+SIKAP.Auth.handleSessionExpired = function() {
+  SIKAP.state.token = null;
+  SIKAP.state.user = null;
+  localStorage.removeItem(SIKAP.STORAGE_KEY);
+  SIKAP.UI.showView('view-login');
+  SIKAP.Toast.show('Sesi Anda telah berakhir. Silakan login kembali.', 'warning');
+};
 </script>

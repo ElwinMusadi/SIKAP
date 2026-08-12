@@ -1,0 +1,285 @@
+<!-- ============================================================ -->
+<!-- View_Pengaturan.html — Settings Page                        -->
+<!-- Faithfully reproduces Halaman Pengaturan (Settings).html     -->
+<!-- Sections: Profil Akun, Keamanan Akun, Session, Tentang      -->
+<!-- ============================================================ -->
+
+<div class="px-6 py-8 lg:px-container-margin lg:py-10 max-w-[960px] mx-auto w-full">
+  <!-- Page Header -->
+  <div class="flex items-center gap-3 mb-8">
+    <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center">
+      <span class="material-symbols-outlined text-primary">settings</span>
+    </div>
+    <div>
+      <h1 class="font-h1 text-h1 text-on-surface">Pengaturan</h1>
+    </div>
+  </div>
+
+  <!-- ======================================== -->
+  <!-- SECTION 1: Profil Akun                   -->
+  <!-- ======================================== -->
+  <h2 class="text-on-surface text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-2">Profil Akun</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8" id="settings-profile-grid">
+    <div class="flex flex-col gap-2 py-3">
+      <label class="flex flex-col flex-1">
+        <p class="text-on-surface font-label-md pb-2">Nama Lengkap</p>
+        <input class="w-full rounded-lg text-on-surface bg-surface-container border-none h-12 px-4 font-body-md cursor-not-allowed opacity-80 outline-none"
+               readonly id="settings-nama" value="—">
+      </label>
+    </div>
+    <div class="flex flex-col gap-2 py-3">
+      <label class="flex flex-col flex-1">
+        <p class="text-on-surface font-label-md pb-2">NIP</p>
+        <input class="w-full rounded-lg text-on-surface bg-surface-container border-none h-12 px-4 font-body-md cursor-not-allowed opacity-80 outline-none"
+               readonly id="settings-nip" value="—">
+      </label>
+    </div>
+    <div class="flex flex-col gap-2 py-3">
+      <label class="flex flex-col flex-1">
+        <p class="text-on-surface font-label-md pb-2">Role</p>
+        <input class="w-full rounded-lg text-on-surface bg-surface-container border-none h-12 px-4 font-body-md cursor-not-allowed opacity-80 outline-none"
+               readonly id="settings-role" value="—">
+      </label>
+    </div>
+    <div class="flex flex-col gap-2 py-3">
+      <label class="flex flex-col flex-1">
+        <p class="text-on-surface font-label-md pb-2">Status Kepegawaian</p>
+        <input class="w-full rounded-lg text-on-surface bg-surface-container border-none h-12 px-4 font-body-md cursor-not-allowed opacity-80 outline-none"
+               readonly id="settings-status" value="—">
+      </label>
+    </div>
+  </div>
+
+  <div class="h-px bg-outline-variant w-full my-8"></div>
+
+  <!-- ======================================== -->
+  <!-- SECTION 2: Keamanan Akun                 -->
+  <!-- ======================================== -->
+  <div>
+    <h2 class="text-on-surface text-[22px] font-bold leading-tight tracking-[-0.015em] pb-2">Keamanan Akun</h2>
+    <p class="text-on-surface-variant font-body-md mb-6">Kelola password dan keamanan akun Anda.</p>
+
+    <form class="max-w-[480px]" id="settings-password-form" onsubmit="SIKAP.Settings.handleChangePassword(event)">
+      <div class="flex flex-col gap-5 mb-6">
+        <!-- Current Password -->
+        <label class="flex flex-col flex-1">
+          <span class="text-on-surface font-label-md pb-2">Password Saat Ini</span>
+          <div class="relative flex items-center">
+            <input class="w-full rounded-lg text-on-surface bg-surface-container border-none focus:ring-2 focus:ring-primary h-12 px-4 font-body-md pr-12 outline-none"
+                   placeholder="••••••••" type="password" id="settings-current-pw" required>
+            <button aria-label="Toggle password visibility"
+                    class="absolute right-4 text-outline hover:text-on-surface transition-colors flex items-center justify-center"
+                    type="button" onclick="SIKAP.Auth.togglePasswordVisibility('settings-current-pw', 'settings-vis-1')">
+              <span class="material-symbols-outlined text-[20px]" id="settings-vis-1">visibility</span>
+            </button>
+          </div>
+        </label>
+
+        <!-- New Password -->
+        <label class="flex flex-col flex-1">
+          <span class="text-on-surface font-label-md pb-2">Password Baru</span>
+          <div class="relative flex items-center">
+            <input class="w-full rounded-lg text-on-surface bg-surface-container border-none focus:ring-2 focus:ring-primary h-12 px-4 font-body-md pr-12 outline-none"
+                   placeholder="Masukkan password baru" type="password" id="settings-new-pw" required
+                   oninput="SIKAP.Settings.validatePasswordForm()">
+            <button aria-label="Toggle password visibility"
+                    class="absolute right-4 text-outline hover:text-on-surface transition-colors flex items-center justify-center"
+                    type="button" onclick="SIKAP.Auth.togglePasswordVisibility('settings-new-pw', 'settings-vis-2')">
+              <span class="material-symbols-outlined text-[20px]" id="settings-vis-2">visibility</span>
+            </button>
+          </div>
+        </label>
+
+        <!-- Confirm New Password -->
+        <label class="flex flex-col flex-1">
+          <span class="text-on-surface font-label-md pb-2">Konfirmasi Password Baru</span>
+          <div class="relative flex items-center">
+            <input class="w-full rounded-lg text-on-surface bg-surface-container border-none focus:ring-2 focus:ring-primary h-12 px-4 font-body-md pr-12 outline-none"
+                   placeholder="Ulangi password baru" type="password" id="settings-confirm-pw" required
+                   oninput="SIKAP.Settings.validatePasswordForm()">
+            <button aria-label="Toggle password visibility"
+                    class="absolute right-4 text-outline hover:text-on-surface transition-colors flex items-center justify-center"
+                    type="button" onclick="SIKAP.Auth.togglePasswordVisibility('settings-confirm-pw', 'settings-vis-3')">
+              <span class="material-symbols-outlined text-[20px]" id="settings-vis-3">visibility</span>
+            </button>
+          </div>
+          <p class="font-body-sm text-error h-4 mt-1 opacity-0 transition-opacity" id="settings-match-msg"></p>
+        </label>
+      </div>
+
+      <!-- Password Requirements -->
+      <div class="bg-surface-container-low p-4 rounded-lg mb-6">
+        <p class="text-on-surface font-label-md mb-2">Persyaratan Password:</p>
+        <ul class="flex flex-col gap-1 font-body-sm text-on-surface-variant">
+          <li class="flex items-center gap-2 transition-colors duration-300" id="settings-req-length">
+            <span class="material-symbols-outlined text-[16px]">close</span> Minimal 8 karakter
+          </li>
+          <li class="flex items-center gap-2 transition-colors duration-300" id="settings-req-case">
+            <span class="material-symbols-outlined text-[16px]">close</span> Mengandung huruf besar dan kecil
+          </li>
+          <li class="flex items-center gap-2 transition-colors duration-300" id="settings-req-number">
+            <span class="material-symbols-outlined text-[16px]">close</span> Mengandung setidaknya 1 angka
+          </li>
+        </ul>
+      </div>
+
+      <!-- Submit -->
+      <button class="bg-primary text-on-primary hover:bg-primary-container transition-colors h-12 px-6 rounded-lg font-label-md shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              type="submit" id="settings-save-pw-btn" disabled>
+        <span id="settings-save-pw-text">Simpan Password</span>
+      </button>
+    </form>
+  </div>
+
+  <div class="h-px bg-outline-variant w-full my-8"></div>
+
+  <!-- ======================================== -->
+  <!-- SECTION 3: Session                       -->
+  <!-- ======================================== -->
+  <div>
+    <h2 class="text-on-surface text-[22px] font-bold leading-tight tracking-[-0.015em] pb-4">Session</h2>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-surface-container rounded-xl">
+      <div>
+        <p class="text-on-surface font-label-md mb-1">Status Sesi</p>
+        <p class="text-on-surface-variant font-body-sm">Akun Anda sedang aktif pada perangkat ini.</p>
+      </div>
+      <button class="border border-error text-error hover:bg-error-container hover:text-on-error-container transition-colors h-10 px-6 rounded-lg font-label-md whitespace-nowrap"
+              type="button" onclick="SIKAP.Auth.logout()">
+        Keluar
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================== -->
+  <!-- SECTION 4: Tentang Aplikasi              -->
+  <!-- ======================================== -->
+  <div class="mt-16 mb-8 flex flex-col items-center justify-center text-center opacity-70">
+    <p class="text-on-surface-variant font-label-sm uppercase tracking-wider mb-1">Sistem Informasi Data dan Dokumen Kepegawaian</p>
+    <p class="text-outline font-body-sm mb-1">UPTD Pendapatan Daerah Wilayah Kota Kupang</p>
+    <p class="text-outline font-body-sm">v1.0.0</p>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // Settings Page Logic
+  // ============================================================
+  SIKAP.Settings = {};
+
+  /**
+   * Loads the user profile data into the Settings form.
+   * Called when the settings view is shown.
+   */
+  SIKAP.Settings.loadProfile = function() {
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (result.success) {
+          var d = result.data;
+          document.getElementById('settings-nama').value = d.nama || '—';
+          document.getElementById('settings-nip').value = d.nip || '—';
+          document.getElementById('settings-role').value = d.role || '—';
+          document.getElementById('settings-status').value = d.statusKepegawaian || '—';
+        } else {
+          SIKAP.Toast.show(result.message || 'Gagal memuat profil.', 'error');
+          // If session expired, redirect
+          if (result.message && result.message.indexOf('Sesi') !== -1) {
+            SIKAP.Auth.handleSessionExpired();
+          }
+        }
+      })
+      .withFailureHandler(function(error) {
+        SIKAP.Toast.show('Gagal memuat profil.', 'error');
+      })
+      .getUserProfile(SIKAP.state.token);
+  };
+
+  /**
+   * Validates the password change form in real-time.
+   */
+  SIKAP.Settings.validatePasswordForm = function() {
+    var newPw = document.getElementById('settings-new-pw').value;
+    var confirmPw = document.getElementById('settings-confirm-pw').value;
+    var submitBtn = document.getElementById('settings-save-pw-btn');
+    var matchMsg = document.getElementById('settings-match-msg');
+
+    var reqLength = document.getElementById('settings-req-length');
+    var reqCase = document.getElementById('settings-req-case');
+    var reqNumber = document.getElementById('settings-req-number');
+
+    var hasLength = newPw.length >= 8;
+    var hasCase = /[a-z]/.test(newPw) && /[A-Z]/.test(newPw);
+    var hasNumber = /\d/.test(newPw);
+    var isMatch = newPw === confirmPw && newPw !== '';
+
+    SIKAP.Auth.updateReqStyle(reqLength, hasLength);
+    SIKAP.Auth.updateReqStyle(reqCase, hasCase);
+    SIKAP.Auth.updateReqStyle(reqNumber, hasNumber);
+
+    if (confirmPw !== '') {
+      if (!isMatch) {
+        matchMsg.textContent = 'Password tidak cocok.';
+        matchMsg.classList.remove('opacity-0');
+      } else {
+        matchMsg.textContent = '';
+        matchMsg.classList.add('opacity-0');
+      }
+    } else {
+      matchMsg.classList.add('opacity-0');
+    }
+
+    var isValid = hasLength && hasCase && hasNumber && isMatch;
+    submitBtn.disabled = !isValid;
+  };
+
+  /**
+   * Handles the voluntary password change form submission.
+   */
+  SIKAP.Settings.handleChangePassword = function(event) {
+    event.preventDefault();
+
+    var currentPw = document.getElementById('settings-current-pw').value;
+    var newPw = document.getElementById('settings-new-pw').value;
+    var confirmPw = document.getElementById('settings-confirm-pw').value;
+    var submitBtn = document.getElementById('settings-save-pw-btn');
+    var textEl = document.getElementById('settings-save-pw-text');
+
+    if (!currentPw) {
+      SIKAP.Toast.show('Masukkan password saat ini.', 'warning');
+      return;
+    }
+    if (newPw !== confirmPw) {
+      SIKAP.Toast.show('Password baru tidak cocok.', 'error');
+      return;
+    }
+
+    // Loading state
+    submitBtn.disabled = true;
+    textEl.innerHTML = '<svg class="animate-spin h-5 w-5 text-on-primary inline-block" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path></svg> Menyimpan...';
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (result.success) {
+          SIKAP.Toast.show('Password berhasil diubah!', 'success');
+          // Clear form
+          document.getElementById('settings-current-pw').value = '';
+          document.getElementById('settings-new-pw').value = '';
+          document.getElementById('settings-confirm-pw').value = '';
+          // Reset requirement indicators
+          SIKAP.Settings.validatePasswordForm();
+        } else {
+          SIKAP.Toast.show(result.message, 'error');
+          if (result.message && result.message.indexOf('Sesi') !== -1) {
+            SIKAP.Auth.handleSessionExpired();
+          }
+        }
+        submitBtn.disabled = false;
+        textEl.textContent = 'Simpan Password';
+      })
+      .withFailureHandler(function(error) {
+        SIKAP.Toast.show('Gagal menyimpan password. Coba lagi.', 'error');
+        submitBtn.disabled = false;
+        textEl.textContent = 'Simpan Password';
+      })
+      .changePassword(SIKAP.state.token, newPw, currentPw);
+  };
+</script>
