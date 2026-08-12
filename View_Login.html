@@ -64,11 +64,53 @@
   <!-- ====================== -->
   <!-- RIGHT PANEL: Login Form -->
   <!-- ====================== -->
-  <div class="w-full md:w-1/2 lg:w-[45%] flex flex-col h-full overflow-y-auto"
-       style="background-color: var(--color-background, #f8f9ff);">
+  <style>
+    /* SIKAP Login Form — palette CSS variables (backing for var(--color-*) utilities) */
+    :root {
+      --color-primary: #00236f;
+      --color-primary-container: #1e3a8a;
+      --color-primary-fixed: #dce1ff;
+      --color-primary-fixed-dim: #b6c4ff;
+      --color-surface: #f8f9ff;
+      --color-surface-container-lowest: #ffffff;
+      --color-surface-container-low: #eff4ff;
+      --color-surface-container-high: #dce9ff;
+      --color-surface-variant: #d3e4fe;
+      --color-background: #f8f9ff;
+      --color-on-surface: #0b1c30;
+      --color-on-surface-variant: #444651;
+      --color-outline: #757682;
+      --color-outline-variant: #c5c5d3;
+      --color-error: #ba1a1a;
+      --color-error-container: #ffdad6;
+      --color-on-error-container: #93000a;
+      --color-on-primary: #ffffff;
+    }
+
+    /* Login form card */
+    .login-card {
+      background: rgba(255, 255, 255, 0.82);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(197, 197, 211, 0.5);
+      border-radius: 16px;
+      box-shadow: 0 24px 48px -20px rgba(0, 35, 111, 0.18);
+    }
+  </style>
+
+  <div class="relative w-full md:w-1/2 lg:w-[45%] flex flex-col h-screen min-h-0 overflow-y-auto"
+       style="background: linear-gradient(180deg, #ffffff 0%, #eef2fb 100%);">
+
+    <!-- Decorative background blobs (clipped so they don't extend scroll area) -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden z-0">
+      <div class="absolute top-[-70px] right-[-70px] w-[280px] h-[280px] rounded-full opacity-50"
+           style="background: radial-gradient(circle, #dce1ff 0%, transparent 70%);"></div>
+      <div class="absolute bottom-[-90px] left-[-70px] w-[320px] h-[320px] rounded-full opacity-40"
+           style="background: radial-gradient(circle, #b6c4ff 0%, transparent 70%);"></div>
+    </div>
 
     <!-- Mobile-only top bar (logo) -->
-    <div class="md:hidden flex items-center gap-3 px-6 py-4 border-b border-surface-variant bg-surface-container-lowest">
+    <div class="relative z-10 md:hidden flex items-center gap-3 px-6 py-4 border-b border-surface-variant bg-surface-container-lowest">
       <div class="w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center p-1 flex-shrink-0">
         <img alt="Logo Pemprov NTT" class="w-full h-full object-contain"
              src="https://raw.githubusercontent.com/ElwinMusadi/app-assets/main/logo-ntt.png">
@@ -80,8 +122,8 @@
     </div>
 
     <!-- Centered form area -->
-    <div class="flex-1 flex flex-col items-center justify-center px-6 py-8 sm:px-10 lg:px-14">
-      <div class="w-full max-w-[400px] flex flex-col gap-6">
+    <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8 sm:px-10 lg:px-14">
+      <div class="w-full max-w-[400px] flex flex-col gap-6 login-card p-6 sm:p-8">
 
         <!-- Form Header -->
         <div class="flex flex-col gap-1">
@@ -175,7 +217,7 @@
     </div>
 
     <!-- Footer -->
-    <div class="flex-shrink-0 px-6 py-3 border-t border-surface-variant bg-surface-container-lowest flex items-center justify-between">
+    <div class="relative z-10 flex-shrink-0 px-6 py-3 border-t border-surface-variant bg-surface-container-lowest flex items-center justify-between">
       <div class="flex flex-col items-end">
         <span class="text-[14px] text-on-surface-variant opacity-60">© 2025 UPTD Pendapatan Daerah Wilayah Kota Kupang.</span>
       </div>
