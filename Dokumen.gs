@@ -371,9 +371,6 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
 
     var newFile = empFolder.createFile(decodedBytes);
 
-    // Share so that the preview iframe works
-    newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-
     var newFileDriveId = newFile.getId();
     var newFileUrl     = newFile.getUrl();
     var now            = getTimestamp();

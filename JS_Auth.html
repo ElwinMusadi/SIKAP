@@ -251,7 +251,7 @@ SIKAP.Auth.handleForceChangePassword = function(event) {
       submitBtn.disabled = false;
       submitBtn.innerHTML = 'Simpan Password & Lanjutkan <span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
     })
-    .changePassword(token, newPw, null);
+    .forceChangePassword(token, newPw);
 };
 
 /**

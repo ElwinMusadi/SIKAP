@@ -11,6 +11,9 @@ var ROLES = {
   PEGAWAI: 'Pegawai'
 };
 
+// Feature Flag: Set to true in production to force users with default passwords to change their password on login.
+var ENABLE_FORCE_CHANGE_PASSWORD = false;
+
 /**
  * Authenticates a user by NIP and password.
  * Called from frontend via google.script.run.
@@ -47,6 +50,7 @@ function login(nip, password) {
     // Check if using default password (last 6 digits of NIP)
     var defaultPassword = getDefaultPassword(nip);
     var isDefaultPassword = (password === defaultPassword);
+    var shouldForceChange = ENABLE_FORCE_CHANGE_PASSWORD && isDefaultPassword;
 
     // Create session token
     var token = generateUUID();
@@ -74,7 +78,7 @@ function login(nip, password) {
         statusKepegawaian: userData[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
         pangkatGolongan: userData[COL_PEGAWAI.PANGKAT_GOLONGAN],
         jabatan: userData[COL_PEGAWAI.JABATAN],
-        forceChangePassword: false // isDefaultPassword (Fitur dimatikan sementara)
+        forceChangePassword: shouldForceChange
       },
       message: 'Login berhasil.'
     };
@@ -109,6 +113,7 @@ function validateSession(token) {
           var defaultPw = getDefaultPassword(nip);
           var defaultPwHash = hashPassword(defaultPw);
           var isDefaultPassword = (user.data[COL_PEGAWAI.PASSWORD_HASH] === defaultPwHash);
+          var shouldForceChange = ENABLE_FORCE_CHANGE_PASSWORD && isDefaultPassword;
 
           return {
             nip: nip,
@@ -117,7 +122,7 @@ function validateSession(token) {
             statusKepegawaian: user.data[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
             pangkatGolongan: user.data[COL_PEGAWAI.PANGKAT_GOLONGAN],
             jabatan: user.data[COL_PEGAWAI.JABATAN],
-            forceChangePassword: false // isDefaultPassword (Fitur dimatikan sementara)
+            forceChangePassword: shouldForceChange
           };
         }
       }
@@ -248,23 +253,22 @@ function cleanExpiredSessions() {
 }
 
 /**
- * Changes a user's password.
- * Used for both force-change and voluntary change.
- * Force-change: currentPassword is null, only token validation required.
- * Voluntary change: currentPassword is required and verified.
+ * Voluntary Password Change.
+ * Requires and verifies currentPassword.
  * @param {string} token - Session token.
  * @param {string} newPassword - The new password.
- * @param {string} currentPassword - Current password (required for voluntary change, null for force-change).
+ * @param {string} currentPassword - Current password (MUST be provided and verified).
  * @returns {Object} Result object.
  */
 function changePassword(token, newPassword, currentPassword) {
   try {
-    // For force-change: allow even when forceChangePassword is true
-    // For voluntary change (currentPassword provided): normal auth
-    var isForceChange = !currentPassword;
-    var auth = authorize(token, null, isForceChange);
+    var auth = authorize(token, null, false);
     if (!auth.authorized) {
       return { success: false, message: auth.error };
+    }
+
+    if (!currentPassword) {
+      return { success: false, message: 'Password saat ini harus diisi.' };
     }
 
     var session = auth.session;
@@ -285,12 +289,10 @@ function changePassword(token, newPassword, currentPassword) {
       return { success: false, message: 'Data pengguna tidak ditemukan.' };
     }
 
-    // If this is a voluntary password change, verify current password
-    if (currentPassword) {
-      var currentHash = hashPassword(currentPassword);
-      if (currentHash !== user.data[COL_PEGAWAI.PASSWORD_HASH]) {
-        return { success: false, message: 'Password saat ini salah.' };
-      }
+    // Verify current password
+    var currentHash = hashPassword(currentPassword);
+    if (currentHash !== user.data[COL_PEGAWAI.PASSWORD_HASH]) {
+      return { success: false, message: 'Password saat ini salah.' };
     }
 
     // Ensure new password is not the same as default
@@ -326,6 +328,82 @@ function changePassword(token, newPassword, currentPassword) {
     };
   } catch (e) {
     Logger.log('ChangePassword error: ' + e.toString());
+    return { success: false, message: 'Terjadi kesalahan sistem.' };
+  }
+}
+
+/**
+ * Force-changes a user's password (e.g. during first login with default password).
+ * Server validates that the user is actually required or eligible for force password change.
+ * @param {string} token - Session token.
+ * @param {string} newPassword - The new password.
+ * @returns {Object} Result object.
+ */
+function forceChangePassword(token, newPassword) {
+  try {
+    var auth = authorize(token, null, true); // Allow even if forceChangePassword is true
+    if (!auth.authorized) {
+      return { success: false, message: auth.error };
+    }
+
+    var session = auth.session;
+    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, session.nip);
+    if (!user) {
+      return { success: false, message: 'Data pengguna tidak ditemukan.' };
+    }
+
+    // Check if user is actually eligible/required for force change password
+    var defaultPw = getDefaultPassword(session.nip);
+    var defaultHash = hashPassword(defaultPw);
+    var isDefaultPw = (user.data[COL_PEGAWAI.PASSWORD_HASH] === defaultHash);
+    var isGantiStatus = (user.data[COL_PEGAWAI.STATUS_AKUN] === 'Ganti_Password');
+
+    if (!isDefaultPw && !isGantiStatus && !session.forceChangePassword) {
+      return { success: false, message: 'Akun Anda tidak dalam status wajib ganti password.' };
+    }
+
+    // Validate new password requirements
+    if (!newPassword || newPassword.length < 8) {
+      return { success: false, message: 'Password minimal 8 karakter.' };
+    }
+    if (!/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword)) {
+      return { success: false, message: 'Password harus mengandung huruf besar dan kecil.' };
+    }
+    if (!/\d/.test(newPassword)) {
+      return { success: false, message: 'Password harus mengandung minimal 1 angka.' };
+    }
+
+    // Ensure new password is not the same as default
+    if (newPassword === defaultPw) {
+      return { success: false, message: 'Password baru tidak boleh sama dengan password default.' };
+    }
+
+    // Update password hash
+    var newHash = hashPassword(newPassword);
+    updateCell(SHEET_NAMES.DATA_PEGAWAI, user.rowIndex, COL_PEGAWAI.PASSWORD_HASH + 1, newHash);
+
+    // Update account status to 'Aktif' if it was 'Ganti_Password'
+    if (user.data[COL_PEGAWAI.STATUS_AKUN] === 'Ganti_Password') {
+      updateCell(SHEET_NAMES.DATA_PEGAWAI, user.rowIndex, COL_PEGAWAI.STATUS_AKUN + 1, 'Aktif');
+    }
+
+    logActivity(session.nip, session.role, 'FORCE_PASSWORD_CHANGE', 'USER', session.nip, 'Password default berhasil diubah', 'SUCCESS');
+
+    return {
+      success: true,
+      data: {
+        nip: session.nip,
+        nama: session.nama,
+        role: session.role,
+        statusKepegawaian: session.statusKepegawaian,
+        pangkatGolongan: session.pangkatGolongan,
+        jabatan: session.jabatan,
+        forceChangePassword: false
+      },
+      message: 'Password berhasil diubah.'
+    };
+  } catch (e) {
+    Logger.log('forceChangePassword error: ' + e.toString());
     return { success: false, message: 'Terjadi kesalahan sistem.' };
   }
 }
