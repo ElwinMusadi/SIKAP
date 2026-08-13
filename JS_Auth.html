@@ -181,42 +181,77 @@ SIKAP.Auth.handleForceChangePassword = function(event) {
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 text-on-primary" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path></svg> Menyimpan...';
 
+  var token = SIKAP.state.token || localStorage.getItem(SIKAP.STORAGE_KEY);
+  if (token) SIKAP.state.token = token;
+
   google.script.run
     .withSuccessHandler(function(result) {
-      if (result.success) {
-        SIKAP.Toast.show('Password berhasil diubah!', 'success');
-        
-        // Update user state
-        SIKAP.state.user.forceChangePassword = false;
-        
-        submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span> Berhasil!';
-        submitBtn.classList.remove('bg-primary');
-        submitBtn.classList.add('bg-emerald-600');
+      try {
+        if (result && result.success) {
+          if (SIKAP.Toast && SIKAP.Toast.show) {
+            SIKAP.Toast.show('Password berhasil diubah!', 'success');
+          }
+          
+          // Update user state dengan aman
+          if (result.data) {
+            SIKAP.state.user = result.data;
+            SIKAP.state.user.forceChangePassword = false;
+          } else if (SIKAP.state.user) {
+            SIKAP.state.user.forceChangePassword = false;
+          }
+          
+          submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span> Berhasil!';
+          submitBtn.classList.remove('bg-primary');
+          submitBtn.classList.add('bg-emerald-600');
 
-        setTimeout(function() {
-          // Clear form
-          document.getElementById('fcp-new-password').value = '';
-          document.getElementById('fcp-confirm-password').value = '';
+          setTimeout(function() {
+            // Clear form
+            var newPwInput = document.getElementById('fcp-new-password');
+            var confirmPwInput = document.getElementById('fcp-confirm-password');
+            if (newPwInput) newPwInput.value = '';
+            if (confirmPwInput) confirmPwInput.value = '';
+            
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('bg-emerald-600');
+            submitBtn.classList.add('bg-primary');
+            submitBtn.innerHTML = 'Simpan Password & Lanjutkan <span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
+
+            // Dapatkan role secara aman
+            var role = (SIKAP.state.user && SIKAP.state.user.role) ? SIKAP.state.user.role : 'Pegawai';
+
+            // Lanjutkan ke Dashboard
+            if (SIKAP.UI) {
+              if (SIKAP.UI.updateUserDisplay) SIKAP.UI.updateUserDisplay();
+              if (SIKAP.UI.showView && SIKAP.UI.getDashboardView) {
+                SIKAP.UI.showView(SIKAP.UI.getDashboardView(role));
+              }
+            }
+            
+            if (SIKAP.Router && SIKAP.Router.startHeartbeat) {
+              SIKAP.Router.startHeartbeat();
+            }
+          }, 800);
+        } else {
+          var msg = (result && result.message) ? result.message : 'Gagal menyimpan password.';
+          if (SIKAP.Toast && SIKAP.Toast.show) SIKAP.Toast.show(msg, 'error');
           submitBtn.disabled = false;
-          submitBtn.classList.remove('bg-emerald-600');
-          submitBtn.classList.add('bg-primary');
           submitBtn.innerHTML = 'Simpan Password & Lanjutkan <span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
-
-          SIKAP.UI.updateUserDisplay();
-          SIKAP.UI.showView(SIKAP.UI.getDashboardView(SIKAP.state.user.role));
-        }, 1200);
-      } else {
-        SIKAP.Toast.show(result.message, 'error');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Simpan Password & Lanjutkan <span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
+        }
+      } catch (err) {
+        console.error('Error handling changePassword response:', err);
+        // Fallback jika terjadi error tak terduga pada client
+        window.location.reload();
       }
     })
     .withFailureHandler(function(error) {
-      SIKAP.Toast.show('Gagal menyimpan password. Coba lagi.', 'error');
+      console.error('changePassword backend error:', error);
+      if (SIKAP.Toast && SIKAP.Toast.show) {
+        SIKAP.Toast.show('Gagal menyimpan password. Coba lagi.', 'error');
+      }
       submitBtn.disabled = false;
       submitBtn.innerHTML = 'Simpan Password & Lanjutkan <span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
     })
-    .changePassword(SIKAP.state.token, newPw, null);
+    .changePassword(token, newPw, null);
 };
 
 /**

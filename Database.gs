@@ -115,6 +115,7 @@ function appendRow(sheetName, rowData) {
   var sheet = getSheet(sheetName);
   if (sheet) {
     sheet.appendRow(rowData);
+    SpreadsheetApp.flush();
   }
 }
 
@@ -129,6 +130,7 @@ function updateCell(sheetName, row, col, value) {
   var sheet = getSheet(sheetName);
   if (sheet) {
     sheet.getRange(row, col).setValue(value);
+    SpreadsheetApp.flush();
   }
 }
 
@@ -148,6 +150,7 @@ function deleteByPrimaryKey(sheetName, key) {
       sheet.deleteRow(i + 1);
     }
   }
+  SpreadsheetApp.flush();
 }
 
 /**
@@ -164,6 +167,7 @@ function updateRowFields(sheetName, rowIndex, fields) {
     var col = parseInt(colIndex, 10) + 1; // Convert to 1-based
     sheet.getRange(rowIndex, col).setValue(fields[colIndex]);
   }
+  SpreadsheetApp.flush();
 }
 
 /**

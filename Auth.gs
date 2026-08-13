@@ -311,7 +311,19 @@ function changePassword(token, newPassword, currentPassword) {
     // Log the action
     logActivity(session.nip, session.role, 'PASSWORD_CHANGE', 'USER', session.nip, 'Password berhasil diubah', 'SUCCESS');
 
-    return { success: true, message: 'Password berhasil diubah.' };
+    return {
+      success: true,
+      data: {
+        nip: session.nip,
+        nama: session.nama,
+        role: session.role,
+        statusKepegawaian: session.statusKepegawaian,
+        pangkatGolongan: session.pangkatGolongan,
+        jabatan: session.jabatan,
+        forceChangePassword: false
+      },
+      message: 'Password berhasil diubah.'
+    };
   } catch (e) {
     Logger.log('ChangePassword error: ' + e.toString());
     return { success: false, message: 'Terjadi kesalahan sistem.' };
