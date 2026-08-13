@@ -53,7 +53,7 @@ function getMyProfile(token) {
         statusKepegawaian: d[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
         pangkatGolongan: d[COL_PEGAWAI.PANGKAT_GOLONGAN],
         jabatan: d[COL_PEGAWAI.JABATAN],
-        noHp: d[COL_PEGAWAI.NO_HP] || '',
+        noHp: formatPhoneForDisplay(d[COL_PEGAWAI.NO_HP]),
         alamat: d[COL_PEGAWAI.ALAMAT] || '',
         email: d[COL_PEGAWAI.EMAIL] || '',
         golonganDarah: d[COL_PEGAWAI.GOLONGAN_DARAH] || ''
@@ -95,7 +95,7 @@ function updateMyProfile(token, updates) {
 
     // Build update map — only editable fields
     var fields = {};
-    if (updates.noHp !== undefined) fields[COL_PEGAWAI.NO_HP] = updates.noHp;
+    if (updates.noHp !== undefined) fields[COL_PEGAWAI.NO_HP] = formatPhoneForStorage(updates.noHp);
     if (updates.alamat !== undefined) fields[COL_PEGAWAI.ALAMAT] = updates.alamat;
     if (updates.email !== undefined) fields[COL_PEGAWAI.EMAIL] = updates.email;
     if (updates.golonganDarah !== undefined) fields[COL_PEGAWAI.GOLONGAN_DARAH] = updates.golonganDarah;

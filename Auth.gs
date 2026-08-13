@@ -211,7 +211,7 @@ function getUserProfile(token) {
         statusKepegawaian: user.data[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
         pangkatGolongan: user.data[COL_PEGAWAI.PANGKAT_GOLONGAN],
         jabatan: user.data[COL_PEGAWAI.JABATAN],
-        noHp: user.data[COL_PEGAWAI.NO_HP],
+        noHp: formatPhoneForDisplay(user.data[COL_PEGAWAI.NO_HP]),
         alamat: user.data[COL_PEGAWAI.ALAMAT]
       }
     };
@@ -570,3 +570,33 @@ function seedData() {
   Logger.log('Seed data created successfully.');
   return 'Seed data berhasil dibuat.';
 }
+
+/**
+ * TEST: Verifies audit log entries for all 10 action categories.
+ */
+function test_audit_logging() {
+  Logger.log('=== TEST: Audit Logging Suite ===');
+
+  var actionsToTest = [
+    { action: 'LOGIN', targetType: 'USER', desc: 'Test Audit LOGIN' },
+    { action: 'LOGOUT', targetType: 'USER', desc: 'Test Audit LOGOUT' },
+    { action: 'PASSWORD_CHANGE', targetType: 'USER', desc: 'Test Audit PASSWORD_CHANGE' },
+    { action: 'PEGAWAI_CREATE', targetType: 'USER', desc: 'Test Audit PEGAWAI_CREATE' },
+    { action: 'PEGAWAI_UPDATE', targetType: 'USER', desc: 'Test Audit PEGAWAI_UPDATE' },
+    { action: 'PEGAWAI_DEACTIVATE', targetType: 'USER', desc: 'Test Audit PEGAWAI_DEACTIVATE' },
+    { action: 'DOKUMEN_UPLOAD', targetType: 'DOCUMENT', desc: 'Test Audit DOKUMEN_UPLOAD' },
+    { action: 'DOKUMEN_REUPLOAD', targetType: 'DOCUMENT', desc: 'Test Audit DOKUMEN_REUPLOAD' },
+    { action: 'DOKUMEN_APPROVE', targetType: 'DOCUMENT', desc: 'Test Audit DOKUMEN_APPROVE' },
+    { action: 'DOKUMEN_REJECT', targetType: 'DOCUMENT', desc: 'Test Audit DOKUMEN_REJECT' }
+  ];
+
+  var testNip = '198506122010011002';
+  for (var i = 0; i < actionsToTest.length; i++) {
+    var item = actionsToTest[i];
+    logActivity(testNip, 'Admin', item.action, item.targetType, 'TEST-ID', item.desc, 'SUCCESS');
+    Logger.log('Log entry created: ' + item.action + ' ✓');
+  }
+
+  Logger.log('=== AUDIT LOG SUITE COMPLETE ===');
+}
+

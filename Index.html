@@ -184,12 +184,9 @@
           <?!= include('View_MasterDataPegawai'); ?>
         </div>
 
-        <!-- Verifikasi Dokumen (Placeholder) -->
+        <!-- Verifikasi Dokumen -->
         <div id="view-verifikasi-dokumen" class="hidden view-container">
-          <div class="px-6 py-8 lg:px-container-margin lg:py-10 max-w-[1440px] mx-auto">
-            <h1 class="font-h1 text-h1 text-on-surface">Verifikasi Dokumen</h1>
-            <p class="font-body-lg text-body-lg text-on-surface-variant mt-2">Halaman ini akan diimplementasikan di fase selanjutnya.</p>
-          </div>
+          <?!= include('View_VerifikasiDokumen'); ?>
         </div>
 
         <!-- Pengaturan -->
@@ -205,6 +202,7 @@
   <!-- ============================================ -->
   <?!= include('Component_Toast'); ?>
   <?!= include('Component_Loading'); ?>
+  <?!= include('Component_LogoutModal'); ?>
 
   <!-- ============================================ -->
   <!-- SCRIPTS                                      -->
@@ -213,6 +211,10 @@
   <?!= include('JS_Router'); ?>
   <?!= include('JS_Auth'); ?>
   <?!= include('JS_ArsipDokumen'); ?>
+  <?!= include('JS_DashboardAdmin'); ?>
+  <?!= include('JS_MasterDataPegawai'); ?>
+  <?!= include('JS_VerifikasiDokumen'); ?>
+  <?!= include('JS_Pengaturan'); ?>
 
 </body>
 </html>

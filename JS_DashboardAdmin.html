@@ -1,0 +1,99 @@
+<script>
+// ============================================================
+// JS_DashboardAdmin.html — Admin Dashboard Controller
+// ============================================================
+
+SIKAP.DashboardAdmin = SIKAP.DashboardAdmin || {};
+
+/**
+ * Main load function called by Router onViewEnter.
+ */
+SIKAP.DashboardAdmin.load = function() {
+  var token = SIKAP.state.token;
+  if (!token) return;
+
+  SIKAP.UI.showLoading();
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      SIKAP.UI.hideLoading();
+      if (res.success) {
+        SIKAP.DashboardAdmin.renderStats(res.data);
+      } else {
+        SIKAP.Toast.show(res.message, 'error');
+      }
+    })
+    .withFailureHandler(function(err) {
+      SIKAP.UI.hideLoading();
+      SIKAP.Toast.show('Gagal memuat statistik dashboard.', 'error');
+    })
+    .adminGetDashboardStats(token);
+};
+
+/**
+ * Renders statistical counters and recent activities.
+ */
+SIKAP.DashboardAdmin.renderStats = function(d) {
+  // Counters
+  document.getElementById('admin-stat-total').textContent = d.totalPegawai || '0';
+  document.getElementById('admin-stat-pns').textContent = d.pns || '0';
+  document.getElementById('admin-stat-cpns').textContent = d.cpns || '0';
+  document.getElementById('admin-stat-p3k').textContent = d.p3k || '0';
+  document.getElementById('admin-stat-pending').textContent = d.pendingVerifikasi || '0';
+
+  // Completeness %
+  var pct = d.docPct || 0;
+  document.getElementById('admin-completeness-pct').textContent = pct + '%';
+  
+  // Progress Bar Breakdown
+  var verifiedBar = document.getElementById('admin-bar-verified');
+  var pendingBar = document.getElementById('admin-bar-pending');
+  if (verifiedBar) verifiedBar.style.width = pct + '%';
+  if (pendingBar) pendingBar.style.width = (100 - pct) + '%';
+
+  // Action card text
+  var pendingText = document.getElementById('admin-pending-text');
+  if (pendingText) {
+    if (d.pendingVerifikasi > 0) {
+      pendingText.textContent = 'Terdapat ' + d.pendingVerifikasi + ' dokumen yang membutuhkan pemeriksaan segera.';
+    } else {
+      pendingText.textContent = 'Tidak ada dokumen yang sedang menunggu verifikasi saat ini.';
+    }
+  }
+
+  // Activity Timeline
+  var container = document.getElementById('admin-activity-timeline');
+  if (!container) return;
+
+  if (!d.recentActivities || d.recentActivities.length === 0) {
+    container.innerHTML = 
+      '<div class="absolute left-1 top-2 bottom-2 w-px bg-surface-container-highest"></div>' +
+      '<div class="relative flex gap-4">' +
+        '<div class="absolute -left-[22px] top-1 w-3 h-3 rounded-full bg-surface-container-highest ring-4 ring-surface-container-lowest z-10"></div>' +
+        '<div class="flex flex-col">' +
+          '<span class="font-label-sm text-label-sm text-on-surface-variant mb-1">—</span>' +
+          '<p class="font-body-sm text-body-sm text-on-surface-variant">Belum ada aktivitas terbaru.</p>' +
+        '</div>' +
+      '</div>';
+    return;
+  }
+
+  var html = '<div class="absolute left-1 top-2 bottom-2 w-px bg-surface-container-highest"></div>';
+  
+  d.recentActivities.forEach(function(act) {
+    var dotClass = 'bg-primary';
+    if (act.action.indexOf('CREATE') !== -1) dotClass = 'bg-[#137333]';
+    else if (act.action.indexOf('UPDATE') !== -1) dotClass = 'bg-[#ff9800]';
+    else if (act.action.indexOf('DEACTIVATE') !== -1) dotClass = 'bg-error';
+
+    html += '<div class="relative flex gap-4">';
+    html += '<div class="absolute -left-[22px] top-1 w-3 h-3 rounded-full ' + dotClass + ' ring-4 ring-surface-container-lowest z-10"></div>';
+    html += '<div class="flex flex-col">';
+    html += '<span class="font-label-sm text-label-sm text-on-surface-variant mb-1">' + act.time + '</span>';
+    html += '<p class="font-body-sm text-body-sm text-on-surface">' + act.description + '</p>';
+    html += '</div></div>';
+  });
+
+  container.innerHTML = html;
+};
+</script>

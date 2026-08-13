@@ -12,6 +12,7 @@
 !Component_Sidebar.html
 !Component_Toast.html
 !Component_Loading.html
+!Component_LogoutModal.html
 !View_Login.html
 !View_ForceChangePassword.html
 !View_DashboardAdmin.html
@@ -24,4 +25,10 @@
 !Dokumen.gs
 !View_ArsipDokumen.html
 !JS_ArsipDokumen.html
+!JS_DashboardAdmin.html
+!JS_MasterDataPegawai.html
+!View_VerifikasiDokumen.html
+!JS_VerifikasiDokumen.html
+!JS_Pengaturan.html
 !appsscript.json
+!Tests_Integration.gs

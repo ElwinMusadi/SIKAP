@@ -136,7 +136,7 @@ SIKAP.Arsip.renderTable = function(rows) {
       // Action button always visible
       html += '<button onclick="SIKAP.Arsip.openPenolakanModal(\'' + r.idArsip + '\')" class="px-3 py-1.5 bg-error/10 text-error hover:bg-error/20 rounded-lg font-label-sm transition-colors flex items-center gap-1">';
       html += '<span class="material-symbols-outlined text-[16px]">upload</span> Revisi</button>';
-    } else if (r.status === 'Belum Unggah') {
+    } else if (r.status === 'Belum Unggah' || r.status === 'Belum_Unggah' || (r.status && r.status.indexOf('Belum') !== -1)) {
       // Action button always visible
       var btnClass = r.wajib === 'Ya' 
         ? 'border border-primary text-primary hover:bg-primary/5' 
@@ -257,9 +257,12 @@ SIKAP.Arsip.handleFileSelect = function(file) {
   }
   
   // Validate type
-  var allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-  if (allowedTypes.indexOf(file.type) === -1) {
-    SIKAP.Toast.show('Format file tidak didukung. Gunakan PDF, JPG, atau PNG.', 'error');
+  var allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/jfif', 'image/pjpeg'];
+  var ext = (file.name || '').split('.').pop().toLowerCase();
+  var isAllowedExt = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'jfif'].indexOf(ext) !== -1;
+  
+  if (allowedTypes.indexOf(file.type) === -1 && !isAllowedExt) {
+    SIKAP.Toast.show('Format file tidak didukung. Gunakan PDF, JPG, PNG, atau WEBP.', 'error');
     return;
   }
   
@@ -336,9 +339,16 @@ SIKAP.Arsip.submitUpload = function() {
   
   var reader = new FileReader();
   reader.onload = function(e) {
-    // e.target.result looks like: data:image/jpeg;base64,/9j/4AAQ...
     var dataUrl = e.target.result;
     var base64Data = dataUrl.split(',')[1];
+    var mimeType = file.type || '';
+    if (!mimeType) {
+      var n = (file.name || '').toLowerCase();
+      if (n.indexOf('.pdf') !== -1) mimeType = 'application/pdf';
+      else if (n.indexOf('.png') !== -1) mimeType = 'image/png';
+      else if (n.indexOf('.webp') !== -1) mimeType = 'image/webp';
+      else mimeType = 'image/jpeg';
+    }
     
     // Call server
     google.script.run
@@ -359,7 +369,7 @@ SIKAP.Arsip.submitUpload = function() {
         SIKAP.Toast.show('Terjadi kesalahan jaringan.', 'error');
         SIKAP.Arsip.resetUploadUIState();
       })
-      .uploadDokumen(SIKAP.state.token, docId, base64Data, file.type);
+      .uploadDokumen(SIKAP.state.token, docId, base64Data, mimeType);
   };
   
   reader.onerror = function() {
@@ -456,6 +466,7 @@ SIKAP.Arsip.openPreviewModal = function(idArsip) {
       } else {
         SIKAP.Toast.show(res.message, 'error');
         SIKAP.Arsip.closePreviewModal();
+        if (SIKAP.Arsip.load) SIKAP.Arsip.load();
       }
     })
     .withFailureHandler(function() {

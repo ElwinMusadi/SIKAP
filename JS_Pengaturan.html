@@ -1,0 +1,138 @@
+<script>
+// ============================================================
+// JS_Pengaturan.html — Settings Page Controller
+// ============================================================
+
+SIKAP.Settings = SIKAP.Settings || {};
+
+/**
+ * Loads the user profile data into the Settings form.
+ * Called when the settings view is shown.
+ */
+SIKAP.Settings.loadProfile = function() {
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (result && result.success) {
+        var d = result.data;
+        document.getElementById('settings-nama').value = d.nama || '—';
+        document.getElementById('settings-nip').value = d.nip || '—';
+        document.getElementById('settings-role').value = d.role || '—';
+        document.getElementById('settings-status').value = d.statusKepegawaian || '—';
+      } else {
+        var msg = (result && result.message) ? result.message : 'Gagal memuat profil.';
+        SIKAP.Toast.show(msg, 'error');
+        if (result && result.message && result.message.indexOf('Sesi') !== -1) {
+          SIKAP.Auth.handleSessionExpired();
+        }
+      }
+    })
+    .withFailureHandler(function(error) {
+      SIKAP.Toast.show('Gagal memuat profil.', 'error');
+    })
+    .getUserProfile(SIKAP.state.token);
+};
+
+/**
+ * Validates the password change form in real-time.
+ */
+SIKAP.Settings.validatePasswordForm = function() {
+  var newPw = document.getElementById('settings-new-pw').value;
+  var confirmPw = document.getElementById('settings-confirm-pw').value;
+  var submitBtn = document.getElementById('settings-save-pw-btn');
+  var matchMsg = document.getElementById('settings-match-msg');
+
+  var reqLength = document.getElementById('settings-req-length');
+  var reqCase = document.getElementById('settings-req-case');
+  var reqNumber = document.getElementById('settings-req-number');
+
+  var hasLength = newPw.length >= 8;
+  var hasCase = /[a-z]/.test(newPw) && /[A-Z]/.test(newPw);
+  var hasNumber = /\d/.test(newPw);
+  var isMatch = newPw === confirmPw && newPw !== '';
+
+  SIKAP.Auth.updateReqStyle(reqLength, hasLength);
+  SIKAP.Auth.updateReqStyle(reqCase, hasCase);
+  SIKAP.Auth.updateReqStyle(reqNumber, hasNumber);
+
+  if (confirmPw !== '') {
+    if (!isMatch) {
+      matchMsg.textContent = 'Password tidak cocok.';
+      matchMsg.classList.remove('opacity-0');
+    } else {
+      matchMsg.textContent = '';
+      matchMsg.classList.add('opacity-0');
+    }
+  } else {
+    matchMsg.classList.add('opacity-0');
+  }
+
+  var isValid = hasLength && hasCase && hasNumber && isMatch;
+  submitBtn.disabled = !isValid;
+};
+
+/**
+ * Handles the voluntary password change form submission.
+ */
+SIKAP.Settings.handleChangePassword = function(event) {
+  event.preventDefault();
+
+  var currentPw = document.getElementById('settings-current-pw').value;
+  var newPw = document.getElementById('settings-new-pw').value;
+  var confirmPw = document.getElementById('settings-confirm-pw').value;
+  var submitBtn = document.getElementById('settings-save-pw-btn');
+  var textEl = document.getElementById('settings-save-pw-text');
+
+  if (!currentPw) {
+    SIKAP.Toast.show('Masukkan password saat ini.', 'warning');
+    return;
+  }
+  if (newPw !== confirmPw) {
+    SIKAP.Toast.show('Password baru tidak cocok.', 'error');
+    return;
+  }
+
+  // Loading state
+  submitBtn.disabled = true;
+  textEl.innerHTML = '<svg class="animate-spin h-5 w-5 text-on-primary inline-block" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path></svg> Menyimpan...';
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (result && result.success) {
+        SIKAP.Toast.show('Password berhasil diubah!', 'success');
+        // Clear form
+        document.getElementById('settings-current-pw').value = '';
+        document.getElementById('settings-new-pw').value = '';
+        document.getElementById('settings-confirm-pw').value = '';
+        // Reset requirement indicators
+        SIKAP.Settings.validatePasswordForm();
+      } else {
+        var msg = (result && result.message) ? result.message : 'Gagal mengubah password.';
+        SIKAP.Toast.show(msg, 'error');
+        if (result && result.message && result.message.indexOf('Sesi') !== -1) {
+          SIKAP.Auth.handleSessionExpired();
+        }
+      }
+      submitBtn.disabled = false;
+      textEl.textContent = 'Simpan Password';
+    })
+    .withFailureHandler(function(error) {
+      SIKAP.Toast.show('Gagal menyimpan password. Coba lagi.', 'error');
+      submitBtn.disabled = false;
+      textEl.textContent = 'Simpan Password';
+    })
+    .changePassword(SIKAP.state.token, newPw, currentPw);
+};
+
+// ---- Logout Confirmation Modal (delegated to global SIKAP.Auth) ----
+SIKAP.Settings.openLogoutModal = function() {
+  SIKAP.Auth.openLogoutModal();
+};
+
+SIKAP.Settings.closeLogoutModal = function() {
+  SIKAP.Auth.closeLogoutModal();
+};
+
+SIKAP.Settings.confirmLogout = function() {
+  SIKAP.Auth.confirmLogout();
+};
+</script>

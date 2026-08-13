@@ -315,6 +315,41 @@ SIKAP.Auth.updateReqStyle = function(element, isValid) {
 };
 
 /**
+ * Global Logout Confirmation Modal Handlers
+ */
+SIKAP.Auth.openLogoutModal = function() {
+  var modal = document.getElementById('app-logout-modal');
+  var card = document.getElementById('app-logout-card');
+  if (!modal || !card) {
+    SIKAP.Auth.logout();
+    return;
+  }
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  setTimeout(function() {
+    card.classList.remove('scale-95', 'opacity-0');
+    card.classList.add('scale-100', 'opacity-100');
+  }, 10);
+};
+
+SIKAP.Auth.closeLogoutModal = function() {
+  var modal = document.getElementById('app-logout-modal');
+  var card = document.getElementById('app-logout-card');
+  if (!modal || !card) return;
+  card.classList.add('scale-95', 'opacity-0');
+  card.classList.remove('scale-100', 'opacity-100');
+  setTimeout(function() {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }, 200);
+};
+
+SIKAP.Auth.confirmLogout = function() {
+  SIKAP.Auth.closeLogoutModal();
+  SIKAP.Auth.logout();
+};
+
+/**
  * Handles logout.
  */
 SIKAP.Auth.logout = function() {

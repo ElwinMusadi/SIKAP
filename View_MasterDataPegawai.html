@@ -247,8 +247,39 @@
           <!-- Pangkat / Golongan -->
           <div class="flex flex-col gap-xs">
             <label class="font-label-sm text-on-surface-variant" for="tambah-pangkat">Pangkat / Golongan</label>
-            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
-                   id="tambah-pangkat" type="text" placeholder="cth. Penata Muda / III.a">
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="tambah-pangkat">
+                <option value="" selected>— Pilih Pangkat / Golongan —</option>
+                <option value="-">- (Tanpa Golongan / PPPK)</option>
+                <optgroup label="Golongan I (Juru)">
+                  <option value="Juru Muda (I/a)">Juru Muda (I/a)</option>
+                  <option value="Juru Muda Tk. I (I/b)">Juru Muda Tk. I (I/b)</option>
+                  <option value="Juru (I/c)">Juru (I/c)</option>
+                  <option value="Juru Tk. I (I/d)">Juru Tk. I (I/d)</option>
+                </optgroup>
+                <optgroup label="Golongan II (Pengatur)">
+                  <option value="Pengatur Muda (II/a)">Pengatur Muda (II/a)</option>
+                  <option value="Pengatur Muda Tk. I (II/b)">Pengatur Muda Tk. I (II/b)</option>
+                  <option value="Pengatur (II/c)">Pengatur (II/c)</option>
+                  <option value="Pengatur Tk. I (II/d)">Pengatur Tk. I (II/d)</option>
+                </optgroup>
+                <optgroup label="Golongan III (Penata)">
+                  <option value="Penata Muda (III/a)">Penata Muda (III/a)</option>
+                  <option value="Penata Muda Tk. I (III/b)">Penata Muda Tk. I (III/b)</option>
+                  <option value="Penata (III/c)">Penata (III/c)</option>
+                  <option value="Penata Tk. I (III/d)">Penata Tk. I (III/d)</option>
+                </optgroup>
+                <optgroup label="Golongan IV (Pembina)">
+                  <option value="Pembina (IV/a)">Pembina (IV/a)</option>
+                  <option value="Pembina Tk. I (IV/b)">Pembina Tk. I (IV/b)</option>
+                  <option value="Pembina Utama Muda (IV/c)">Pembina Utama Muda (IV/c)</option>
+                  <option value="Pembina Utama Madya (IV/d)">Pembina Utama Madya (IV/d)</option>
+                  <option value="Pembina Utama (IV/e)">Pembina Utama (IV/e)</option>
+                </optgroup>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
           </div>
           <!-- Jabatan (Full Width) -->
           <div class="flex flex-col gap-xs md:col-span-2">
@@ -345,11 +376,11 @@
 
     <!-- Body -->
     <form class="flex-1 overflow-y-auto p-xl flex flex-col gap-8" id="mdp-edit-form" onsubmit="SIKAP.MasterDataPegawai.handleEdit(event)" novalidate>
-      <!-- Read-only identity section -->
+      <!-- Identitas Utama -->
       <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/20">
         <h3 class="font-h3 text-on-surface flex items-center gap-2">
           <span class="material-symbols-outlined text-primary">badge</span>
-          Identitas Utama (Read-only)
+          Identitas Utama Pegawai
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- NIP RO -->
@@ -357,20 +388,61 @@
             <label class="font-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1">NIP <span class="material-symbols-outlined text-[16px] text-outline">lock</span></label>
             <div class="px-4 py-3 bg-surface-container-low rounded-lg font-body-md text-on-surface-variant shadow-inner cursor-not-allowed" id="edit-ro-nip">—</div>
           </div>
-          <!-- Nama RO -->
+          <!-- Nama Lengkap -->
           <div class="flex flex-col gap-2">
-            <label class="font-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1">Nama Lengkap <span class="material-symbols-outlined text-[16px] text-outline">lock</span></label>
-            <div class="px-4 py-3 bg-surface-container-low rounded-lg font-body-md text-on-surface-variant shadow-inner cursor-not-allowed" id="edit-ro-nama">—</div>
+            <label class="font-label-sm text-on-surface uppercase tracking-wider" for="edit-nama">Nama Lengkap <span class="text-error">*</span></label>
+            <input class="px-4 py-3 bg-surface rounded-lg font-body-md text-on-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow border border-outline-variant"
+                   id="edit-nama" type="text" required>
           </div>
-          <!-- Status Kepegawaian RO -->
+          <!-- Status Kepegawaian -->
           <div class="flex flex-col gap-2">
-            <label class="font-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1">Status Kepegawaian <span class="material-symbols-outlined text-[16px] text-outline">lock</span></label>
-            <div class="px-4 py-3 bg-surface-container-low rounded-lg font-body-md text-on-surface-variant shadow-inner cursor-not-allowed" id="edit-ro-status-kep">—</div>
+            <label class="font-label-sm text-on-surface uppercase tracking-wider" for="edit-status-kep">Status Kepegawaian <span class="text-error">*</span></label>
+            <div class="relative">
+              <select class="w-full px-4 py-3 bg-surface rounded-lg font-body-md text-on-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow appearance-none border border-outline-variant"
+                      id="edit-status-kep" required>
+                <option value="PNS">PNS</option>
+                <option value="CPNS">CPNS</option>
+                <option value="PPPK">PPPK</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+            </div>
           </div>
-          <!-- Pangkat RO -->
+          <!-- Pangkat / Golongan -->
           <div class="flex flex-col gap-2">
-            <label class="font-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1">Pangkat / Golongan <span class="material-symbols-outlined text-[16px] text-outline">lock</span></label>
-            <div class="px-4 py-3 bg-surface-container-low rounded-lg font-body-md text-on-surface-variant shadow-inner cursor-not-allowed" id="edit-ro-pangkat">—</div>
+            <label class="font-label-sm text-on-surface uppercase tracking-wider" for="edit-pangkat">Pangkat / Golongan</label>
+            <div class="relative">
+              <select class="w-full px-4 py-3 bg-surface rounded-lg font-body-md text-on-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow appearance-none border border-outline-variant cursor-pointer"
+                      id="edit-pangkat">
+                <option value="">— Pilih Pangkat / Golongan —</option>
+                <option value="-">- (Tanpa Golongan / PPPK)</option>
+                <optgroup label="Golongan I (Juru)">
+                  <option value="Juru Muda (I/a)">Juru Muda (I/a)</option>
+                  <option value="Juru Muda Tk. I (I/b)">Juru Muda Tk. I (I/b)</option>
+                  <option value="Juru (I/c)">Juru (I/c)</option>
+                  <option value="Juru Tk. I (I/d)">Juru Tk. I (I/d)</option>
+                </optgroup>
+                <optgroup label="Golongan II (Pengatur)">
+                  <option value="Pengatur Muda (II/a)">Pengatur Muda (II/a)</option>
+                  <option value="Pengatur Muda Tk. I (II/b)">Pengatur Muda Tk. I (II/b)</option>
+                  <option value="Pengatur (II/c)">Pengatur (II/c)</option>
+                  <option value="Pengatur Tk. I (II/d)">Pengatur Tk. I (II/d)</option>
+                </optgroup>
+                <optgroup label="Golongan III (Penata)">
+                  <option value="Penata Muda (III/a)">Penata Muda (III/a)</option>
+                  <option value="Penata Muda Tk. I (III/b)">Penata Muda Tk. I (III/b)</option>
+                  <option value="Penata (III/c)">Penata (III/c)</option>
+                  <option value="Penata Tk. I (III/d)">Penata Tk. I (III/d)</option>
+                </optgroup>
+                <optgroup label="Golongan IV (Pembina)">
+                  <option value="Pembina (IV/a)">Pembina (IV/a)</option>
+                  <option value="Pembina Tk. I (IV/b)">Pembina Tk. I (IV/b)</option>
+                  <option value="Pembina Utama Muda (IV/c)">Pembina Utama Muda (IV/c)</option>
+                  <option value="Pembina Utama Madya (IV/d)">Pembina Utama Madya (IV/d)</option>
+                  <option value="Pembina Utama (IV/e)">Pembina Utama (IV/e)</option>
+                </optgroup>
+              </select>
+              <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+            </div>
           </div>
         </div>
       </div>
@@ -443,448 +515,3 @@
     </form>
   </div>
 </div>
-
-<!-- ============================================================ -->
-<!-- JAVASCRIPT                                                   -->
-<!-- ============================================================ -->
-<script>
-SIKAP.MasterDataPegawai = {};
-
-// Internal state
-SIKAP.MasterDataPegawai._allRows = [];       // Full dataset from backend
-SIKAP.MasterDataPegawai._filteredRows = [];  // After filter/search
-SIKAP.MasterDataPegawai._page = 1;
-SIKAP.MasterDataPegawai._pageSize = 15;
-SIKAP.MasterDataPegawai._editTarget = null;  // NIP of row being edited
-SIKAP.MasterDataPegawai._toggleTarget = null;// { nip, nama, currentStatus }
-
-// ---- Helpers ----
-
-SIKAP.MasterDataPegawai.getInitials = function(nama) {
-  if (!nama) return '?';
-  var parts = nama.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
-};
-
-SIKAP.MasterDataPegawai.avatarColors = [
-  'bg-primary-container text-on-primary-container',
-  'bg-secondary-container text-on-secondary-container',
-  'bg-surface-container-high text-on-surface'
-];
-
-SIKAP.MasterDataPegawai.getAvatarColor = function(nip) {
-  var sum = 0;
-  for (var i = 0; i < nip.length; i++) sum += nip.charCodeAt(i);
-  return SIKAP.MasterDataPegawai.avatarColors[sum % SIKAP.MasterDataPegawai.avatarColors.length];
-};
-
-SIKAP.MasterDataPegawai.statusAkunBadge = function(status) {
-  if (status === 'Aktif') {
-    return '<span class="inline-flex items-center px-xs py-0.5 rounded-full font-label-sm text-[10px] font-bold bg-primary-container/20 text-primary">AKTIF</span>';
-  }
-  return '<span class="inline-flex items-center px-xs py-0.5 rounded-full font-label-sm text-[10px] font-bold bg-surface-container-high text-on-surface-variant">NONAKTIF</span>';
-};
-
-SIKAP.MasterDataPegawai.completenessBar = function(pct, label) {
-  var color = label === 'Lengkap' ? 'bg-primary' : (label === 'Perlu Revisi' ? 'bg-error' : 'bg-tertiary');
-  var textColor = label === 'Lengkap' ? '' : (label === 'Perlu Revisi' ? 'text-error' : 'text-tertiary');
-  return '<div class="flex flex-col gap-xs w-full max-w-[150px]">' +
-    '<div class="flex justify-between font-label-sm text-on-surface-variant text-[10px]">' +
-      '<span>' + pct + '%</span>' +
-      '<span class="' + textColor + '">' + label + '</span>' +
-    '</div>' +
-    '<div class="w-full bg-surface-container-highest rounded-full h-1.5 overflow-hidden">' +
-      '<div class="' + color + ' h-1.5 rounded-full transition-all duration-500" style="width:' + pct + '%"></div>' +
-    '</div>' +
-  '</div>';
-};
-
-// ---- Table Rendering ----
-
-SIKAP.MasterDataPegawai.renderTable = function() {
-  var rows = SIKAP.MasterDataPegawai._filteredRows;
-  var page = SIKAP.MasterDataPegawai._page;
-  var size = SIKAP.MasterDataPegawai._pageSize;
-  var start = (page - 1) * size;
-  var pageRows = rows.slice(start, start + size);
-  var totalPages = Math.ceil(rows.length / size);
-
-  var tbody = document.getElementById('mdp-tbody');
-  if (pageRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="px-md py-8 text-center text-on-surface-variant font-body-md">' +
-      '<span class="material-symbols-outlined text-3xl text-outline mb-2 block">search_off</span>' +
-      'Tidak ada data yang sesuai.</td></tr>';
-  } else {
-    tbody.innerHTML = pageRows.map(function(r) {
-      var initials = SIKAP.MasterDataPegawai.getInitials(r.nama);
-      var avatarColor = SIKAP.MasterDataPegawai.getAvatarColor(r.nip);
-      var toggleIcon = r.statusAkun === 'Aktif' ? 'block' : 'check_circle';
-      var toggleTitle = r.statusAkun === 'Aktif' ? 'Nonaktifkan' : 'Aktifkan';
-      return '<tr class="hover:bg-surface-container-lowest/80 transition-colors group">' +
-        '<td class="px-md py-sm">' +
-          '<div class="flex items-center gap-sm">' +
-            '<div class="w-10 h-10 rounded-full flex items-center justify-center font-label-md font-bold shrink-0 ' + avatarColor + '">' + initials + '</div>' +
-            '<div class="flex flex-col min-w-0">' +
-              '<span class="font-label-md text-on-surface truncate">' + r.nama + '</span>' +
-              '<span class="font-body-sm text-on-surface-variant truncate">NIP: ' + r.nip + '</span>' +
-            '</div>' +
-          '</div>' +
-        '</td>' +
-        '<td class="px-md py-sm">' +
-          '<div class="flex flex-col">' +
-            '<span class="font-label-sm text-on-surface">' + (r.statusKepegawaian || '—') + '</span>' +
-            '<span class="font-body-sm text-on-surface-variant">' + (r.pangkatGolongan || '—') + '</span>' +
-          '</div>' +
-        '</td>' +
-        '<td class="px-md py-sm text-on-surface truncate max-w-[180px]" title="' + (r.jabatan || '') + '">' + (r.jabatan || '—') + '</td>' +
-        '<td class="px-md py-sm">' + SIKAP.MasterDataPegawai.completenessBar(r.docPct, r.docLabel) + '</td>' +
-        '<td class="px-md py-sm text-center">' + SIKAP.MasterDataPegawai.statusAkunBadge(r.statusAkun) + '</td>' +
-        '<td class="px-md py-sm text-right">' +
-          '<div class="flex justify-end gap-xs opacity-0 group-hover:opacity-100 transition-opacity">' +
-            '<button class="p-xs text-on-surface-variant hover:text-primary hover:bg-primary-container/10 rounded-full transition-colors" title="Edit"' +
-              ' onclick="SIKAP.MasterDataPegawai.openEdit(\'' + r.nip + '\')">' +
-              '<span class="material-symbols-outlined text-[18px]">edit</span>' +
-            '</button>' +
-            '<button class="p-xs text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded-full transition-colors" title="' + toggleTitle + '"' +
-              ' onclick="SIKAP.MasterDataPegawai.openConfirm(\'' + r.nip + '\', \'' + r.nama.replace(/'/g, '\\\'') + '\', \'' + r.statusAkun + '\')">' +
-              '<span class="material-symbols-outlined text-[18px]">' + toggleIcon + '</span>' +
-            '</button>' +
-          '</div>' +
-        '</td>' +
-      '</tr>';
-    }).join('');
-  }
-
-  // Pagination
-  document.getElementById('mdp-count-label').textContent =
-    'Menampilkan ' + (rows.length === 0 ? 0 : start + 1) + '–' +
-    Math.min(start + size, rows.length) + ' dari ' + rows.length + ' Pegawai';
-  document.getElementById('mdp-page-label').textContent = 'Hal. ' + page + ' / ' + Math.max(totalPages, 1);
-  document.getElementById('mdp-prev-btn').disabled = page <= 1;
-  document.getElementById('mdp-next-btn').disabled = page >= totalPages;
-};
-
-// ---- Filter / Search ----
-
-SIKAP.MasterDataPegawai.applyFilters = function() {
-  var q = (document.getElementById('mdp-search').value || '').toLowerCase();
-  var filterKep = document.getElementById('mdp-filter-kepegawaian').value;
-  var filterAkun = document.getElementById('mdp-filter-akun').value;
-  var filterLen = document.getElementById('mdp-filter-kelengkapan').value;
-
-  SIKAP.MasterDataPegawai._filteredRows = SIKAP.MasterDataPegawai._allRows.filter(function(r) {
-    if (q && r.nama.toLowerCase().indexOf(q) === -1 && r.nip.indexOf(q) === -1) return false;
-    if (filterKep && r.statusKepegawaian !== filterKep) return false;
-    if (filterAkun && r.statusAkun !== filterAkun) return false;
-    if (filterLen && r.docLabel !== filterLen) return false;
-    return true;
-  });
-  SIKAP.MasterDataPegawai._page = 1;
-  SIKAP.MasterDataPegawai.renderTable();
-};
-
-SIKAP.MasterDataPegawai.resetFilters = function() {
-  document.getElementById('mdp-search').value = '';
-  document.getElementById('mdp-filter-kepegawaian').value = '';
-  document.getElementById('mdp-filter-akun').value = '';
-  document.getElementById('mdp-filter-kelengkapan').value = '';
-  SIKAP.MasterDataPegawai._filteredRows = SIKAP.MasterDataPegawai._allRows.slice();
-  SIKAP.MasterDataPegawai._page = 1;
-  SIKAP.MasterDataPegawai.renderTable();
-};
-
-SIKAP.MasterDataPegawai.prevPage = function() {
-  if (SIKAP.MasterDataPegawai._page > 1) {
-    SIKAP.MasterDataPegawai._page--;
-    SIKAP.MasterDataPegawai.renderTable();
-  }
-};
-SIKAP.MasterDataPegawai.nextPage = function() {
-  var totalPages = Math.ceil(SIKAP.MasterDataPegawai._filteredRows.length / SIKAP.MasterDataPegawai._pageSize);
-  if (SIKAP.MasterDataPegawai._page < totalPages) {
-    SIKAP.MasterDataPegawai._page++;
-    SIKAP.MasterDataPegawai.renderTable();
-  }
-};
-
-// ---- Data Load ----
-
-SIKAP.MasterDataPegawai.load = function() {
-  document.getElementById('mdp-loading').classList.remove('hidden');
-  document.getElementById('mdp-error').classList.add('hidden');
-  document.getElementById('mdp-data').classList.add('hidden');
-
-  google.script.run
-    .withSuccessHandler(function(result) {
-      document.getElementById('mdp-loading').classList.add('hidden');
-      if (result.success) {
-        SIKAP.MasterDataPegawai._allRows = result.data.rows;
-        SIKAP.MasterDataPegawai._filteredRows = result.data.rows.slice();
-        document.getElementById('mdp-summary-text').textContent =
-          result.data.summary.total + ' pegawai · ' +
-          result.data.summary.aktif + ' aktif · ' +
-          result.data.summary.nonaktif + ' nonaktif';
-        SIKAP.MasterDataPegawai._page = 1;
-        SIKAP.MasterDataPegawai.renderTable();
-        document.getElementById('mdp-data').classList.remove('hidden');
-      } else {
-        document.getElementById('mdp-error-msg').textContent = result.message;
-        document.getElementById('mdp-error').classList.remove('hidden');
-        if (result.message && result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
-      }
-    })
-    .withFailureHandler(function(err) {
-      document.getElementById('mdp-loading').classList.add('hidden');
-      document.getElementById('mdp-error-msg').textContent = 'Gagal terhubung ke server.';
-      document.getElementById('mdp-error').classList.remove('hidden');
-    })
-    .adminGetAllPegawai(SIKAP.state.token);
-};
-
-// ---- Tambah Panel ----
-
-SIKAP.MasterDataPegawai.openTambah = function() {
-  document.getElementById('mdp-tambah-form').reset();
-  document.getElementById('tambah-nip-err').classList.add('hidden');
-  var panel = document.getElementById('mdp-tambah-panel');
-  panel.classList.remove('hidden');
-  panel.classList.add('flex');
-  setTimeout(function() {
-    document.getElementById('mdp-tambah-slide').classList.remove('translate-x-full');
-  }, 10);
-};
-
-SIKAP.MasterDataPegawai.closeTambah = function() {
-  document.getElementById('mdp-tambah-slide').classList.add('translate-x-full');
-  setTimeout(function() {
-    document.getElementById('mdp-tambah-panel').classList.add('hidden');
-    document.getElementById('mdp-tambah-panel').classList.remove('flex');
-  }, 300);
-};
-
-SIKAP.MasterDataPegawai.handleTambah = function(event) {
-  event.preventDefault();
-  var nipVal = document.getElementById('tambah-nip').value.trim();
-  if (!/^\d{18}$/.test(nipVal)) {
-    document.getElementById('tambah-nip-err').classList.remove('hidden');
-    document.getElementById('tambah-nip').focus();
-    return;
-  }
-  document.getElementById('tambah-nip-err').classList.add('hidden');
-
-  var btn = document.getElementById('tambah-save-btn');
-  var icon = document.getElementById('tambah-save-icon');
-  var text = document.getElementById('tambah-save-text');
-  btn.disabled = true;
-  icon.textContent = 'hourglass_empty';
-  text.textContent = 'Menyimpan...';
-
-  var payload = {
-    nip: nipVal,
-    nama: document.getElementById('tambah-nama').value.trim(),
-    statusKepegawaian: document.getElementById('tambah-status-kepegawaian').value,
-    pangkatGolongan: document.getElementById('tambah-pangkat').value.trim(),
-    jabatan: document.getElementById('tambah-jabatan').value.trim(),
-    noHp: document.getElementById('tambah-hp').value.trim(),
-    role: document.getElementById('tambah-role').value,
-    alamat: document.getElementById('tambah-alamat').value.trim()
-  };
-
-  google.script.run
-    .withSuccessHandler(function(result) {
-      btn.disabled = false;
-      icon.textContent = 'save';
-      text.textContent = 'Simpan Pegawai';
-      if (result.success) {
-        SIKAP.MasterDataPegawai.closeTambah();
-        SIKAP.Toast.show(result.message, 'success');
-        SIKAP.MasterDataPegawai.load(); // Refresh table
-      } else {
-        SIKAP.Toast.show(result.message, 'error');
-        if (result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
-      }
-    })
-    .withFailureHandler(function() {
-      btn.disabled = false;
-      icon.textContent = 'save';
-      text.textContent = 'Simpan Pegawai';
-      SIKAP.Toast.show('Gagal menyimpan. Coba lagi.', 'error');
-    })
-    .adminTambahPegawai(SIKAP.state.token, payload);
-};
-
-// ---- Edit Panel ----
-
-SIKAP.MasterDataPegawai.openEdit = function(nip) {
-  SIKAP.MasterDataPegawai._editTarget = nip;
-  var panel = document.getElementById('mdp-edit-panel');
-  panel.classList.remove('hidden');
-  panel.classList.add('flex');
-  document.getElementById('edit-loading').classList.remove('hidden');
-  document.getElementById('mdp-edit-form').classList.add('hidden');
-  setTimeout(function() {
-    document.getElementById('mdp-edit-slide').classList.remove('translate-x-full');
-  }, 10);
-
-  google.script.run
-    .withSuccessHandler(function(result) {
-      document.getElementById('edit-loading').classList.add('hidden');
-      document.getElementById('mdp-edit-form').classList.remove('hidden');
-      if (result.success) {
-        var d = result.data;
-        document.getElementById('edit-header-nip').textContent = 'NIP: ' + d.nip;
-        document.getElementById('edit-ro-nip').textContent = d.nip;
-        document.getElementById('edit-ro-nama').textContent = d.nama;
-        document.getElementById('edit-ro-status-kep').textContent = d.statusKepegawaian;
-        document.getElementById('edit-ro-pangkat').textContent = d.pangkatGolongan || '—';
-        document.getElementById('edit-jabatan').value = d.jabatan || '';
-        document.getElementById('edit-hp').value = d.noHp || '';
-        document.getElementById('edit-email').value = d.email || '';
-        document.getElementById('edit-alamat').value = d.alamat || '';
-        document.getElementById('edit-role').value = d.role;
-      } else {
-        SIKAP.MasterDataPegawai.closeEdit();
-        SIKAP.Toast.show(result.message, 'error');
-      }
-    })
-    .withFailureHandler(function() {
-      SIKAP.MasterDataPegawai.closeEdit();
-      SIKAP.Toast.show('Gagal memuat data pegawai.', 'error');
-    })
-    .adminGetPegawaiDetail(SIKAP.state.token, nip);
-};
-
-SIKAP.MasterDataPegawai.closeEdit = function() {
-  document.getElementById('mdp-edit-slide').classList.add('translate-x-full');
-  setTimeout(function() {
-    document.getElementById('mdp-edit-panel').classList.add('hidden');
-    document.getElementById('mdp-edit-panel').classList.remove('flex');
-  }, 300);
-};
-
-SIKAP.MasterDataPegawai.handleEdit = function(event) {
-  event.preventDefault();
-  var btn = document.getElementById('edit-save-btn');
-  var icon = document.getElementById('edit-save-icon');
-  var text = document.getElementById('edit-save-text');
-  btn.disabled = true;
-  icon.textContent = 'hourglass_empty';
-  text.textContent = 'Menyimpan...';
-
-  var updates = {
-    jabatan: document.getElementById('edit-jabatan').value.trim(),
-    noHp: document.getElementById('edit-hp').value.trim(),
-    email: document.getElementById('edit-email').value.trim(),
-    alamat: document.getElementById('edit-alamat').value.trim(),
-    role: document.getElementById('edit-role').value
-  };
-
-  google.script.run
-    .withSuccessHandler(function(result) {
-      btn.disabled = false;
-      icon.textContent = 'save';
-      text.textContent = 'Simpan Perubahan';
-      if (result.success) {
-        SIKAP.MasterDataPegawai.closeEdit();
-        SIKAP.Toast.show(result.message, 'success');
-        SIKAP.MasterDataPegawai.load();
-      } else {
-        SIKAP.Toast.show(result.message, 'error');
-        if (result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
-      }
-    })
-    .withFailureHandler(function() {
-      btn.disabled = false;
-      icon.textContent = 'save';
-      text.textContent = 'Simpan Perubahan';
-      SIKAP.Toast.show('Gagal menyimpan. Coba lagi.', 'error');
-    })
-    .adminUpdatePegawai(SIKAP.state.token, SIKAP.MasterDataPegawai._editTarget, updates);
-};
-
-// ---- Confirm Modal (Nonaktif / Aktif toggle) ----
-
-SIKAP.MasterDataPegawai.openConfirm = function(nip, nama, currentStatus) {
-  SIKAP.MasterDataPegawai._toggleTarget = { nip: nip, nama: nama, currentStatus: currentStatus };
-
-  var isDeactivating = currentStatus === 'Aktif';
-  var modal = document.getElementById('mdp-confirm-modal');
-  var card = document.getElementById('mdp-confirm-card');
-  var accent = document.getElementById('mdp-confirm-accent');
-  var iconWrap = document.getElementById('mdp-confirm-icon-wrap');
-  var icon = document.getElementById('mdp-confirm-icon');
-  var actionBtn = document.getElementById('mdp-confirm-action-btn');
-  var actionIcon = document.getElementById('mdp-confirm-action-icon');
-  var actionText = document.getElementById('mdp-confirm-action-text');
-
-  if (isDeactivating) {
-    accent.className = 'absolute top-0 left-0 right-0 h-1 bg-error';
-    iconWrap.className = 'w-16 h-16 rounded-full flex items-center justify-center mb-lg bg-error-container';
-    icon.textContent = 'warning';
-    icon.className = 'material-symbols-outlined text-[32px] text-on-error-container';
-    document.getElementById('mdp-confirm-title').textContent = 'Nonaktifkan Akun Pegawai?';
-    document.getElementById('mdp-confirm-desc').textContent = 'Pegawai tidak dapat login setelah akun dinonaktifkan.';
-    actionBtn.className = 'flex-1 px-lg py-md rounded-lg font-label-md text-center focus:outline-none focus:ring-2 flex items-center justify-center gap-sm transition-colors bg-error text-on-error hover:bg-error/90 focus:ring-error';
-    actionIcon.textContent = 'block';
-    actionText.textContent = 'Ya, Nonaktifkan';
-  } else {
-    accent.className = 'absolute top-0 left-0 right-0 h-1 bg-primary';
-    iconWrap.className = 'w-16 h-16 rounded-full flex items-center justify-center mb-lg bg-primary-container';
-    icon.textContent = 'check_circle';
-    icon.className = 'material-symbols-outlined text-[32px] text-on-primary-container';
-    document.getElementById('mdp-confirm-title').textContent = 'Aktifkan Kembali Akun?';
-    document.getElementById('mdp-confirm-desc').textContent = 'Pegawai dapat login kembali setelah akun diaktifkan.';
-    actionBtn.className = 'flex-1 px-lg py-md rounded-lg font-label-md text-center focus:outline-none focus:ring-2 flex items-center justify-center gap-sm transition-colors bg-primary text-on-primary hover:bg-primary/90 focus:ring-primary';
-    actionIcon.textContent = 'check_circle';
-    actionText.textContent = 'Ya, Aktifkan';
-  }
-
-  document.getElementById('mdp-confirm-nama').textContent = nama;
-  document.getElementById('mdp-confirm-nip').textContent = 'NIP: ' + nip;
-
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
-  setTimeout(function() {
-    card.classList.remove('scale-95', 'opacity-0');
-    card.classList.add('scale-100', 'opacity-100');
-  }, 10);
-};
-
-SIKAP.MasterDataPegawai.closeConfirmModal = function() {
-  var card = document.getElementById('mdp-confirm-card');
-  card.classList.add('scale-95', 'opacity-0');
-  card.classList.remove('scale-100', 'opacity-100');
-  setTimeout(function() {
-    document.getElementById('mdp-confirm-modal').classList.add('hidden');
-    document.getElementById('mdp-confirm-modal').classList.remove('flex');
-  }, 200);
-};
-
-SIKAP.MasterDataPegawai.executeStatusToggle = function() {
-  var target = SIKAP.MasterDataPegawai._toggleTarget;
-  if (!target) return;
-  var newStatus = target.currentStatus === 'Aktif' ? 'Nonaktif' : 'Aktif';
-  var actionBtn = document.getElementById('mdp-confirm-action-btn');
-  actionBtn.disabled = true;
-  document.getElementById('mdp-confirm-action-icon').textContent = 'hourglass_empty';
-  document.getElementById('mdp-confirm-action-text').textContent = 'Memproses...';
-
-  google.script.run
-    .withSuccessHandler(function(result) {
-      SIKAP.MasterDataPegawai.closeConfirmModal();
-      if (result.success) {
-        SIKAP.Toast.show(result.message, 'success');
-        SIKAP.MasterDataPegawai.load();
-      } else {
-        SIKAP.Toast.show(result.message, 'error');
-        if (result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
-      }
-    })
-    .withFailureHandler(function() {
-      actionBtn.disabled = false;
-      SIKAP.Toast.show('Gagal mengubah status. Coba lagi.', 'error');
-    })
-    .adminSetStatusAkun(SIKAP.state.token, target.nip, newStatus);
-};
-</script>

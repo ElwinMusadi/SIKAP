@@ -40,7 +40,7 @@
             <span class="material-symbols-outlined text-[20px] text-on-surface-variant">settings</span>
             Pengaturan
           </button>
-          <button class="w-full px-4 py-2.5 text-left font-body-md text-error hover:bg-error-container transition-colors flex items-center gap-3" onclick="SIKAP.Auth.logout()">
+          <button class="w-full px-4 py-2.5 text-left font-body-md text-error hover:bg-error-container transition-colors flex items-center gap-3 cursor-pointer" onclick="SIKAP.UI.toggleProfileDropdown(); SIKAP.Auth.openLogoutModal();">
             <span class="material-symbols-outlined text-[20px]">logout</span>
             Keluar
           </button>

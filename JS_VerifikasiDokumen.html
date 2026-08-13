@@ -1,0 +1,310 @@
+<script>
+// ============================================================
+// JS_VerifikasiDokumen.html — Admin Document Verification Controller
+// ============================================================
+
+SIKAP.VerifikasiDokumen = SIKAP.VerifikasiDokumen || {};
+
+// Internal state
+SIKAP.VerifikasiDokumen._queue = [];
+SIKAP.VerifikasiDokumen._currentIndex = 0;
+SIKAP.VerifikasiDokumen._zoomScale = 1.0;
+
+// ---- Initials helper ----
+SIKAP.VerifikasiDokumen.getInitials = function(nama) {
+  if (!nama) return '?';
+  var parts = nama.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+};
+
+// ---- Load Verification Queue ----
+SIKAP.VerifikasiDokumen.load = function() {
+  document.getElementById('verifikasi-loading').classList.remove('hidden');
+  document.getElementById('verifikasi-empty').classList.add('hidden');
+  document.getElementById('verifikasi-content').classList.add('hidden');
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      document.getElementById('verifikasi-loading').classList.add('hidden');
+      if (result && result.success) {
+        SIKAP.VerifikasiDokumen._queue = result.data || [];
+        SIKAP.VerifikasiDokumen._currentIndex = 0;
+        SIKAP.VerifikasiDokumen.renderCurrentItem();
+      } else {
+        var msg = (result && result.message) ? result.message : 'Gagal memuat antrean verifikasi.';
+        SIKAP.Toast.show(msg, 'error');
+        if (result && result.message && result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
+      }
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('verifikasi-loading').classList.add('hidden');
+      SIKAP.Toast.show('Gagal terhubung ke server.', 'error');
+    })
+    .adminGetVerificationQueue(SIKAP.state.token);
+};
+
+// ---- Render Active Queue Item ----
+SIKAP.VerifikasiDokumen.renderCurrentItem = function() {
+  var queue = SIKAP.VerifikasiDokumen._queue;
+  var idx = SIKAP.VerifikasiDokumen._currentIndex;
+
+  if (!queue || queue.length === 0) {
+    document.getElementById('verifikasi-content').classList.add('hidden');
+    document.getElementById('verifikasi-empty').classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('verifikasi-empty').classList.add('hidden');
+  document.getElementById('verifikasi-content').classList.remove('hidden');
+  document.getElementById('verifikasi-content').classList.add('flex');
+
+  var item = queue[idx];
+
+  // Header subtitle & nav buttons
+  document.getElementById('verifikasi-queue-subtitle').textContent =
+    'Dokumen ' + (idx + 1) + ' dari ' + queue.length;
+  document.getElementById('verifikasi-prev-btn').disabled = idx <= 0;
+  document.getElementById('verifikasi-next-btn').disabled = idx >= queue.length - 1;
+
+  // Employee Metadata
+  var emp = item.employee || {};
+  document.getElementById('verifikasi-emp-avatar').textContent = SIKAP.VerifikasiDokumen.getInitials(emp.nama);
+  document.getElementById('verifikasi-emp-nama').textContent = emp.nama || 'Pegawai';
+  document.getElementById('verifikasi-emp-nip').textContent = 'NIP. ' + (emp.nip || '—');
+  document.getElementById('verifikasi-emp-golongan').textContent =
+    (emp.statusKepegawaian || '—') + (emp.pangkatGolongan ? ' (' + emp.pangkatGolongan + ')' : '');
+
+  // Document Info
+  var doc = item.masterDoc || {};
+  document.getElementById('verifikasi-doc-nama').textContent = doc.namaDokumen || 'Dokumen';
+  document.getElementById('verifikasi-doc-kategori').textContent = doc.kategori || 'Utama';
+  document.getElementById('verifikasi-doc-waktu').textContent = item.waktuUpload || '—';
+  
+  var isWajib = doc.wajib === true || String(doc.wajib).toUpperCase() === 'WAJIB';
+  var wajibEl = document.getElementById('verifikasi-doc-wajib');
+  wajibEl.textContent = isWajib ? 'WAJIB' : 'OPSIONAL';
+  wajibEl.className = isWajib ? 'font-body-md text-error font-bold' : 'font-body-md text-on-surface-variant font-medium';
+
+  // Preview Iframe & Download
+  var iframe = document.getElementById('verifikasi-iframe');
+  if (item.previewUrl) {
+    iframe.src = item.previewUrl;
+  } else {
+    iframe.src = 'about:blank';
+  }
+
+  var dlBtn = document.getElementById('verifikasi-download-btn');
+  dlBtn.href = item.fileUrl || item.previewUrl || '#';
+
+  document.getElementById('verifikasi-filename-label').textContent =
+    (doc.namaDokumen || 'Dokumen') + ' — ' + (emp.nama || '');
+  document.getElementById('verifikasi-doc-id-label').textContent = 'ID: ' + item.idArsip;
+
+  // Reset zoom
+  SIKAP.VerifikasiDokumen.resetZoom();
+};
+
+// ---- Queue Navigation ----
+SIKAP.VerifikasiDokumen.prevItem = function() {
+  if (SIKAP.VerifikasiDokumen._currentIndex > 0) {
+    SIKAP.VerifikasiDokumen._currentIndex--;
+    SIKAP.VerifikasiDokumen.renderCurrentItem();
+  }
+};
+
+SIKAP.VerifikasiDokumen.nextItem = function() {
+  if (SIKAP.VerifikasiDokumen._currentIndex < SIKAP.VerifikasiDokumen._queue.length - 1) {
+    SIKAP.VerifikasiDokumen._currentIndex++;
+    SIKAP.VerifikasiDokumen.renderCurrentItem();
+  }
+};
+
+// ---- Zoom Controls ----
+SIKAP.VerifikasiDokumen.zoomIn = function() {
+  if (SIKAP.VerifikasiDokumen._zoomScale < 2.0) {
+    SIKAP.VerifikasiDokumen._zoomScale += 0.2;
+    SIKAP.VerifikasiDokumen.applyZoom();
+  }
+};
+
+SIKAP.VerifikasiDokumen.zoomOut = function() {
+  if (SIKAP.VerifikasiDokumen._zoomScale > 0.6) {
+    SIKAP.VerifikasiDokumen._zoomScale -= 0.2;
+    SIKAP.VerifikasiDokumen.applyZoom();
+  }
+};
+
+SIKAP.VerifikasiDokumen.resetZoom = function() {
+  SIKAP.VerifikasiDokumen._zoomScale = 1.0;
+  SIKAP.VerifikasiDokumen.applyZoom();
+};
+
+SIKAP.VerifikasiDokumen.applyZoom = function() {
+  var container = document.getElementById('verifikasi-doc-container');
+  var label = document.getElementById('verifikasi-zoom-label');
+  if (container) {
+    container.style.transform = 'scale(' + SIKAP.VerifikasiDokumen._zoomScale + ')';
+  }
+  if (label) {
+    label.textContent = Math.round(SIKAP.VerifikasiDokumen._zoomScale * 100) + '%';
+  }
+};
+
+// ---- Approve Action ----
+SIKAP.VerifikasiDokumen.approveCurrent = function() {
+  var queue = SIKAP.VerifikasiDokumen._queue;
+  var idx = SIKAP.VerifikasiDokumen._currentIndex;
+  if (!queue || idx >= queue.length) return;
+
+  var item = queue[idx];
+  var btn = document.getElementById('verifikasi-approve-btn');
+  var icon = document.getElementById('verifikasi-approve-icon');
+  var text = document.getElementById('verifikasi-approve-text');
+
+  btn.disabled = true;
+  icon.textContent = 'hourglass_empty';
+  text.textContent = 'Memproses...';
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      btn.disabled = false;
+      icon.textContent = 'check_circle';
+      text.textContent = 'Setujui & Lanjutkan';
+
+      if (result.success) {
+        SIKAP.Toast.show(result.message, 'success');
+        // Remove approved item from queue and advance
+        queue.splice(idx, 1);
+        if (SIKAP.VerifikasiDokumen._currentIndex >= queue.length) {
+          SIKAP.VerifikasiDokumen._currentIndex = Math.max(0, queue.length - 1);
+        }
+        SIKAP.VerifikasiDokumen.renderCurrentItem();
+      } else {
+        SIKAP.Toast.show(result.message, 'error');
+        if (result.message && result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
+      }
+    })
+    .withFailureHandler(function() {
+      btn.disabled = false;
+      icon.textContent = 'check_circle';
+      text.textContent = 'Setujui & Lanjutkan';
+      SIKAP.Toast.show('Gagal menyetujui dokumen. Coba lagi.', 'error');
+    })
+    .adminApproveDokumen(SIKAP.state.token, item.idArsip);
+};
+
+// ---- Reject Modal & Action ----
+SIKAP.VerifikasiDokumen.openRejectModal = function() {
+  var queue = SIKAP.VerifikasiDokumen._queue;
+  var idx = SIKAP.VerifikasiDokumen._currentIndex;
+  if (!queue || idx >= queue.length) return;
+
+  var item = queue[idx];
+  var docName = (item.masterDoc && item.masterDoc.namaDokumen) || 'Dokumen';
+  var empName = (item.employee && item.employee.nama) || '';
+  var empNip = (item.employee && item.employee.nip) || '';
+
+  document.getElementById('verifikasi-modal-doc-title').textContent = 'Dokumen: ' + docName;
+  document.getElementById('verifikasi-modal-emp-info').textContent = 'Pemohon: ' + empName + ' (NIP ' + empNip + ')';
+
+  var reasonEl = document.getElementById('verifikasi-reject-reason');
+  reasonEl.value = '';
+  document.getElementById('verifikasi-reason-err').classList.add('hidden');
+  document.getElementById('verifikasi-char-count').textContent = '0 / 500';
+  document.getElementById('verifikasi-reject-submit-btn').disabled = true;
+
+  var modal = document.getElementById('verifikasi-reject-modal');
+  var card = document.getElementById('verifikasi-reject-card');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  setTimeout(function() {
+    card.classList.remove('scale-95', 'opacity-0');
+    card.classList.add('scale-100', 'opacity-100');
+  }, 10);
+};
+
+SIKAP.VerifikasiDokumen.closeRejectModal = function() {
+  var card = document.getElementById('verifikasi-reject-card');
+  card.classList.add('scale-95', 'opacity-0');
+  card.classList.remove('scale-100', 'opacity-100');
+  setTimeout(function() {
+    var modal = document.getElementById('verifikasi-reject-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }, 200);
+};
+
+SIKAP.VerifikasiDokumen.handleReasonInput = function() {
+  var val = (document.getElementById('verifikasi-reject-reason').value || '').trim();
+  var submitBtn = document.getElementById('verifikasi-reject-submit-btn');
+  var errEl = document.getElementById('verifikasi-reason-err');
+  var charCountEl = document.getElementById('verifikasi-char-count');
+
+  charCountEl.textContent = val.length + ' / 500';
+
+  if (val.length >= 5) {
+    submitBtn.disabled = false;
+    errEl.classList.add('hidden');
+  } else {
+    submitBtn.disabled = true;
+    if (val.length > 0 && val.length < 5) {
+      errEl.textContent = 'Alasan terlalu singkat (min. 5 karakter).';
+      errEl.classList.remove('hidden');
+    } else {
+      errEl.classList.add('hidden');
+    }
+  }
+};
+
+SIKAP.VerifikasiDokumen.executeReject = function() {
+  var queue = SIKAP.VerifikasiDokumen._queue;
+  var idx = SIKAP.VerifikasiDokumen._currentIndex;
+  if (!queue || idx >= queue.length) return;
+
+  var item = queue[idx];
+  var reason = (document.getElementById('verifikasi-reject-reason').value || '').trim();
+  if (reason.length < 5) {
+    document.getElementById('verifikasi-reason-err').textContent = 'Alasan penolakan wajib diisi (min. 5 karakter).';
+    document.getElementById('verifikasi-reason-err').classList.remove('hidden');
+    return;
+  }
+
+  var submitBtn = document.getElementById('verifikasi-reject-submit-btn');
+  var submitIcon = document.getElementById('verifikasi-reject-submit-icon');
+  var submitText = document.getElementById('verifikasi-reject-submit-text');
+
+  submitBtn.disabled = true;
+  submitIcon.textContent = 'hourglass_empty';
+  submitText.textContent = 'Memproses...';
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      submitBtn.disabled = false;
+      submitIcon.textContent = 'block';
+      submitText.textContent = 'Tolak Dokumen';
+
+      SIKAP.VerifikasiDokumen.closeRejectModal();
+
+      if (result.success) {
+        SIKAP.Toast.show(result.message, 'success');
+        // Remove rejected item from queue and advance
+        queue.splice(idx, 1);
+        if (SIKAP.VerifikasiDokumen._currentIndex >= queue.length) {
+          SIKAP.VerifikasiDokumen._currentIndex = Math.max(0, queue.length - 1);
+        }
+        SIKAP.VerifikasiDokumen.renderCurrentItem();
+      } else {
+        SIKAP.Toast.show(result.message, 'error');
+        if (result.message && result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
+      }
+    })
+    .withFailureHandler(function() {
+      submitBtn.disabled = false;
+      submitIcon.textContent = 'block';
+      submitText.textContent = 'Tolak Dokumen';
+      SIKAP.Toast.show('Gagal menolak dokumen. Coba lagi.', 'error');
+    })
+    .adminRejectDokumen(SIKAP.state.token, item.idArsip, reason);
+};
+</script>

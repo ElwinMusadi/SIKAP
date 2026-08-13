@@ -194,27 +194,33 @@ SIKAP.init = function() {
     // Validate session server-side
     google.script.run
       .withSuccessHandler(function(result) {
-        if (result.success) {
-          SIKAP.state.token = storedToken;
-          SIKAP.state.user = result.data;
-          
-          if (result.data.forceChangePassword) {
-            // Must change password first
-            SIKAP.UI.showView('view-force-change-password');
-          } else {
-            SIKAP.UI.updateUserDisplay();
-            SIKAP.UI.showView(SIKAP.UI.getDashboardView(result.data.role));
-            // Start session heartbeat
-            if (SIKAP.Router && SIKAP.Router.startHeartbeat) {
-              SIKAP.Router.startHeartbeat();
+        try {
+          if (result.success) {
+            SIKAP.state.token = storedToken;
+            SIKAP.state.user = result.data;
+            
+            if (result.data.forceChangePassword) {
+              // Must change password first
+              SIKAP.UI.showView('view-force-change-password');
+            } else {
+              SIKAP.UI.updateUserDisplay();
+              SIKAP.UI.showView(SIKAP.UI.getDashboardView(result.data.role));
+              // Start session heartbeat
+              if (SIKAP.Router && SIKAP.Router.startHeartbeat) {
+                SIKAP.Router.startHeartbeat();
+              }
             }
+          } else {
+            // Invalid session — clear and show login
+            localStorage.removeItem(SIKAP.STORAGE_KEY);
+            SIKAP.UI.showView('view-login');
           }
-        } else {
-          // Invalid session — clear and show login
-          localStorage.removeItem(SIKAP.STORAGE_KEY);
+        } catch (e) {
+          console.error('Initialization error:', e);
           SIKAP.UI.showView('view-login');
+        } finally {
+          SIKAP.UI.hideAppLoading();
         }
-        SIKAP.UI.hideAppLoading();
       })
       .withFailureHandler(function(error) {
         localStorage.removeItem(SIKAP.STORAGE_KEY);
@@ -260,9 +266,19 @@ SIKAP.UI.onViewEnter = function(viewId) {
         SIKAP.ProfilPegawai.load();
       }
       break;
+    case 'view-dashboard-admin':
+      if (SIKAP.DashboardAdmin && SIKAP.DashboardAdmin.load) {
+        SIKAP.DashboardAdmin.load();
+      }
+      break;
     case 'view-master-data-pegawai':
       if (SIKAP.MasterDataPegawai && SIKAP.MasterDataPegawai.load) {
         SIKAP.MasterDataPegawai.load();
+      }
+      break;
+    case 'view-verifikasi-dokumen':
+      if (SIKAP.VerifikasiDokumen && SIKAP.VerifikasiDokumen.load) {
+        SIKAP.VerifikasiDokumen.load();
       }
       break;
   }

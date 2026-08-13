@@ -15,7 +15,10 @@ var ALLOWED_MIME_TYPES = {
   'application/pdf': 'pdf',
   'image/jpeg': 'jpg',
   'image/jpg': 'jpg',
-  'image/png': 'png'
+  'image/pjpeg': 'jpg',
+  'image/jfif': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp'
 };
 
 // Max file size in bytes (5 MB)
@@ -65,22 +68,26 @@ function getOrCreateEmployeeFolder(nip) {
   if (!user) throw new Error('Pegawai tidak ditemukan: ' + nip);
 
   var d = user.data;
-  var existingFolderId = d[COL_PEGAWAI.FOLDER_DRIVE_ID];
+  var rawFolderId = d[COL_PEGAWAI.FOLDER_DRIVE_ID];
+  var existingFolderId = rawFolderId ? String(rawFolderId).replace(/^'+/, '').trim() : '';
 
   // Return existing folder if we already have the ID
-  if (existingFolderId && String(existingFolderId).trim() !== '') {
+  if (existingFolderId) {
     try {
-      return DriveApp.getFolderById(existingFolderId);
+      var folder = DriveApp.getFolderById(existingFolderId);
+      if (folder && !folder.isTrashed()) {
+        return folder;
+      }
     } catch (e) {
-      // Folder deleted externally — recreate below
-      Logger.log('Folder ID ' + existingFolderId + ' no longer exists. Recreating.');
+      Logger.log('Folder ID ' + existingFolderId + ' no longer exists or is invalid. Recreating.');
     }
   }
 
   // Build path: root / status / NIP_Nama
-  var nama   = d[COL_PEGAWAI.NAMA_LENGKAP];
-  var status = d[COL_PEGAWAI.STATUS_KEPEGAWAIAN] || 'Lainnya';
-  var folderName = nip + '_' + nama;
+  var nama   = String(d[COL_PEGAWAI.NAMA_LENGKAP] || 'Pegawai').trim();
+  var status = String(d[COL_PEGAWAI.STATUS_KEPEGAWAIAN] || 'Lainnya').trim();
+  var safeNama = nama.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+  var folderName = String(nip).trim() + '_' + safeNama;
 
   var root       = _getSikapRootFolder();
   var statusFolder = _getOrCreateSubFolder(root, status);
@@ -144,7 +151,34 @@ function getArsipDokumenPegawai(token) {
         waktuUpload = arsipRow[COL_ARSIP.WAKTU_UPLOAD];
         catatan     = arsipRow[COL_ARSIP.CATATAN_ADMIN] || '';
         fileUrl     = arsipRow[COL_ARSIP.FILE_URL] || '';
-        fileDriveId = arsipRow[COL_ARSIP.FILE_DRIVE_ID] || '';
+        fileDriveId = String(arsipRow[COL_ARSIP.FILE_DRIVE_ID] || '').replace(/^'+/, '').trim();
+
+        // Check if file physically exists in Google Drive
+        if (status !== DOC_STATUS.BELUM_UNGGAH && fileDriveId) {
+          var isDriveValid = false;
+          try {
+            var df = DriveApp.getFileById(fileDriveId);
+            if (df && !df.isTrashed()) isDriveValid = true;
+          } catch (e) {
+            isDriveValid = false;
+          }
+
+          if (!isDriveValid) {
+            var matchRecord = findByPrimaryKey(SHEET_NAMES.ARSIP_DOKUMEN, idArsip);
+            if (matchRecord) {
+              updateRowFields(SHEET_NAMES.ARSIP_DOKUMEN, matchRecord.rowIndex, {
+                [COL_ARSIP.STATUS_VERIFIKASI]: DOC_STATUS.BELUM_UNGGAH,
+                [COL_ARSIP.FILE_DRIVE_ID]: '',
+                [COL_ARSIP.FILE_URL]: '',
+                [COL_ARSIP.CATATAN_ADMIN]: 'File di Google Drive tidak ditemukan. Silakan unggah ulang.'
+              });
+            }
+            status = DOC_STATUS.BELUM_UNGGAH;
+            fileUrl = '';
+            fileDriveId = '';
+            catatan = 'File di Google Drive tidak ditemukan. Silakan unggah ulang.';
+          }
+        }
       } else {
         idArsip     = '';
         status      = DOC_STATUS.BELUM_UNGGAH;
@@ -224,9 +258,36 @@ function getDokumenPreview(token, idArsip) {
       return { success: false, message: 'Anda tidak memiliki akses ke dokumen ini.' };
     }
 
-    var fileDriveId = ar[COL_ARSIP.FILE_DRIVE_ID];
-    if (!fileDriveId || String(fileDriveId).trim() === '') {
-      return { success: false, message: 'File belum tersedia di Google Drive.' };
+    var rawDriveId = ar[COL_ARSIP.FILE_DRIVE_ID];
+    var fileDriveId = rawDriveId ? String(rawDriveId).replace(/^'+/, '').trim() : '';
+
+    var isFileValid = false;
+    if (fileDriveId) {
+      try {
+        var driveFile = DriveApp.getFileById(fileDriveId);
+        if (driveFile && !driveFile.isTrashed()) {
+          isFileValid = true;
+        }
+      } catch (driveErr) {
+        isFileValid = false;
+      }
+    }
+
+    if (!isFileValid) {
+      updateRowFields(SHEET_NAMES.ARSIP_DOKUMEN, arsipRecord.rowIndex, {
+        [COL_ARSIP.STATUS_VERIFIKASI]: DOC_STATUS.BELUM_UNGGAH,
+        [COL_ARSIP.FILE_DRIVE_ID]: '',
+        [COL_ARSIP.FILE_URL]: '',
+        [COL_ARSIP.CATATAN_ADMIN]: 'File di Google Drive tidak ditemukan / telah dihapus.'
+      });
+
+      logActivity(auth.session.nip, auth.session.role, 'DOKUMEN_MISSING', 'DOCUMENT',
+        idArsip, 'File di Google Drive tidak ditemukan. Status diubah menjadi Belum Diunggah.', 'WARNING');
+
+      return {
+        success: false,
+        message: 'File tidak ditemukan di Google Drive (mungkin telah dihapus). Status dokumen telah diubah menjadi "Belum Diunggah". Silakan unggah ulang.'
+      };
     }
 
     var previewUrl  = 'https://drive.google.com/file/d/' + fileDriveId + '/preview';
@@ -290,28 +351,55 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
     var auth = authorize(token, null, false);
     if (!auth.authorized) return { success: false, message: auth.error };
 
-    var nip  = auth.session.nip;
-    var nama = auth.session.nama;
+    var nip  = String(auth.session.nip || '').trim();
+    var nama = String(auth.session.nama || 'Pegawai').trim();
+
+    if (!nip) {
+      return { success: false, message: 'Sesi tidak valid (NIP tidak ditemukan).' };
+    }
 
     // ---- Validate idDokumen exists in Master_Dokumen ----
+    if (!idDokumen) {
+      return { success: false, message: 'Jenis dokumen tidak dipilih.' };
+    }
+
     var masterDoc = findByPrimaryKey(SHEET_NAMES.MASTER_DOKUMEN, idDokumen);
     if (!masterDoc) {
-      return { success: false, message: 'Jenis dokumen tidak valid.' };
+      return { success: false, message: 'Jenis dokumen (' + idDokumen + ') tidak ditemukan di database.' };
     }
-    var namaDokumen = masterDoc.data[COL_MASTER_DOKUMEN.NAMA_DOKUMEN];
+    var namaDokumen = masterDoc.data[COL_MASTER_DOKUMEN.NAMA_DOKUMEN] || idDokumen;
+
+    // ---- Validate base64Data ----
+    if (!base64Data || typeof base64Data !== 'string') {
+      return { success: false, message: 'Data file tidak valid atau kosong.' };
+    }
+
+    // Strip data URI scheme if present (e.g. data:image/jpeg;base64,...)
+    var cleanBase64 = base64Data.trim();
+    if (cleanBase64.indexOf(',') !== -1) {
+      cleanBase64 = cleanBase64.split(',')[1];
+    }
+    cleanBase64 = cleanBase64.replace(/\s/g, '');
 
     // ---- Validate MIME type ----
-    var cleanMime = String(mimeType).toLowerCase().trim();
+    var cleanMime = String(mimeType || '').toLowerCase().trim();
     var ext = ALLOWED_MIME_TYPES[cleanMime];
     if (!ext) {
-      return {
-        success: false,
-        message: 'Format file tidak diizinkan. Hanya PDF, JPG, dan PNG yang diterima.'
-      };
+      // Fallback detection
+      if (cleanMime.indexOf('pdf') !== -1) ext = 'pdf';
+      else if (cleanMime.indexOf('jpeg') !== -1 || cleanMime.indexOf('jpg') !== -1) ext = 'jpg';
+      else if (cleanMime.indexOf('png') !== -1) ext = 'png';
+      else if (cleanMime.indexOf('webp') !== -1) ext = 'webp';
+      else {
+        return {
+          success: false,
+          message: 'Format file (' + mimeType + ') tidak diizinkan. Hanya PDF, JPG, dan PNG yang diterima.'
+        };
+      }
     }
 
-    // ---- Validate file size (decoded bytes ≈ base64.length × 0.75) ----
-    var approxBytes = Math.ceil(base64Data.length * 0.75);
+    // ---- Validate file size ----
+    var approxBytes = Math.ceil(cleanBase64.length * 0.75);
     if (approxBytes > MAX_FILE_SIZE_BYTES) {
       return {
         success: false,
@@ -325,8 +413,8 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
     var existingArsipIndex = -1; // 1-based row in sheet
 
     for (var i = 0; i < allArsip.length; i++) {
-      if (String(allArsip[i][COL_ARSIP.NIP])        === String(nip) &&
-          String(allArsip[i][COL_ARSIP.ID_DOKUMEN]) === String(idDokumen)) {
+      if (String(allArsip[i][COL_ARSIP.NIP]).trim()        === nip &&
+          String(allArsip[i][COL_ARSIP.ID_DOKUMEN]).trim() === String(idDokumen).trim()) {
         existingArsipRow   = allArsip[i];
         existingArsipIndex = i + 2; // +1 header row, +1 to convert to 1-based
       }
@@ -334,7 +422,7 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
 
     // ---- Prevent duplicate submission if already Menunggu ----
     if (existingArsipRow &&
-        existingArsipRow[COL_ARSIP.STATUS_VERIFIKASI] === DOC_STATUS.MENUNGGU) {
+        String(existingArsipRow[COL_ARSIP.STATUS_VERIFIKASI]).trim() === DOC_STATUS.MENUNGGU) {
       return {
         success: false,
         message: 'Dokumen sudah dalam antrian verifikasi. Tunggu hasil verifikasi sebelum mengunggah ulang.'
@@ -343,14 +431,13 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
 
     // ---- Trash old file from Drive if one exists ----
     if (existingArsipRow) {
-      var oldFileDriveId = existingArsipRow[COL_ARSIP.FILE_DRIVE_ID];
-      if (oldFileDriveId && String(oldFileDriveId).trim() !== '') {
+      var oldFileDriveId = String(existingArsipRow[COL_ARSIP.FILE_DRIVE_ID] || '').replace(/^'+/, '').trim();
+      if (oldFileDriveId) {
         try {
           DriveApp.getFileById(oldFileDriveId).setTrashed(true);
           Logger.log('Old file trashed: ' + oldFileDriveId);
         } catch (trashErr) {
           Logger.log('Could not trash old file ' + oldFileDriveId + ': ' + trashErr);
-          // Continue — do not block upload
         }
       }
     }
@@ -364,8 +451,8 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
 
     // ---- Decode Base64 and create file in Drive ----
     var decodedBytes = Utilities.newBlob(
-      Utilities.base64Decode(base64Data),
-      mimeType,
+      Utilities.base64Decode(cleanBase64),
+      cleanMime || 'image/jpeg',
       autoFileName
     );
 
@@ -407,10 +494,12 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
     }
 
     // ---- Audit log ----
+    var auditAction = existingArsipRow ? 'DOKUMEN_REUPLOAD' : 'DOKUMEN_UPLOAD';
+    var auditDesc = (existingArsipRow ? 'Re-upload' : 'Upload') + ' dokumen: ' + namaDokumen + ' (' + autoFileName + ')';
     logActivity(
-      nip, auth.session.role, 'DOKUMEN_UPLOAD', 'DOCUMENT',
+      nip, auth.session.role, auditAction, 'DOCUMENT',
       idArsip,
-      'Upload dokumen: ' + namaDokumen + ' (' + autoFileName + ')',
+      auditDesc,
       'SUCCESS'
     );
 
@@ -427,7 +516,8 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
 
   } catch (e) {
     Logger.log('uploadDokumen error: ' + e.toString());
-    return { success: false, message: 'Gagal mengunggah dokumen. Silakan coba lagi.' };
+    var msg = e.message || e.toString();
+    return { success: false, message: 'Gagal mengunggah dokumen: ' + msg };
   }
 }
 
