@@ -241,16 +241,23 @@ document.addEventListener('DOMContentLoaded', SIKAP.init);
 SIKAP.UI.onViewEnter = function(viewId) {
   switch(viewId) {
     case 'view-pengaturan':
-      // Load profile data when entering settings
       if (SIKAP.Settings && SIKAP.Settings.loadProfile) {
         SIKAP.Settings.loadProfile();
       }
       break;
     case 'view-dashboard-pegawai':
-      // Update greeting name
-      if (SIKAP.state.user) {
-        var greetEl = document.getElementById('pegawai-greeting-name');
-        if (greetEl) greetEl.textContent = SIKAP.state.user.nama || '—';
+      if (SIKAP.DashboardPegawai && SIKAP.DashboardPegawai.load) {
+        SIKAP.DashboardPegawai.load();
+      }
+      break;
+    case 'view-profil-pegawai':
+      if (SIKAP.ProfilPegawai && SIKAP.ProfilPegawai.load) {
+        SIKAP.ProfilPegawai.load();
+      }
+      break;
+    case 'view-master-data-pegawai':
+      if (SIKAP.MasterDataPegawai && SIKAP.MasterDataPegawai.load) {
+        SIKAP.MasterDataPegawai.load();
       }
       break;
   }

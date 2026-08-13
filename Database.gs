@@ -27,6 +27,8 @@ var COL_PEGAWAI = {
   NO_HP: 8,
   ALAMAT: 9,
   FOLDER_DRIVE_ID: 10,
+  EMAIL: 11,
+  GOLONGAN_DARAH: 12
 };
 
 // Column indices for Sesi_Login (0-based)
@@ -146,4 +148,40 @@ function deleteByPrimaryKey(sheetName, key) {
       sheet.deleteRow(i + 1);
     }
   }
+}
+
+/**
+ * Batch-updates multiple columns in a single row.
+ * More efficient than calling updateCell() for each column.
+ * @param {string} sheetName - The sheet tab name.
+ * @param {number} rowIndex - 1-based row index.
+ * @param {Object} fields - Map of { columnIndex (0-based): value }.
+ */
+function updateRowFields(sheetName, rowIndex, fields) {
+  var sheet = getSheet(sheetName);
+  if (!sheet) return;
+  for (var colIndex in fields) {
+    var col = parseInt(colIndex, 10) + 1; // Convert to 1-based
+    sheet.getRange(rowIndex, col).setValue(fields[colIndex]);
+  }
+}
+
+/**
+ * Finds rows matching a value in a given column.
+ * @param {string} sheetName - The sheet tab name.
+ * @param {number} colIndex - 0-based column index to search.
+ * @param {string} value - The value to match.
+ * @returns {Array} Array of { rowIndex (1-based), data (array) } matches.
+ */
+function findAllByColumnValue(sheetName, colIndex, value) {
+  var sheet = getSheet(sheetName);
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  var results = [];
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][colIndex]) === String(value)) {
+      results.push({ rowIndex: i + 1, data: data[i] });
+    }
+  }
+  return results;
 }

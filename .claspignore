@@ -16,5 +16,9 @@
 !View_ForceChangePassword.html
 !View_DashboardAdmin.html
 !View_DashboardPegawai.html
+!View_ProfilPegawai.html
+!View_MasterDataPegawai.html
 !View_Pengaturan.html
+!Pegawai.gs
+!Admin.gs
 !appsscript.json
