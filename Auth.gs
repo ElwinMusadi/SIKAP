@@ -74,7 +74,7 @@ function login(nip, password) {
         statusKepegawaian: userData[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
         pangkatGolongan: userData[COL_PEGAWAI.PANGKAT_GOLONGAN],
         jabatan: userData[COL_PEGAWAI.JABATAN],
-        forceChangePassword: isDefaultPassword
+        forceChangePassword: false // isDefaultPassword (Fitur dimatikan sementara)
       },
       message: 'Login berhasil.'
     };
@@ -117,7 +117,7 @@ function validateSession(token) {
             statusKepegawaian: user.data[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
             pangkatGolongan: user.data[COL_PEGAWAI.PANGKAT_GOLONGAN],
             jabatan: user.data[COL_PEGAWAI.JABATAN],
-            forceChangePassword: isDefaultPassword
+            forceChangePassword: false // isDefaultPassword (Fitur dimatikan sementara)
           };
         }
       }

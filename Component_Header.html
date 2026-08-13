@@ -26,11 +26,8 @@
     <div class="h-8 w-px bg-outline-variant/50 hidden sm:block"></div>
     <!-- User Dropdown -->
     <div class="relative" id="header-profile-dropdown">
-      <button class="flex items-center gap-2 px-2 sm:px-3 py-1.5 hover:bg-surface-container-high rounded-lg transition-colors" onclick="SIKAP.UI.toggleProfileDropdown()">
-        <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-          <span class="material-symbols-outlined text-on-primary text-[18px] user-initials">U</span>
-        </div>
-        <span class="material-symbols-outlined text-on-surface-variant">arrow_drop_down</span>
+      <button class="w-9 h-9 rounded-full bg-primary hover:bg-primary/90 text-on-primary font-label-md flex items-center justify-center shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 active:scale-95 cursor-pointer" onclick="SIKAP.UI.toggleProfileDropdown()" aria-label="Profil Pengguna" title="Menu Profil">
+        <span class="user-initials font-bold text-[14px]">U</span>
       </button>
       <!-- Dropdown Menu -->
       <div id="profile-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-56 bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant/30 overflow-hidden z-50">
@@ -54,10 +51,12 @@
 </header>
 
 <script>
+  SIKAP.UI = SIKAP.UI || {};
+
   // Profile dropdown toggle
   SIKAP.UI.toggleProfileDropdown = function() {
     var menu = document.getElementById('profile-dropdown-menu');
-    menu.classList.toggle('hidden');
+    if (menu) menu.classList.toggle('hidden');
   };
 
   // Close dropdown when clicking outside
