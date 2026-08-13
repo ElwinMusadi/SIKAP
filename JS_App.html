@@ -250,6 +250,11 @@ SIKAP.UI.onViewEnter = function(viewId) {
         SIKAP.DashboardPegawai.load();
       }
       break;
+    case 'view-arsip-dokumen':
+      if (SIKAP.Arsip && SIKAP.Arsip.load) {
+        SIKAP.Arsip.load();
+      }
+      break;
     case 'view-profil-pegawai':
       if (SIKAP.ProfilPegawai && SIKAP.ProfilPegawai.load) {
         SIKAP.ProfilPegawai.load();

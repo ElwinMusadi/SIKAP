@@ -174,12 +174,9 @@
           <?!= include('View_ProfilPegawai'); ?>
         </div>
 
-        <!-- Arsip Dokumen (Placeholder) -->
+        <!-- Arsip Dokumen -->
         <div id="view-arsip-dokumen" class="hidden view-container">
-          <div class="px-6 py-8 lg:px-container-margin lg:py-10 max-w-[1440px] mx-auto">
-            <h1 class="font-h1 text-h1 text-on-surface">Arsip Dokumen</h1>
-            <p class="font-body-lg text-body-lg text-on-surface-variant mt-2">Halaman ini akan diimplementasikan di fase selanjutnya.</p>
-          </div>
+          <?!= include('View_ArsipDokumen'); ?>
         </div>
 
         <!-- Master Data Pegawai -->
@@ -215,6 +212,7 @@
   <?!= include('JS_App'); ?>
   <?!= include('JS_Router'); ?>
   <?!= include('JS_Auth'); ?>
+  <?!= include('JS_ArsipDokumen'); ?>
 
 </body>
 </html>

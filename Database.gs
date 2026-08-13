@@ -52,6 +52,14 @@ var COL_LOG = {
   RESULT: 8,
 };
 
+// Column indices for Master_Dokumen (0-based)
+var COL_MASTER_DOKUMEN = {
+  ID_DOKUMEN: 0,
+  NAMA_DOKUMEN: 1,
+  KATEGORI: 2,
+  STATUS_WAJIB: 3,
+};
+
 /**
  * Gets the spreadsheet instance (cached per execution).
  */
