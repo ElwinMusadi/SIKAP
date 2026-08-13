@@ -78,7 +78,7 @@ SIKAP.Arsip.renderTable = function(rows) {
   if (!tbody) return;
   
   if (!rows || rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-on-surface-variant">Tidak ada dokumen yang ditemukan.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="px-5 py-8 text-center text-on-surface-variant">Tidak ada dokumen yang ditemukan.</td></tr>';
     return;
   }
   
@@ -87,7 +87,7 @@ SIKAP.Arsip.renderTable = function(rows) {
     var statusInfo = SIKAP.Arsip.getStatusInfo(r.status, r.catatan);
     
     // Build row classes based on status
-    var rowClass = 'hover:bg-surface-container-lowest transition-colors group';
+    var rowClass = 'hover:bg-surface-container-low transition-colors group';
     if (r.status === 'Ditolak') {
       rowClass += ' bg-error-container/20';
     } else if (r.status === 'Belum Unggah') {
@@ -97,13 +97,13 @@ SIKAP.Arsip.renderTable = function(rows) {
     html += '<tr class="' + rowClass + '">';
     
     // Col 1: Icon
-    html += '<td class="px-6 py-4">' + statusInfo.iconHtml + '</td>';
+    html += '<td class="px-5 py-3">' + statusInfo.iconHtml + '</td>';
     
     // Col 2: Name
-    html += '<td class="px-6 py-4 font-label-md text-on-surface">' + r.nama + '</td>';
+    html += '<td class="px-5 py-3 font-label-md text-on-surface">' + r.nama + '</td>';
     
     // Col 3: Wajib Badge
-    html += '<td class="px-6 py-4">';
+    html += '<td class="px-5 py-3">';
     if (r.wajib === 'Ya') {
       html += '<span class="px-2.5 py-1 bg-surface-container-highest text-on-surface-variant text-[11px] font-label-sm rounded uppercase tracking-wide">Wajib</span>';
     } else {
@@ -112,10 +112,10 @@ SIKAP.Arsip.renderTable = function(rows) {
     html += '</td>';
     
     // Col 4: Status Badge
-    html += '<td class="px-6 py-4">' + statusInfo.badgeHtml + '</td>';
+    html += '<td class="px-5 py-3">' + statusInfo.badgeHtml + '</td>';
     
     // Col 5: Time / Detail
-    html += '<td class="px-6 py-4">';
+    html += '<td class="px-5 py-3">';
     if (r.waktuUpload && r.waktuUpload !== '-') {
       html += '<span class="text-[12px] text-on-surface-variant">' + r.waktuUpload + '</span>';
     } else {
@@ -124,7 +124,7 @@ SIKAP.Arsip.renderTable = function(rows) {
     html += '</td>';
     
     // Col 6: Actions
-    html += '<td class="px-6 py-4"><div class="flex items-center justify-end gap-2">';
+    html += '<td class="px-5 py-3"><div class="flex items-center justify-end gap-2">';
     
     if (r.status === 'Terverifikasi' || r.status === 'Menunggu') {
       // Normal actions (hidden until hover)

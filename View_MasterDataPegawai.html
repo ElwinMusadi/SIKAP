@@ -108,14 +108,14 @@
     <div class="bg-surface-container-lowest rounded-xl shadow-md overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left whitespace-nowrap">
-          <thead class="bg-surface-container-low text-on-surface-variant font-label-sm uppercase tracking-wider sticky top-0 z-0">
+          <thead class="bg-surface-container-low text-on-surface-variant font-label-sm uppercase tracking-wider sticky top-0 z-0 border-b border-outline-variant/30">
             <tr>
-              <th class="px-md py-sm font-label-sm font-medium">Pegawai</th>
-              <th class="px-md py-sm font-label-sm font-medium">Status / Golongan</th>
-              <th class="px-md py-sm font-label-sm font-medium">Jabatan</th>
-              <th class="px-md py-sm font-label-sm font-medium w-40">Kelengkapan</th>
-              <th class="px-md py-sm font-label-sm font-medium text-center">Status Akun</th>
-              <th class="px-md py-sm font-label-sm font-medium text-right">Aksi</th>
+              <th class="px-5 py-3 font-label-sm font-medium">Pegawai</th>
+              <th class="px-5 py-3 font-label-sm font-medium">Status / Golongan</th>
+              <th class="px-5 py-3 font-label-sm font-medium">Jabatan</th>
+              <th class="px-5 py-3 font-label-sm font-medium w-40">Kelengkapan</th>
+              <th class="px-5 py-3 font-label-sm font-medium text-center">Status Akun</th>
+              <th class="px-5 py-3 font-label-sm font-medium text-right">Aksi</th>
             </tr>
           </thead>
           <tbody class="text-on-surface font-body-sm divide-y divide-surface-container-high/50" id="mdp-tbody">
@@ -377,7 +377,7 @@
     <!-- Body -->
     <form class="flex-1 overflow-y-auto p-xl flex flex-col gap-8" id="mdp-edit-form" onsubmit="SIKAP.MasterDataPegawai.handleEdit(event)" novalidate>
       <!-- Identitas Utama -->
-      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/20">
+      <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-5 border border-outline-variant/20">
         <h3 class="font-h3 text-on-surface flex items-center gap-2">
           <span class="material-symbols-outlined text-primary">badge</span>
           Identitas Utama Pegawai
@@ -448,7 +448,7 @@
       </div>
 
       <!-- Editable: Kontak & Jabatan -->
-      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/20">
+      <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-5 border border-outline-variant/20">
         <h3 class="font-h3 text-on-surface flex items-center gap-2">
           <span class="material-symbols-outlined text-primary">edit_document</span>
           Informasi Kontak &amp; Jabatan
@@ -478,7 +478,7 @@
       </div>
 
       <!-- Account Settings -->
-      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/20 relative overflow-hidden">
+      <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-5 border border-outline-variant/20 relative overflow-hidden">
         <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none"></div>
         <h3 class="font-h3 text-on-surface flex items-center gap-2 z-10">
           <span class="material-symbols-outlined text-primary">admin_panel_settings</span>

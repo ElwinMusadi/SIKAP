@@ -4,7 +4,7 @@
 <!-- Connected to getMyDashboard() backend — loading/error/data  -->
 <!-- ============================================================ -->
 
-<div class="px-6 py-8 lg:px-container-margin lg:py-10 max-w-[1440px] mx-auto w-full space-y-8" id="dashboard-pegawai-root">
+<div class="px-6 py-6 lg:px-8 lg:py-8 max-w-[1440px] mx-auto w-full space-y-6" id="dashboard-pegawai-root">
 
   <!-- ============================== -->
   <!-- LOADING STATE                  -->
@@ -37,7 +37,7 @@
   <!-- ============================== -->
   <!-- DATA STATE                     -->
   <!-- ============================== -->
-  <div id="dp-data" class="hidden space-y-8">
+  <div id="dp-data" class="hidden space-y-6">
 
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -60,7 +60,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
       <!-- Progress Card (Left Column) -->
-      <div class="col-span-1 lg:col-span-4 rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-6 flex flex-col justify-between">
+      <div class="col-span-1 lg:col-span-4 rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-5 flex flex-col justify-between">
         <div class="space-y-2 mb-6">
           <h2 class="font-h3 text-on-surface">Kelengkapan Data &amp; Dokumen</h2>
           <p class="font-body-md text-on-surface-variant">Status kelengkapan berkas wajib untuk pemutakhiran data mandiri.</p>
@@ -156,11 +156,11 @@
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-surface">
-              <th class="px-6 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider">Nama Dokumen</th>
-              <th class="px-6 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider hidden sm:table-cell">Kategori</th>
-              <th class="px-6 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider hidden md:table-cell">Terakhir Diperbarui</th>
+            <tr class="bg-surface-container-low border-b border-outline-variant/30">
+              <th class="px-5 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider">Nama Dokumen</th>
+              <th class="px-5 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider hidden sm:table-cell">Kategori</th>
+              <th class="px-5 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider">Status</th>
+              <th class="px-5 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider hidden md:table-cell">Terakhir Diperbarui</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-outline-variant/30" id="dp-doc-table-body">
@@ -246,17 +246,17 @@ SIKAP.DashboardPegawai.render = function(data) {
           row.catatan.replace(/"/g, '&quot;') + '">' + row.catatan + '</div>'
         : '';
       return '<tr class="hover:bg-surface-container-low transition-colors">' +
-        '<td class="px-6 py-3">' +
+        '<td class="px-5 py-3">' +
           '<div class="font-body-md text-on-surface">' + row.nama + '</div>' +
           (row.wajib === 'Ya' ? '<span class="font-label-sm text-primary">Wajib</span>' : '') +
         '</td>' +
-        '<td class="px-6 py-3 hidden sm:table-cell font-body-sm text-on-surface-variant">' + row.kategori + '</td>' +
-        '<td class="px-6 py-3">' + SIKAP.DashboardPegawai.statusBadge(row.status) + catatanHtml + '</td>' +
-        '<td class="px-6 py-3 hidden md:table-cell font-body-sm text-on-surface-variant">' + row.waktuUpdate + '</td>' +
+        '<td class="px-5 py-3 hidden sm:table-cell font-body-sm text-on-surface-variant">' + row.kategori + '</td>' +
+        '<td class="px-5 py-3">' + SIKAP.DashboardPegawai.statusBadge(row.status) + catatanHtml + '</td>' +
+        '<td class="px-5 py-3 hidden md:table-cell font-body-sm text-on-surface-variant">' + row.waktuUpdate + '</td>' +
       '</tr>';
     }).join('');
   } else {
-    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-on-surface-variant font-body-md">' +
+    tbody.innerHTML = '<tr><td colspan="4" class="px-5 py-8 text-center text-on-surface-variant font-body-md">' +
       '<span class="material-symbols-outlined text-3xl text-outline mb-2 block">description</span>' +
       'Belum ada dokumen yang diunggah.</td></tr>';
   }

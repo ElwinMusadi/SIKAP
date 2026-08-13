@@ -3,83 +3,83 @@
 <!-- Faithfully reproduces the Stitch sidebar design              -->
 <!-- ============================================================ -->
 
-<aside id="app-sidebar" class="fixed left-0 top-0 h-full w-72 bg-surface-container-low border-r border-outline-variant/30 z-50 flex flex-col pt-20 sidebar-enter lg:!transform-none -translate-x-full lg:translate-x-0 transition-transform duration-300">
+<aside id="app-sidebar" class="fixed left-0 top-0 h-full w-60 bg-surface-container-low border-r border-outline-variant/30 z-50 flex flex-col pt-16 sidebar-enter lg:!transform-none -translate-x-full lg:translate-x-0 transition-transform duration-300">
 
-  <nav class="flex-1 px-4 space-y-1 overflow-y-auto">
+  <nav class="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
 
     <!-- ---- SHARED: Beranda ---- -->
     <!-- Admin Dashboard -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
+    <a href="#" class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
        data-view="view-dashboard-admin" data-role="admin">
-      <span class="material-symbols-outlined mr-3">dashboard</span>
+      <span class="material-symbols-outlined text-[20px] mr-2.5">dashboard</span>
       <span class="font-label-md">Beranda</span>
     </a>
     <!-- Pegawai Dashboard -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
+    <a href="#" class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
        data-view="view-dashboard-pegawai" data-role="pegawai">
-      <span class="material-symbols-outlined mr-3">dashboard</span>
+      <span class="material-symbols-outlined text-[20px] mr-2.5">dashboard</span>
       <span class="font-label-md">Beranda</span>
     </a>
 
     <!-- ---- SHARED: Profil Pegawai ---- -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
+    <a href="#" class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
        data-view="view-profil-pegawai">
-      <span class="material-symbols-outlined mr-3">person</span>
+      <span class="material-symbols-outlined text-[20px] mr-2.5">person</span>
       <span class="font-label-md">Profil Pegawai</span>
     </a>
 
     <!-- ---- SHARED: Arsip Dokumen ---- -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
+    <a href="#" class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
        data-view="view-arsip-dokumen">
-      <span class="material-symbols-outlined mr-3">folder_open</span>
+      <span class="material-symbols-outlined text-[20px] mr-2.5">folder_open</span>
       <span class="font-label-md">Arsip Dokumen</span>
     </a>
 
     <!-- ---- DIVIDER (Admin section) ---- -->
-    <div class="my-4 border-t border-outline-variant/20 mx-4" data-role="admin"></div>
+    <div class="my-2 border-t border-outline-variant/25 mx-3" data-role="admin"></div>
 
     <!-- ---- ADMIN ONLY: Master Data Pegawai ---- -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
+    <a href="#" class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
        data-view="view-master-data-pegawai" data-role="admin">
-      <span class="material-symbols-outlined mr-3">database</span>
+      <span class="material-symbols-outlined text-[20px] mr-2.5">database</span>
       <span class="font-label-md">Master Data Pegawai</span>
     </a>
 
     <!-- ---- ADMIN ONLY: Verifikasi Dokumen ---- -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
+    <a href="#" class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
        data-view="view-verifikasi-dokumen" data-role="admin">
-      <span class="material-symbols-outlined mr-3">verified</span>
+      <span class="material-symbols-outlined text-[20px] mr-2.5">verified</span>
       <span class="font-label-md">Verifikasi Dokumen</span>
     </a>
 
     <!-- ---- DIVIDER ---- -->
-    <div class="my-4 border-t border-outline-variant/20 mx-4"></div>
+    <div class="my-2 border-t border-outline-variant/25 mx-3"></div>
 
     <!-- ---- SHARED: Keamanan Akun / Pengaturan ---- -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
+    <a href="#" class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
        data-view="view-pengaturan">
-      <span class="material-symbols-outlined mr-3">security</span>
+      <span class="material-symbols-outlined text-[20px] mr-2.5">security</span>
       <span class="font-label-md">Keamanan Akun</span>
     </a>
 
     <!-- ---- Logout ---- -->
-    <button class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-error-container hover:text-error transition-all group w-full text-left cursor-pointer"
+    <button class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:bg-error-container hover:text-error transition-all group w-full text-left cursor-pointer"
             onclick="SIKAP.Auth.openLogoutModal()">
-      <span class="material-symbols-outlined mr-3">logout</span>
+      <span class="material-symbols-outlined text-[20px] mr-2.5">logout</span>
       <span class="font-label-md">Keluar</span>
     </button>
 
   </nav>
 
   <!-- Bottom: User Info -->
-  <div class="px-6 py-5 border-t border-outline-variant/20">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-        <span class="material-symbols-outlined text-on-primary text-[18px] user-initials">U</span>
+  <div class="px-3 py-3 border-t border-outline-variant/20">
+    <div class="flex items-center gap-3 rounded-lg px-2 py-2">
+      <div class="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0 shadow-sm">
+        <span class="material-symbols-outlined text-[18px] user-initials">U</span>
       </div>
       <div class="flex flex-col min-w-0">
-        <span class="font-label-sm text-on-surface truncate" id="sidebar-user-name">—</span>
-        <span class="text-[10px] text-on-surface-variant uppercase tracking-wider" id="sidebar-user-role">SAMSAT Kupang</span>
+        <span class="font-label-md text-on-surface truncate" id="sidebar-user-name">—</span>
+        <span class="font-body-sm text-on-surface-variant truncate" id="sidebar-user-role">SAMSAT Kupang</span>
       </div>
     </div>
   </div>

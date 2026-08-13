@@ -80,10 +80,10 @@ SIKAP.UI.updateSidebarActive = function(activeViewId) {
   links.forEach(function(link) {
     var viewId = link.getAttribute('data-view');
     if (viewId === activeViewId) {
-      link.classList.add('bg-secondary-container', 'text-on-secondary-container');
+      link.classList.add('bg-primary', 'text-on-primary', 'shadow-sm');
       link.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-high', 'hover:text-on-surface');
     } else {
-      link.classList.remove('bg-secondary-container', 'text-on-secondary-container');
+      link.classList.remove('bg-primary', 'text-on-primary', 'shadow-sm');
       link.classList.add('text-on-surface-variant', 'hover:bg-surface-container-high', 'hover:text-on-surface');
     }
   });

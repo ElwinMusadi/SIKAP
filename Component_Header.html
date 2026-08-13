@@ -3,7 +3,7 @@
 <!-- Faithfully reproduces the Stitch Dashboard Admin header      -->
 <!-- ============================================================ -->
 
-<header class="fixed top-0 left-0 right-0 h-16 bg-surface/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-[60] px-4 lg:px-container-margin flex items-center justify-between">
+<header class="fixed top-0 left-0 right-0 h-14 bg-surface/95 backdrop-blur-md border-b border-outline-variant/40 z-[60] px-4 lg:px-container-margin flex items-center justify-between shadow-[0_2px_8px_rgba(11,28,48,0.04)]">
   <!-- Left: Logo + Title -->
   <div class="flex items-center gap-3">
     <!-- Mobile Hamburger -->
@@ -11,10 +11,10 @@
       <span class="material-symbols-outlined">menu</span>
     </button>
     <!-- Logo -->
-    <img alt="Logo Pemprov NTT" class="h-8 w-auto object-contain hidden sm:block" src="https://raw.githubusercontent.com/ElwinMusadi/app-assets/main/logo-ntt.png">
-    <div class="flex flex-col">
-      <span class="font-label-md text-primary leading-tight tracking-tight text-[13px] sm:text-label-md" style="letter-spacing: -0.4px;">UPTD Pendapatan Daerah Wilayah Kota Kupang</span>
-      <span class="font-body-sm text-on-surface-variant hidden sm:block">Sistem Informasi Data dan Dokumen Kepegawaian</span>
+    <img alt="Logo Pemprov NTT" class="h-7 w-auto object-contain shrink-0 hidden sm:block" src="https://raw.githubusercontent.com/ElwinMusadi/app-assets/main/logo-ntt.png">
+    <div class="flex flex-col justify-center min-w-0">
+      <span class="font-label-md font-semibold text-primary leading-tight tracking-tight truncate">UPTD Pendapatan Daerah Wilayah Kota Kupang</span>
+      <span class="font-body-sm text-on-surface-variant leading-tight mt-0.5 truncate hidden sm:block">Sistem Informasi Kepegawaian dan Arsip Pegawai</span>
     </div>
   </div>
 
@@ -23,11 +23,11 @@
     <button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors hidden sm:block" aria-label="Pengaturan" onclick="SIKAP.Router.navigate('view-pengaturan')">
       <span class="material-symbols-outlined">settings</span>
     </button>
-    <div class="h-8 w-px bg-outline-variant/50 hidden sm:block"></div>
+    <div class="h-6 w-px bg-outline-variant/60 hidden sm:block"></div>
     <!-- User Dropdown -->
     <div class="relative" id="header-profile-dropdown">
-      <button class="w-9 h-9 rounded-full bg-primary hover:bg-primary/90 text-on-primary font-label-md flex items-center justify-center shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 active:scale-95 cursor-pointer" onclick="SIKAP.UI.toggleProfileDropdown()" aria-label="Profil Pengguna" title="Menu Profil">
-        <span class="user-initials font-bold text-[14px]">U</span>
+      <button class="w-8 h-8 rounded-full bg-primary hover:bg-primary/90 text-on-primary font-label-md flex items-center justify-center shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 active:scale-95 cursor-pointer" onclick="SIKAP.UI.toggleProfileDropdown()" aria-label="Profil Pengguna" title="Menu Profil">
+        <span class="user-initials font-bold text-[13px]">U</span>
       </button>
       <!-- Dropdown Menu -->
       <div id="profile-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-56 bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant/30 overflow-hidden z-50">
