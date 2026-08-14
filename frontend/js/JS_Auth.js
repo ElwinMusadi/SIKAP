@@ -1,4 +1,3 @@
-<script>
 // ============================================================
 // JS_Auth.html — Frontend Authentication Logic
 // ============================================================
@@ -368,4 +367,3 @@ SIKAP.Auth.logout = function() {
   
   SIKAP.Toast.show('Berhasil keluar dari sistem.', 'success');
 };
-</script>

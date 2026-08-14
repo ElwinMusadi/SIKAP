@@ -114,7 +114,7 @@
   <script>var SIKAP = window.SIKAP || {};</script>
 
   <!-- Custom Styles -->
-  <?!= include('CSS'); ?>
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body class="bg-background font-body-md text-on-surface h-full">
 
@@ -133,14 +133,14 @@
   <!-- LOGIN VIEW (No shell — standalone)           -->
   <!-- ============================================ -->
   <div id="view-login" class="hidden h-full">
-    <?!= include('View_Login'); ?>
+    <load src="./View_Login.html" />
   </div>
 
   <!-- ============================================ -->
   <!-- FORCE CHANGE PASSWORD VIEW (standalone)      -->
   <!-- ============================================ -->
   <div id="view-force-change-password" class="hidden h-full">
-    <?!= include('View_ForceChangePassword'); ?>
+    <load src="./View_ForceChangePassword.html" />
   </div>
 
   <!-- ============================================ -->
@@ -148,10 +148,10 @@
   <!-- ============================================ -->
   <div id="app-shell" class="hidden">
     <!-- Header -->
-    <?!= include('Component_Header'); ?>
+    <load src="./Component_Header.html" />
 
     <!-- Sidebar -->
-    <?!= include('Component_Sidebar'); ?>
+    <load src="./Component_Sidebar.html" />
 
     <!-- Mobile Sidebar Overlay -->
     <div id="sidebar-overlay" class="fixed inset-0 bg-inverse-surface/40 backdrop-blur-sm z-40 hidden lg:hidden" onclick="SIKAP.UI.toggleSidebar()"></div>
@@ -161,37 +161,37 @@
       <main class="relative">
         <!-- Dashboard Admin -->
         <div id="view-dashboard-admin" class="hidden view-container">
-          <?!= include('View_DashboardAdmin'); ?>
+          <load src="./View_DashboardAdmin.html" />
         </div>
 
         <!-- Dashboard Pegawai -->
         <div id="view-dashboard-pegawai" class="hidden view-container">
-          <?!= include('View_DashboardPegawai'); ?>
+          <load src="./View_DashboardPegawai.html" />
         </div>
 
         <!-- Profil Pegawai -->
         <div id="view-profil-pegawai" class="hidden view-container">
-          <?!= include('View_ProfilPegawai'); ?>
+          <load src="./View_ProfilPegawai.html" />
         </div>
 
         <!-- Arsip Dokumen -->
         <div id="view-arsip-dokumen" class="hidden view-container">
-          <?!= include('View_ArsipDokumen'); ?>
+          <load src="./View_ArsipDokumen.html" />
         </div>
 
         <!-- Master Data Pegawai -->
         <div id="view-master-data-pegawai" class="hidden view-container">
-          <?!= include('View_MasterDataPegawai'); ?>
+          <load src="./View_MasterDataPegawai.html" />
         </div>
 
         <!-- Verifikasi Dokumen -->
         <div id="view-verifikasi-dokumen" class="hidden view-container">
-          <?!= include('View_VerifikasiDokumen'); ?>
+          <load src="./View_VerifikasiDokumen.html" />
         </div>
 
         <!-- Pengaturan -->
         <div id="view-pengaturan" class="hidden view-container">
-          <?!= include('View_Pengaturan'); ?>
+          <load src="./View_Pengaturan.html" />
         </div>
       </main>
     </div>
@@ -200,21 +200,22 @@
   <!-- ============================================ -->
   <!-- GLOBAL COMPONENTS                            -->
   <!-- ============================================ -->
-  <?!= include('Component_Toast'); ?>
-  <?!= include('Component_Loading'); ?>
-  <?!= include('Component_LogoutModal'); ?>
+  <load src="./Component_Toast.html" />
+  <load src="./Component_Loading.html" />
+  <load src="./Component_LogoutModal.html" />
 
   <!-- ============================================ -->
   <!-- SCRIPTS                                      -->
   <!-- ============================================ -->
-  <?!= include('JS_App'); ?>
-  <?!= include('JS_Router'); ?>
-  <?!= include('JS_Auth'); ?>
-  <?!= include('JS_ArsipDokumen'); ?>
-  <?!= include('JS_DashboardAdmin'); ?>
-  <?!= include('JS_MasterDataPegawai'); ?>
-  <?!= include('JS_VerifikasiDokumen'); ?>
-  <?!= include('JS_Pengaturan'); ?>
+  <script type="module" src="./js/JS_App.js"></script>
+  <script type="module" src="./js/JS_Router.js"></script>
+  <script type="module" src="./js/JS_Auth.js"></script>
+  <script type="module" src="./js/JS_ArsipDokumen.js"></script>
+  <script type="module" src="./js/JS_DashboardAdmin.js"></script>
+  <script type="module" src="./js/JS_MasterDataPegawai.js"></script>
+  <script type="module" src="./js/JS_VerifikasiDokumen.js"></script>
+  <script type="module" src="./js/JS_Pengaturan.js"></script>
 
 </body>
 </html>
+

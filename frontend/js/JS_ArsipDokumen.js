@@ -1,4 +1,3 @@
-<script>
 // ============================================================
 // JS_ArsipDokumen.html — Arsip Dokumen Controller
 // Handles Categorized Documents (Wajib & Opsional),
@@ -652,5 +651,3 @@ SIKAP.Arsip.reuploadFromPenolakan = function() {
   SIKAP.Arsip.closePenolakanModal();
   SIKAP.Arsip.openUploadModal(SIKAP.Arsip.state.uploadingId, true);
 };
-
-</script>

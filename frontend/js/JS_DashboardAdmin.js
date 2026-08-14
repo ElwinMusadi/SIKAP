@@ -1,4 +1,3 @@
-<script>
 // ============================================================
 // JS_DashboardAdmin.html — Admin Dashboard Controller
 // ============================================================
@@ -96,4 +95,3 @@ SIKAP.DashboardAdmin.renderStats = function(d) {
 
   container.innerHTML = html;
 };
-</script>

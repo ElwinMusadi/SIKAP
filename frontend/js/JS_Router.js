@@ -1,4 +1,3 @@
-<script>
 // ============================================================
 // JS_Router.html — SPA Navigation Router
 // ============================================================
@@ -100,4 +99,3 @@ SIKAP.Router.init = function() {
 document.addEventListener('DOMContentLoaded', function() {
   SIKAP.Router.init();
 });
-</script>

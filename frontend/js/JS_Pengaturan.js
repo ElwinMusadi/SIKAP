@@ -1,4 +1,3 @@
-<script>
 // ============================================================
 // JS_Pengaturan.html — Settings Page Controller
 // ============================================================
@@ -135,4 +134,3 @@ SIKAP.Settings.closeLogoutModal = function() {
 SIKAP.Settings.confirmLogout = function() {
   SIKAP.Auth.confirmLogout();
 };
-</script>

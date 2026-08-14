@@ -1,4 +1,3 @@
-<script>
 // ============================================================
 // JS_App.html — Application State & Initialization
 // ============================================================
@@ -296,4 +295,3 @@ SIKAP.Auth.handleSessionExpired = function() {
   SIKAP.UI.showView('view-login');
   SIKAP.Toast.show('Sesi Anda telah berakhir. Silakan login kembali.', 'warning');
 };
-</script>

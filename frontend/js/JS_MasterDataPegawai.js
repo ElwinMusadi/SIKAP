@@ -1,4 +1,3 @@
-<script>
 // ============================================================
 // JS_MasterDataPegawai.html — Admin Master Data Controller
 // ============================================================
@@ -861,4 +860,3 @@ SIKAP.MasterDataPegawai.executeStatusToggle = function() {
     })
     .adminSetStatusAkun(SIKAP.state.token, target.nip, newStatus);
 };
-</script>

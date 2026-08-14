@@ -1,4 +1,3 @@
-<script>
 // ============================================================
 // JS_VerifikasiDokumen.html — Admin Document Verification Controller
 // ============================================================
@@ -307,4 +306,3 @@ SIKAP.VerifikasiDokumen.executeReject = function() {
     })
     .adminRejectDokumen(SIKAP.state.token, item.idArsip, reason);
 };
-</script>
