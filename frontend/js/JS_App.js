@@ -6,7 +6,8 @@
  * SIKAP Global Namespace
  * All application state and shared functions live here.
  */
-var SIKAP = SIKAP || {};
+window.SIKAP = window.SIKAP || {};
+const SIKAP = window.SIKAP;
 
 // ---- Application State ----
 SIKAP.state = {
