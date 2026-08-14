@@ -5,10 +5,13 @@
 window.SIKAP = window.SIKAP || {};
 
 SIKAP.Api = (function() {
-  const API_URL = import.meta.env.VITE_GAS_API_URL;
-
-  if (!API_URL) {
-    console.error('VITE_GAS_API_URL is missing in .env!');
+  // Menggunakan Cloudflare Pages Functions Proxy
+  // Ini menghindari masalah CORS saat redirect 302 di browser
+  let API_URL = '/api/gas';
+  
+  // Fallback untuk local development jika proxy tidak tersedia
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    API_URL = import.meta.env.VITE_GAS_API_URL || API_URL;
   }
 
   const methodMap = {
@@ -50,7 +53,7 @@ SIKAP.Api = (function() {
 
   async function get(action, params = {}) {
     try {
-      const url = new URL(API_URL);
+      const url = new URL(API_URL, window.location.origin);
       url.searchParams.append('action', action);
       
       if (!params.token && SIKAP.state && SIKAP.state.token) {
@@ -78,7 +81,7 @@ SIKAP.Api = (function() {
 
   async function post(action, payload = {}) {
     try {
-      const url = new URL(API_URL);
+      const url = new URL(API_URL, window.location.origin);
       url.searchParams.append('action', action);
       
       if (!payload.token && SIKAP.state && SIKAP.state.token) {
