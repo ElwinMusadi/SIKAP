@@ -96,7 +96,7 @@ SIKAP.Auth.handleLogin = function(event) {
       spinner.style.opacity = '0';
 
       globalError.classList.remove('hidden');
-      globalErrorMsg.textContent = 'Terjadi kesalahan koneksi. Silakan coba lagi.';
+      globalErrorMsg.textContent = 'Terjadi kesalahan koneksi: ' + (error.message || error.toString());
       setTimeout(function() { globalError.style.opacity = '1'; }, 10);
     })
     .login(nip, password);

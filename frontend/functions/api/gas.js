@@ -41,14 +41,26 @@ export async function onRequest(context) {
     });
 
     // Meneruskan request ke Google Apps Script (Server-to-Server)
-    const gasResponse = await fetch(targetUrl.toString(), {
+    let gasResponse = await fetch(targetUrl.toString(), {
       method: request.method,
-      redirect: 'follow', // CF Worker akan mengikuti 302 redirect dengan mulus
+      redirect: 'manual', // Tangani redirect secara manual untuk menghindari bug CF Worker pada POST redirect
       headers: {
         'Content-Type': 'text/plain;charset=utf-8',
       },
       body: bodyText
     });
+
+    // Jika GAS merespons dengan 302 Redirect (standar untuk doPost)
+    if (gasResponse.status === 302 || gasResponse.status === 303) {
+      const location = gasResponse.headers.get('location');
+      if (location) {
+        // Lakukan request GET ke URL hasil redirect
+        gasResponse = await fetch(location, {
+          method: 'GET',
+          redirect: 'follow'
+        });
+      }
+    }
 
     const responseText = await gasResponse.text();
 
@@ -64,8 +76,13 @@ export async function onRequest(context) {
 
   } catch (error) {
     return new Response(JSON.stringify({ success: false, message: "Proxy error: " + error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }
+      status: 200, // Gunakan 200 agar frontend tidak throw error, tapi memunculkan pesan gagal
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      }
     });
   }
 }
