@@ -1,16 +1,18 @@
 <!-- ============================================ -->
 <!-- View_ArsipDokumen.html                       -->
+<!-- SIKAP — Document Archive Management           -->
 <!-- ============================================ -->
 <div class="flex flex-col w-full h-full p-6 lg:p-container-margin gap-8 animate-fade-in pb-24">
+  
   <!-- Header Section -->
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
     <div class="flex flex-col gap-2">
-      <h1 class="font-h2 text-h2 text-on-surface">Arsip Dokumen</h1>
+      <h1 class="font-h2 text-h2 text-on-surface">Arsip Dokumen Pegawai</h1>
       <p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">
-        Kelola dan pantau status seluruh dokumen administratif kepegawaian Anda.
+        Kelola dan pantau kelengkapan seluruh dokumen administrasi dan kepegawaian Anda.
       </p>
     </div>
-    <button onclick="SIKAP.Arsip.openUploadModal()" class="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-xl font-label-md hover:bg-primary-container hover:shadow-md transition-all self-start md:self-auto w-full md:w-auto shrink-0">
+    <button onclick="SIKAP.Arsip.openUploadModal()" class="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-xl font-label-md hover:bg-primary-container hover:shadow-md transition-all self-start md:self-auto w-full md:w-auto shrink-0 shadow-sm">
       <span class="material-symbols-outlined text-[18px]">cloud_upload</span>
       Unggah Dokumen Baru
     </button>
@@ -32,9 +34,14 @@
     </div>
     
     <div class="flex flex-col gap-3 flex-1 w-full relative z-10">
-      <h3 class="font-label-md text-label-md text-on-surface text-lg">Status Kelengkapan Dokumen Wajib</h3>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h3 class="font-label-md text-label-md text-on-surface text-lg font-semibold" id="arsip-progress-title">Kelengkapan Dokumen</h3>
+        <span class="inline-flex items-center px-3 py-1 bg-primary/10 text-primary rounded-full font-label-sm font-semibold text-xs" id="arsip-summary-badge">
+          0 dari 11 dokumen tersedia
+        </span>
+      </div>
       <p class="font-body-md text-body-md text-on-surface-variant" id="arsip-progress-desc">
-        Memuat status...
+        Memuat status dokumen...
       </p>
       <div class="w-full h-2.5 bg-surface-variant rounded-full mt-2 overflow-hidden">
         <div id="arsip-progress-bar" class="h-full bg-primary rounded-full transition-all duration-1000 ease-out" style="width: 0%;"></div>
@@ -42,64 +49,128 @@
     </div>
   </div>
 
-  <!-- Status Cards (Optional detailed breakdown) -->
+  <!-- Status Metric Breakdown Cards -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 flex flex-col gap-1">
-      <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Terverifikasi</span>
+    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 flex flex-col gap-1 shadow-sm">
+      <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-[11px]">Total Dokumen Tersedia</span>
+      <span class="font-h2 text-h2 text-primary" id="arsip-count-available">0</span>
+    </div>
+    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 flex flex-col gap-1 shadow-sm">
+      <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-[11px]">Terverifikasi</span>
       <span class="font-h2 text-h2 text-[#137333]" id="arsip-count-verified">0</span>
     </div>
-    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 flex flex-col gap-1">
-      <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Menunggu</span>
+    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 flex flex-col gap-1 shadow-sm">
+      <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-[11px]">Menunggu Verifikasi</span>
       <span class="font-h2 text-h2 text-[#b06000]" id="arsip-count-waiting">0</span>
     </div>
-    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 flex flex-col gap-1">
-      <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Ditolak</span>
-      <span class="font-h2 text-h2 text-error" id="arsip-count-rejected">0</span>
-    </div>
-    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 flex flex-col gap-1">
-      <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Belum Unggah</span>
+    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 flex flex-col gap-1 shadow-sm">
+      <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-[11px]">Belum Diunggah</span>
       <span class="font-h2 text-h2 text-on-surface-variant" id="arsip-count-empty">0</span>
     </div>
   </div>
 
-  <!-- Document List (Table) -->
-  <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse min-w-[800px]">
-        <thead>
-          <tr class="bg-surface-container-low border-b border-outline-variant/30">
-            <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider w-12"></th>
-            <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider min-w-[200px]">Nama Dokumen</th>
-            <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Kategori</th>
-            <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Status</th>
-            <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider min-w-[150px]">Waktu Upload</th>
-            <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider w-32 text-right">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="arsip-table-body" class="font-body-md divide-y divide-outline-variant/20">
-          <tr>
-            <td colspan="6" class="px-6 py-8 text-center text-on-surface-variant flex flex-col items-center justify-center gap-2">
-              <svg class="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
-              </svg>
-              <span>Memuat data dokumen...</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <!-- ============================================================ -->
+  <!-- SECTION 1: DOKUMEN WAJIB                                      -->
+  <!-- ============================================================ -->
+  <div class="flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary text-xl">verified_user</span>
+        <h2 class="font-h3 text-h3 text-on-surface">Dokumen Wajib</h2>
+        <span class="ml-2 px-2.5 py-0.5 bg-primary-container text-on-primary-container rounded-full text-xs font-label-sm" id="arsip-wajib-count-badge">
+          9 Dokumen
+        </span>
+      </div>
+      <span class="text-xs font-body-sm text-on-surface-variant italic">Wajib dilengkapi untuk kelengkapan administrasi kepegawaian</span>
+    </div>
+
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[800px]">
+          <thead>
+            <tr class="bg-surface-container-low border-b border-outline-variant/30">
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider w-12"></th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider min-w-[220px]">Nama Dokumen</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Kategori</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Status</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider min-w-[150px]">Waktu Upload</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider w-44 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="arsip-wajib-tbody" class="font-body-md divide-y divide-outline-variant/20">
+            <tr>
+              <td colspan="6" class="px-6 py-8 text-center text-on-surface-variant">
+                <div class="flex items-center justify-center gap-2">
+                  <svg class="animate-spin h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+                  </svg>
+                  <span>Memuat dokumen wajib...</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 2: DOKUMEN OPSIONAL                                   -->
+  <!-- ============================================================ -->
+  <div class="flex flex-col gap-4 mt-2">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-outline text-xl">folder_shared</span>
+        <h2 class="font-h3 text-h3 text-on-surface">Dokumen Opsional</h2>
+        <span class="ml-2 px-2.5 py-0.5 bg-surface-container-high text-on-surface-variant rounded-full text-xs font-label-sm" id="arsip-opsional-count-badge">
+          2 Dokumen
+        </span>
+      </div>
+      <span class="text-xs font-body-sm text-on-surface-variant italic">Dokumen pelengkap tambahan (tidak mempengaruhi kelengkapan wajib)</span>
+    </div>
+
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[800px]">
+          <thead>
+            <tr class="bg-surface-container-low border-b border-outline-variant/30">
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider w-12"></th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider min-w-[220px]">Nama Dokumen</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Kategori</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Status</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider min-w-[150px]">Waktu Upload</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider w-44 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="arsip-opsional-tbody" class="font-body-md divide-y divide-outline-variant/20">
+            <tr>
+              <td colspan="6" class="px-6 py-8 text-center text-on-surface-variant">
+                <div class="flex items-center justify-center gap-2">
+                  <svg class="animate-spin h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+                  </svg>
+                  <span>Memuat dokumen opsional...</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ============================================ -->
-<!-- MODAL: UPLOAD DOKUMEN                        -->
+<!-- MODAL: UPLOAD / GANTI DOKUMEN                -->
 <!-- ============================================ -->
 <div id="modal-upload-dokumen" class="fixed inset-0 z-[100] flex items-center justify-center p-4 hidden">
   <div aria-hidden="true" class="absolute inset-0 bg-inverse-surface/40 backdrop-blur-sm transition-opacity" onclick="SIKAP.Arsip.closeUploadModal()"></div>
   <div class="relative bg-surface-container-lowest rounded-xl shadow-xl w-full max-w-lg flex flex-col overflow-hidden animate-[modal-slide-up_0.2s_ease-out]">
     <div class="px-6 py-4 flex items-center justify-between bg-surface-container-low border-b border-outline-variant/30">
-      <h2 class="font-h3 text-h3 text-on-surface" id="modal-upload-title">Upload Dokumen</h2>
+      <h2 class="font-h3 text-h3 text-on-surface" id="modal-upload-title">Unggah Dokumen</h2>
       <button onclick="SIKAP.Arsip.closeUploadModal()" class="p-2 text-on-surface-variant hover:bg-surface-container-highest rounded-full transition-colors group" id="btn-close-upload">
         <span class="material-symbols-outlined text-[20px] group-hover:text-error transition-colors">close</span>
       </button>
@@ -108,17 +179,19 @@
     <div class="p-6 flex flex-col gap-6">
       <div class="flex flex-col gap-2">
         <label class="font-label-md text-label-md text-on-surface">Jenis Dokumen</label>
-        <select id="arsip-upload-select" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none font-body-lg">
-          <option value="" disabled selected>Pilih jenis dokumen...</option>
-          <!-- Options populated by JS -->
-        </select>
-        <div class="pointer-events-none absolute right-10 top-[110px]">
-           <span class="material-symbols-outlined text-on-surface-variant">arrow_drop_down</span>
+        <div class="relative">
+          <select id="arsip-upload-select" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none font-body-lg">
+            <option value="" disabled selected>Pilih jenis dokumen...</option>
+            <!-- Options populated by JS -->
+          </select>
+          <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
+            <span class="material-symbols-outlined text-[20px]">expand_more</span>
+          </div>
         </div>
       </div>
 
       <div class="flex flex-col gap-2 relative">
-        <label class="font-label-md text-label-md text-on-surface">File Upload</label>
+        <label class="font-label-md text-label-md text-on-surface">File Dokumen</label>
         
         <!-- Input File hidden -->
         <input type="file" id="arsip-upload-file" class="hidden" accept=".pdf,.jpg,.jpeg,.png">
@@ -130,7 +203,7 @@
           </div>
           <div>
             <p class="font-label-md text-label-md text-primary">Klik untuk memilih file</p>
-            <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Format: PDF, JPG, PNG (Maks. 5MB)</p>
+            <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Format: PDF, JPG, PNG (Maks. 5 MB)</p>
           </div>
         </div>
 
@@ -162,7 +235,7 @@
       </button>
       <button id="arsip-btn-upload" onclick="SIKAP.Arsip.submitUpload()" class="px-4 py-2 font-label-md text-label-md text-on-primary bg-primary hover:bg-primary-container shadow-sm hover:shadow-md rounded-lg transition-all flex items-center gap-2 disabled:opacity-50" disabled>
         <span id="upload-btn-icon" class="material-symbols-outlined text-[18px]">upload</span>
-        <span id="upload-btn-text">Upload Dokumen</span>
+        <span id="upload-btn-text">Unggah Dokumen</span>
       </button>
     </div>
   </div>
@@ -187,10 +260,10 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <a id="preview-btn-download" href="#" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Download">
+        <a id="preview-btn-download" href="#" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Download File">
           <span class="material-symbols-outlined">download</span>
         </a>
-        <a id="preview-btn-newtab" href="#" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Buka di Tab Baru">
+        <a id="preview-btn-newtab" href="#" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Buka Dokumen di Tab Baru">
           <span class="material-symbols-outlined">open_in_new</span>
         </a>
         <div class="w-px h-6 bg-outline-variant/50 mx-2"></div>
@@ -214,37 +287,87 @@
 
       <!-- Iframe Container -->
       <div class="flex-1 bg-surface-container flex flex-col relative overflow-hidden">
-        <!-- Using iframe for PDF/Img viewer from Google Drive -->
         <iframe id="preview-iframe" class="w-full h-full border-none absolute inset-0" src="" onload="document.getElementById('preview-loader').classList.add('hidden')"></iframe>
       </div>
 
       <!-- Right Panel Metadata -->
       <div class="w-full lg:w-96 bg-surface-container-low flex flex-col shadow-[-4px_0_15px_rgba(0,0,0,0.03)] z-10 border-l border-outline-variant/30">
         <div class="p-6 flex-1 overflow-y-auto space-y-6">
-          <h3 class="font-h3 text-h3 text-on-surface">Informasi Dokumen</h3>
+          <h3 class="font-h3 text-h3 text-on-surface font-semibold">Informasi File</h3>
           
           <div>
-            <p class="font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Tanggal Upload</p>
+            <p class="font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider text-[11px]">Nama Dokumen</p>
+            <p id="preview-info-nama" class="font-body-md text-body-md text-on-surface font-medium">-</p>
+          </div>
+
+          <div>
+            <p class="font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider text-[11px]">Kategori Dokumen</p>
+            <p id="preview-info-kategori" class="font-body-md text-body-md text-on-surface">-</p>
+          </div>
+
+          <div>
+            <p class="font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider text-[11px]">Waktu Upload</p>
             <p id="preview-waktu-upload" class="font-body-md text-body-md text-on-surface">-</p>
           </div>
           
-          <div class="pt-4 mt-4 border-t border-outline-variant/30">
-            <p class="font-label-sm text-label-sm text-on-surface-variant mb-3 uppercase tracking-wider">Status Verifikasi</p>
+          <div class="pt-4 border-t border-outline-variant/30">
+            <p class="font-label-sm text-label-sm text-on-surface-variant mb-3 uppercase tracking-wider text-[11px]">Status Ketersediaan &amp; Verifikasi</p>
             <div id="preview-status-badge" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-variant text-on-surface-variant">
               <span id="preview-status-icon" class="material-symbols-outlined text-[16px]">info</span>
-              <span id="preview-status-text" class="font-label-sm text-label-sm font-bold tracking-wide">MEMUAT</span>
+              <span id="preview-status-text" class="font-label-sm text-label-sm font-bold tracking-wide">TERSEDIA</span>
             </div>
             <p id="preview-waktu-verifikasi" class="font-body-sm text-body-sm text-on-surface-variant mt-3"></p>
           </div>
           
           <div id="preview-catatan-container" class="hidden">
             <div class="bg-[#fff3e0] border border-[#ffe0b2] rounded-lg p-4">
-              <span class="font-label-md text-label-md text-[#e65100]">Catatan Admin:</span>
+              <span class="font-label-md text-label-md text-[#e65100] font-semibold">Catatan Admin:</span>
               <p id="preview-catatan-admin" class="font-body-md text-body-md text-[#e65100]/80 mt-1"></p>
             </div>
           </div>
+
+          <!-- Quick Actions in Preview -->
+          <div class="pt-4 border-t border-outline-variant/30 flex flex-col gap-2">
+            <button id="preview-btn-replace" onclick="SIKAP.Arsip.replaceFromPreview()" class="w-full py-2.5 px-4 bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">sync</span>
+              Ganti Dokumen Ini
+            </button>
+            <button id="preview-btn-delete" onclick="SIKAP.Arsip.deleteFromPreview()" class="w-full py-2.5 px-4 bg-error/10 text-error hover:bg-error/20 font-label-md rounded-lg transition-colors flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">delete</span>
+              Hapus Dokumen
+            </button>
+          </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL: KONFIRMASI HAPUS DOKUMEN              -->
+<!-- ============================================ -->
+<div id="modal-konfirmasi-hapus" class="fixed inset-0 z-[110] flex items-center justify-center p-4 hidden">
+  <div aria-hidden="true" class="absolute inset-0 bg-inverse-surface/40 backdrop-blur-sm transition-opacity" onclick="SIKAP.Arsip.closeHapusModal()"></div>
+  <div class="relative bg-surface-container-lowest rounded-xl shadow-xl w-full max-w-md flex flex-col overflow-hidden animate-[modal-slide-up_0.2s_ease-out]">
+    <div class="p-6 flex flex-col gap-4">
+      <div class="w-12 h-12 rounded-full bg-error-container text-error flex items-center justify-center">
+        <span class="material-symbols-outlined text-2xl">delete_forever</span>
+      </div>
+      <div>
+        <h3 class="font-h3 text-on-surface">Hapus Dokumen?</h3>
+        <p class="font-body-md text-on-surface-variant mt-1" id="hapus-modal-desc">
+          Dokumen ini akan dihapus dari arsip kepegawaian dan dipindahkan ke tempat sampah. Anda dapat mengunggahnya kembali kapan saja.
+        </p>
+      </div>
+    </div>
+    <div class="px-6 py-4 bg-surface-container-low border-t border-outline-variant/30 flex justify-end gap-3">
+      <button onclick="SIKAP.Arsip.closeHapusModal()" class="px-4 py-2 font-label-md text-on-surface bg-surface-container-high hover:bg-surface-container-highest rounded-lg transition-colors">
+        Batal
+      </button>
+      <button id="btn-confirm-delete" onclick="SIKAP.Arsip.confirmDelete()" class="px-4 py-2 font-label-md text-white bg-error hover:bg-error/90 rounded-lg transition-colors flex items-center gap-2 shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">delete</span>
+        Hapus Dokumen
+      </button>
     </div>
   </div>
 </div>
@@ -255,7 +378,6 @@
 <div id="modal-detail-penolakan" class="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-container-margin hidden">
   <div class="absolute inset-0 bg-inverse-surface/40 backdrop-blur-sm transition-opacity" onclick="SIKAP.Arsip.closePenolakanModal()"></div>
   <div class="w-full max-w-lg bg-surface rounded-xl shadow-xl flex flex-col relative animate-[modal-slide-up_0.3s_ease-out]">
-    
     <div class="px-6 py-5 flex items-center justify-between border-b border-outline-variant/30">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center">
@@ -272,12 +394,12 @@
       <div class="bg-surface-container-low rounded-lg p-5 space-y-4">
         <div class="flex items-start justify-between">
           <div class="flex flex-col">
-            <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Nama Dokumen</span>
-            <span id="penolakan-nama-dokumen" class="font-h2 text-h2 text-on-surface">-</span>
+            <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1 text-[11px]">Nama Dokumen</span>
+            <span id="penolakan-nama-dokumen" class="font-h3 text-on-surface">-</span>
           </div>
-          <div class="bg-[#fff3e0] text-[#e65100] px-3 py-1 rounded-full flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-[16px]">warning</span>
-            <span class="font-label-sm text-label-sm">Perlu Revisi</span>
+          <div class="bg-[#fff3e0] text-[#e65100] px-3 py-1 rounded-full flex items-center gap-1.5 font-semibold text-xs">
+            <span class="material-symbols-outlined text-[14px]">warning</span>
+            <span>Perlu Revisi</span>
           </div>
         </div>
       </div>
@@ -287,19 +409,19 @@
           <span class="material-symbols-outlined text-[#e65100]">info</span>
         </div>
         <div class="flex flex-col gap-1">
-          <span class="font-label-md text-label-md text-[#e65100]">Alasan Penolakan</span>
-          <p id="penolakan-catatan-admin" class="font-body-md text-body-md text-[#e65100]/80"></p>
+          <span class="font-label-md text-label-md text-[#e65100] font-semibold">Alasan Penolakan / Catatan Admin:</span>
+          <p id="penolakan-catatan-admin" class="font-body-md text-body-md text-[#e65100]/90"></p>
         </div>
       </div>
     </div>
 
     <div class="px-6 py-5 bg-surface-container-lowest rounded-b-xl border-t border-outline-variant/30 flex items-center justify-end gap-3">
-      <button class="px-5 py-2.5 rounded-lg bg-surface-container-high text-on-surface font-label-md text-label-md hover:bg-surface-variant transition-colors" onclick="SIKAP.Arsip.closePenolakanModal()">
+      <button class="px-5 py-2.5 rounded-lg bg-surface-container-high text-on-surface font-label-md hover:bg-surface-variant transition-colors" onclick="SIKAP.Arsip.closePenolakanModal()">
         Tutup
       </button>
-      <button id="penolakan-btn-reupload" onclick="SIKAP.Arsip.reuploadFromPenolakan()" class="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container transition-colors flex items-center gap-2 shadow-sm">
+      <button id="penolakan-btn-reupload" onclick="SIKAP.Arsip.reuploadFromPenolakan()" class="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary-container transition-colors flex items-center gap-2 shadow-sm">
         <span class="material-symbols-outlined text-[20px]">upload</span>
-        Upload Ulang
+        Ganti / Upload Ulang
       </button>
     </div>
   </div>

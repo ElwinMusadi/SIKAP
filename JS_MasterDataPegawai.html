@@ -12,6 +12,8 @@ SIKAP.MasterDataPegawai._page = 1;
 SIKAP.MasterDataPegawai._pageSize = 15;
 SIKAP.MasterDataPegawai._editTarget = null;  // NIP of row being edited
 SIKAP.MasterDataPegawai._toggleTarget = null;// { nip, nama, currentStatus }
+SIKAP.MasterDataPegawai._tambahFoto = null;  // { base64, mimeType }
+SIKAP.MasterDataPegawai._editFoto = null;    // { base64, mimeType }
 
 // ---- Helpers ----
 
@@ -22,37 +24,126 @@ SIKAP.MasterDataPegawai.getInitials = function(nama) {
   return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
 };
 
-SIKAP.MasterDataPegawai.avatarColors = [
-  'bg-primary-container text-on-primary-container',
-  'bg-secondary-container text-on-secondary-container',
-  'bg-surface-container-high text-on-surface'
+SIKAP.MasterDataPegawai.avatarStyles = [
+  'bg-blue-50 text-blue-700 border-blue-200/60',
+  'bg-indigo-50 text-indigo-700 border-indigo-200/60',
+  'bg-sky-50 text-sky-700 border-sky-200/60',
+  'bg-violet-50 text-violet-700 border-violet-200/60',
+  'bg-slate-100 text-slate-700 border-slate-200'
 ];
 
-SIKAP.MasterDataPegawai.getAvatarColor = function(nip) {
+SIKAP.MasterDataPegawai.getAvatarStyle = function(nip) {
   var sum = 0;
   for (var i = 0; i < nip.length; i++) sum += nip.charCodeAt(i);
-  return SIKAP.MasterDataPegawai.avatarColors[sum % SIKAP.MasterDataPegawai.avatarColors.length];
+  return SIKAP.MasterDataPegawai.avatarStyles[sum % SIKAP.MasterDataPegawai.avatarStyles.length];
 };
 
 SIKAP.MasterDataPegawai.statusAkunBadge = function(status) {
   if (status === 'Aktif') {
-    return '<span class="inline-flex items-center px-xs py-0.5 rounded-full font-label-sm text-[10px] font-bold bg-primary-container/20 text-primary">AKTIF</span>';
+    return '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 shadow-2xs">' +
+      '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Aktif</span>';
   }
-  return '<span class="inline-flex items-center px-xs py-0.5 rounded-full font-label-sm text-[10px] font-bold bg-surface-container-high text-on-surface-variant">NONAKTIF</span>';
+  return '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-surface-container-high text-on-surface-variant border border-outline-variant/30 shadow-2xs">' +
+    '<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>Nonaktif</span>';
+};
+
+SIKAP.MasterDataPegawai.statusKepegawaianBadge = function(status) {
+  var st = String(status || '—').toUpperCase();
+  if (st === 'PNS') {
+    return '<span class="px-2.5 py-0.5 bg-blue-50 text-blue-700 font-semibold text-xs rounded-md border border-blue-200/60 inline-flex items-center">PNS</span>';
+  } else if (st === 'CPNS') {
+    return '<span class="px-2.5 py-0.5 bg-purple-50 text-purple-700 font-semibold text-xs rounded-md border border-purple-200/60 inline-flex items-center">CPNS</span>';
+  } else if (st === 'PPPK' || st === 'P3K') {
+    return '<span class="px-2.5 py-0.5 bg-teal-50 text-teal-700 font-semibold text-xs rounded-md border border-teal-200/60 inline-flex items-center">PPPK</span>';
+  }
+  return '<span class="px-2.5 py-0.5 bg-surface-container-high text-on-surface-variant font-medium text-xs rounded-md">' + SIKAP.escapeHtml(status || '—') + '</span>';
 };
 
 SIKAP.MasterDataPegawai.completenessBar = function(pct, label) {
-  var color = label === 'Lengkap' ? 'bg-primary' : (label === 'Perlu Revisi' ? 'bg-error' : 'bg-tertiary');
-  var textColor = label === 'Lengkap' ? '' : (label === 'Perlu Revisi' ? 'text-error' : 'text-tertiary');
-  return '<div class="flex flex-col gap-xs w-full max-w-[150px]">' +
-    '<div class="flex justify-between font-label-sm text-on-surface-variant text-[10px]">' +
-      '<span>' + pct + '%</span>' +
-      '<span class="' + textColor + '">' + label + '</span>' +
+  var numPct = parseInt(pct, 10) || 0;
+  var isLengkap = label === 'Lengkap' || numPct === 100;
+  var isRevisi = label === 'Perlu Revisi';
+  
+  var barColor = isLengkap ? 'bg-emerald-500' : (isRevisi ? 'bg-rose-500' : (numPct > 0 ? 'bg-primary' : 'bg-slate-300'));
+  var badgeClass = isLengkap
+    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+    : (isRevisi 
+      ? 'bg-rose-50 text-rose-700 border-rose-200/60' 
+      : 'bg-surface-container-high text-on-surface-variant border-outline-variant/30');
+
+  return '<div class="flex flex-col gap-1.5 w-full max-w-[160px]">' +
+    '<div class="flex items-center justify-between">' +
+      '<span class="text-xs font-bold text-on-surface font-mono">' + numPct + '%</span>' +
+      '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border ' + badgeClass + '">' + SIKAP.escapeHtml(label || 'Belum Lengkap') + '</span>' +
     '</div>' +
     '<div class="w-full bg-surface-container-highest rounded-full h-1.5 overflow-hidden">' +
-      '<div class="' + color + ' h-1.5 rounded-full transition-all duration-500" style="width:' + pct + '%"></div>' +
+      '<div class="' + barColor + ' h-1.5 rounded-full transition-all duration-500" style="width:' + numPct + '%"></div>' +
     '</div>' +
   '</div>';
+};
+
+// ---- Photo Handling & Previews ----
+
+SIKAP.MasterDataPegawai.handleFotoChange = function(inputEl, mode) {
+  var file = inputEl.files && inputEl.files[0];
+  if (!file) return;
+
+  // Max 5MB
+  if (file.size > 5 * 1024 * 1024) {
+    SIKAP.Toast.show('Ukuran file foto melebihi batas 5 MB.', 'error');
+    inputEl.value = '';
+    return;
+  }
+
+  // Allowed MIME
+  var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+  if (allowedTypes.indexOf(file.type.toLowerCase()) === -1) {
+    SIKAP.Toast.show('Format foto tidak valid. Gunakan format JPG, JPEG, atau PNG.', 'error');
+    inputEl.value = '';
+    return;
+  }
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var dataUrl = e.target.result;
+    var previewImg = document.getElementById(mode + '-foto-preview');
+    var placeholder = document.getElementById(mode + '-foto-placeholder');
+    var removeBtn = document.getElementById(mode + '-foto-remove');
+
+    previewImg.src = dataUrl;
+    previewImg.classList.remove('hidden');
+    placeholder.classList.add('hidden');
+    if (removeBtn) removeBtn.classList.remove('hidden');
+
+    var base64Part = dataUrl.split(',')[1];
+    if (mode === 'tambah') {
+      SIKAP.MasterDataPegawai._tambahFoto = { base64: base64Part, mimeType: file.type };
+    } else {
+      SIKAP.MasterDataPegawai._editFoto = { base64: base64Part, mimeType: file.type };
+    }
+  };
+  reader.readAsDataURL(file);
+};
+
+SIKAP.MasterDataPegawai.removeFoto = function(mode) {
+  var inputEl = document.getElementById(mode + '-foto-input');
+  var previewImg = document.getElementById(mode + '-foto-preview');
+  var placeholder = document.getElementById(mode + '-foto-placeholder');
+  var removeBtn = document.getElementById(mode + '-foto-remove');
+
+  if (inputEl) inputEl.value = '';
+  if (previewImg) {
+    previewImg.src = '';
+    previewImg.classList.add('hidden');
+  }
+  if (placeholder) placeholder.classList.remove('hidden');
+  if (removeBtn) removeBtn.classList.add('hidden');
+
+  if (mode === 'tambah') {
+    SIKAP.MasterDataPegawai._tambahFoto = null;
+  } else {
+    SIKAP.MasterDataPegawai._editFoto = null;
+  }
 };
 
 // ---- Table Rendering ----
@@ -69,42 +160,70 @@ SIKAP.MasterDataPegawai.renderTable = function() {
   if (!tbody) return;
 
   if (pageRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="px-md py-8 text-center text-on-surface-variant font-body-md">' +
-      '<span class="material-symbols-outlined text-3xl text-outline mb-2 block">search_off</span>' +
-      'Tidak ada data yang sesuai.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-on-surface-variant font-body-md">' +
+      '<div class="flex flex-col items-center justify-center gap-2">' +
+        '<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-outline">' +
+          '<span class="material-symbols-outlined text-2xl">search_off</span>' +
+        '</div>' +
+        '<span class="font-medium text-sm text-on-surface">Tidak ada data pegawai yang sesuai</span>' +
+        '<span class="text-xs text-on-surface-variant">Coba ubah kata kunci pencarian atau filter status</span>' +
+      '</div>' +
+    '</td></tr>';
   } else {
     tbody.innerHTML = pageRows.map(function(r) {
       var initials = SIKAP.MasterDataPegawai.getInitials(r.nama);
-      var avatarColor = SIKAP.MasterDataPegawai.getAvatarColor(r.nip);
+      var avatarStyle = SIKAP.MasterDataPegawai.getAvatarStyle(r.nip);
       var toggleIcon = r.statusAkun === 'Aktif' ? 'block' : 'check_circle';
-      var toggleTitle = r.statusAkun === 'Aktif' ? 'Nonaktifkan' : 'Aktifkan';
+      var toggleTitle = r.statusAkun === 'Aktif' ? 'Nonaktifkan Akun' : 'Aktifkan Akun';
+      var safeNama = SIKAP.escapeHtml(r.nama);
+      var safeNip = SIKAP.escapeHtml(r.nip);
+      var safePangkat = SIKAP.escapeHtml(r.pangkatGolongan || '—');
+      var safeJabatan = SIKAP.escapeHtml(r.jabatan || '—');
+
+      var avatarHtml = r.fotoUrl
+        ? '<img src="' + r.fotoUrl + '" alt="' + safeNama + '" class="w-10 h-10 rounded-xl object-cover shrink-0 border border-outline-variant/30 shadow-xs">'
+        : '<div class="w-10 h-10 rounded-xl flex items-center justify-center font-label-md font-bold text-xs shrink-0 border shadow-xs ' + avatarStyle + '">' + initials + '</div>';
+
       return '<tr class="hover:bg-surface-container-lowest/80 transition-colors group">' +
-        '<td class="px-md py-sm">' +
-          '<div class="flex items-center gap-sm">' +
-            '<div class="w-10 h-10 rounded-full flex items-center justify-center font-label-md font-bold shrink-0 ' + avatarColor + '">' + initials + '</div>' +
+        // Col 1: Pegawai
+        '<td class="px-6 py-4">' +
+          '<div class="flex items-center gap-3">' +
+            avatarHtml +
             '<div class="flex flex-col min-w-0">' +
-              '<span class="font-label-md text-on-surface truncate">' + r.nama + '</span>' +
-              '<span class="font-body-sm text-on-surface-variant truncate">NIP: ' + r.nip + '</span>' +
+              '<span class="font-label-md text-on-surface font-semibold text-sm truncate">' + safeNama + '</span>' +
+              '<span class="font-body-sm text-on-surface-variant text-xs font-mono mt-0.5 truncate">NIP: ' + safeNip + '</span>' +
             '</div>' +
           '</div>' +
         '</td>' +
-        '<td class="px-md py-sm">' +
-          '<div class="flex flex-col">' +
-            '<span class="font-label-sm text-on-surface">' + (r.statusKepegawaian || '—') + '</span>' +
-            '<span class="font-body-sm text-on-surface-variant">' + (r.pangkatGolongan || '—') + '</span>' +
+        // Col 2: Status / Golongan
+        '<td class="px-6 py-4">' +
+          '<div class="flex flex-col items-start gap-1">' +
+            SIKAP.MasterDataPegawai.statusKepegawaianBadge(r.statusKepegawaian) +
+            '<span class="text-xs text-on-surface-variant truncate">' + safePangkat + '</span>' +
           '</div>' +
         '</td>' +
-        '<td class="px-md py-sm text-on-surface truncate max-w-[180px]" title="' + (r.jabatan || '') + '">' + (r.jabatan || '—') + '</td>' +
-        '<td class="px-md py-sm">' + SIKAP.MasterDataPegawai.completenessBar(r.docPct, r.docLabel) + '</td>' +
-        '<td class="px-md py-sm text-center">' + SIKAP.MasterDataPegawai.statusAkunBadge(r.statusAkun) + '</td>' +
-        '<td class="px-md py-sm text-right">' +
-          '<div class="flex justify-end gap-xs opacity-0 group-hover:opacity-100 transition-opacity">' +
-            '<button class="p-xs text-on-surface-variant hover:text-primary hover:bg-primary-container/10 rounded-full transition-colors" title="Edit"' +
-              ' onclick="SIKAP.MasterDataPegawai.openEdit(\'' + r.nip + '\')">' +
-              '<span class="material-symbols-outlined text-[18px]">edit</span>' +
+        // Col 3: Jabatan
+        '<td class="px-6 py-4">' +
+          '<span class="font-body-md text-on-surface text-sm font-medium truncate block max-w-[200px]" title="' + safeJabatan + '">' + safeJabatan + '</span>' +
+        '</td>' +
+        // Col 4: Kelengkapan
+        '<td class="px-6 py-4">' +
+          SIKAP.MasterDataPegawai.completenessBar(r.docPct, r.docLabel) +
+        '</td>' +
+        // Col 5: Status Akun
+        '<td class="px-6 py-4 text-center">' +
+          SIKAP.MasterDataPegawai.statusAkunBadge(r.statusAkun) +
+        '</td>' +
+        // Col 6: Aksi
+        '<td class="px-6 py-4 text-right">' +
+          '<div class="flex items-center justify-end gap-1.5">' +
+            '<button class="px-3 py-1.5 bg-primary text-on-primary hover:bg-primary/90 rounded-lg font-label-sm text-xs transition-all flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer" title="Detail & Edit Pegawai"' +
+              ' onclick="SIKAP.MasterDataPegawai.openEdit(\'' + safeNip + '\')">' +
+              '<span class="material-symbols-outlined text-[16px]">edit</span>' +
+              '<span>Edit</span>' +
             '</button>' +
-            '<button class="p-xs text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded-full transition-colors" title="' + toggleTitle + '"' +
-              ' onclick="SIKAP.MasterDataPegawai.openConfirm(\'' + r.nip + '\', \'' + r.nama.replace(/'/g, '\\\'') + '\', \'' + r.statusAkun + '\')">' +
+            '<button class="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded-lg transition-colors border border-outline-variant/30 hover:border-error/30 cursor-pointer" title="' + toggleTitle + '"' +
+              ' onclick="SIKAP.MasterDataPegawai.openConfirm(\'' + safeNip + '\', \'' + safeNama.replace(/'/g, '\\\'') + '\', \'' + r.statusAkun + '\')">' +
               '<span class="material-symbols-outlined text-[18px]">' + toggleIcon + '</span>' +
             '</button>' +
           '</div>' +
@@ -204,7 +323,10 @@ SIKAP.MasterDataPegawai.load = function() {
 
 SIKAP.MasterDataPegawai.openTambah = function() {
   document.getElementById('mdp-tambah-form').reset();
+  SIKAP.MasterDataPegawai.removeFoto('tambah');
   document.getElementById('tambah-nip-err').classList.add('hidden');
+  document.getElementById('tambah-nik-err').classList.add('hidden');
+  
   var panel = document.getElementById('mdp-tambah-panel');
   panel.classList.remove('hidden');
   panel.classList.add('flex');
@@ -223,13 +345,57 @@ SIKAP.MasterDataPegawai.closeTambah = function() {
 
 SIKAP.MasterDataPegawai.handleTambah = function(event) {
   event.preventDefault();
-  var nipVal = document.getElementById('tambah-nip').value.trim();
+  
+  var nipVal = (document.getElementById('tambah-nip').value || '').trim();
+  var nikVal = (document.getElementById('tambah-nik').value || '').trim();
+  var namaVal = (document.getElementById('tambah-nama').value || '').trim();
+  var statusKepVal = document.getElementById('tambah-status-kepegawaian').value;
+  var roleVal = document.getElementById('tambah-role').value;
+
+  // Frontend Validations
+  var hasError = false;
   if (!/^\d{18}$/.test(nipVal)) {
     document.getElementById('tambah-nip-err').classList.remove('hidden');
     document.getElementById('tambah-nip').focus();
-    return;
+    hasError = true;
+  } else {
+    document.getElementById('tambah-nip-err').classList.add('hidden');
   }
-  document.getElementById('tambah-nip-err').classList.add('hidden');
+
+  if (!/^\d{16}$/.test(nikVal)) {
+    document.getElementById('tambah-nik-err').classList.remove('hidden');
+    if (!hasError) document.getElementById('tambah-nik').focus();
+    hasError = true;
+  } else {
+    document.getElementById('tambah-nik-err').classList.add('hidden');
+  }
+
+  var noHpVal = (document.getElementById('tambah-hp').value || '').trim();
+  var emailVal = (document.getElementById('tambah-email').value || '').trim();
+
+  if (!namaVal) {
+    SIKAP.Toast.show('Nama lengkap wajib diisi.', 'error');
+    hasError = true;
+  } else if (!statusKepVal) {
+    SIKAP.Toast.show('Status kepegawaian wajib dipilih.', 'error');
+    hasError = true;
+  }
+
+  // Contact validations
+  if (noHpVal) {
+    var cleanPhone = noHpVal.replace(/[\s\-]/g, '');
+    if (!/^(\+62|62|0)8[1-9][0-9]{6,11}$/.test(cleanPhone) && !/^(0[2-9][0-9]{1,3})[0-9]{5,8}$/.test(cleanPhone)) {
+      SIKAP.Toast.show('Format nomor HP tidak valid (cth. 082247254006).', 'error');
+      hasError = true;
+    }
+  }
+
+  if (emailVal && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(emailVal)) {
+    SIKAP.Toast.show('Format email tidak valid (cth. nama@domain.com).', 'error');
+    hasError = true;
+  }
+
+  if (hasError) return;
 
   var btn = document.getElementById('tambah-save-btn');
   var icon = document.getElementById('tambah-save-icon');
@@ -239,31 +405,80 @@ SIKAP.MasterDataPegawai.handleTambah = function(event) {
   text.textContent = 'Menyimpan...';
 
   var payload = {
+    // IDENTITAS
     nip: nipVal,
-    nama: document.getElementById('tambah-nama').value.trim(),
-    statusKepegawaian: document.getElementById('tambah-status-kepegawaian').value,
+    nik: nikVal,
+    nama: namaVal,
+    tempatLahir: document.getElementById('tambah-tempat-lahir').value.trim(),
+    tanggalLahir: document.getElementById('tambah-tanggal-lahir').value,
+    jenisKelamin: document.getElementById('tambah-jenis-kelamin').value,
+    agama: document.getElementById('tambah-agama').value,
+    pendidikanTerakhir: document.getElementById('tambah-pendidikan').value,
+    statusPernikahan: document.getElementById('tambah-status-pernikahan').value,
+    golonganDarah: document.getElementById('tambah-goldar').value,
+
+    // KEPEGAWAIAN
+    statusKepegawaian: statusKepVal,
     pangkatGolongan: document.getElementById('tambah-pangkat').value.trim(),
+    tmtPangkat: document.getElementById('tambah-tmt-pangkat').value,
     jabatan: document.getElementById('tambah-jabatan').value.trim(),
+    jenisJabatan: document.getElementById('tambah-jenis-jabatan').value,
+    tmtJabatan: document.getElementById('tambah-tmt-jabatan').value,
+    unitOrganisasi: document.getElementById('tambah-unit-organisasi').value,
+
+    // KONTAK & SISTEM
     noHp: document.getElementById('tambah-hp').value.trim(),
-    role: document.getElementById('tambah-role').value,
+    email: document.getElementById('tambah-email').value.trim(),
+    role: roleVal,
     alamat: document.getElementById('tambah-alamat').value.trim()
   };
 
   google.script.run
     .withSuccessHandler(function(result) {
-      btn.disabled = false;
-      icon.textContent = 'save';
-      text.textContent = 'Simpan Pegawai';
       if (result.success) {
-        SIKAP.MasterDataPegawai.closeTambah();
-        SIKAP.Toast.show(result.message, 'success');
-        SIKAP.MasterDataPegawai.load(); // Refresh table
+        // Upload photo if selected
+        if (SIKAP.MasterDataPegawai._tambahFoto) {
+          text.textContent = 'Mengunggah foto...';
+          google.script.run
+            .withSuccessHandler(function(photoRes) {
+              btn.disabled = false;
+              icon.textContent = 'save';
+              text.textContent = 'Simpan Pegawai';
+              SIKAP.MasterDataPegawai.closeTambah();
+              SIKAP.Toast.show(result.message, 'success');
+              SIKAP.MasterDataPegawai.load(); // Refresh table
+            })
+            .withFailureHandler(function() {
+              btn.disabled = false;
+              icon.textContent = 'save';
+              text.textContent = 'Simpan Pegawai';
+              SIKAP.MasterDataPegawai.closeTambah();
+              SIKAP.Toast.show('Pegawai berhasil ditambahkan (gagal upload foto).', 'warning');
+              SIKAP.MasterDataPegawai.load();
+            })
+            .adminUploadFotoPegawai(
+              SIKAP.state.token,
+              nipVal,
+              SIKAP.MasterDataPegawai._tambahFoto.base64,
+              SIKAP.MasterDataPegawai._tambahFoto.mimeType
+            );
+        } else {
+          btn.disabled = false;
+          icon.textContent = 'save';
+          text.textContent = 'Simpan Pegawai';
+          SIKAP.MasterDataPegawai.closeTambah();
+          SIKAP.Toast.show(result.message, 'success');
+          SIKAP.MasterDataPegawai.load();
+        }
       } else {
+        btn.disabled = false;
+        icon.textContent = 'save';
+        text.textContent = 'Simpan Pegawai';
         SIKAP.Toast.show(result.message, 'error');
         if (result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
       }
     })
-    .withFailureHandler(function() {
+    .withFailureHandler(function(err) {
       btn.disabled = false;
       icon.textContent = 'save';
       text.textContent = 'Simpan Pegawai';
@@ -306,6 +521,9 @@ SIKAP.MasterDataPegawai.setSelectValue = function(selectEl, value) {
 
 SIKAP.MasterDataPegawai.openEdit = function(nip) {
   SIKAP.MasterDataPegawai._editTarget = nip;
+  SIKAP.MasterDataPegawai.removeFoto('edit');
+  document.getElementById('edit-nik-err').classList.add('hidden');
+
   var panel = document.getElementById('mdp-edit-panel');
   panel.classList.remove('hidden');
   panel.classList.add('flex');
@@ -323,14 +541,49 @@ SIKAP.MasterDataPegawai.openEdit = function(nip) {
         var d = result.data;
         document.getElementById('edit-header-nip').textContent = 'NIP: ' + d.nip;
         document.getElementById('edit-ro-nip').textContent = d.nip;
+
+        // IDENTITAS
+        document.getElementById('edit-nik').value = d.nik || '';
         document.getElementById('edit-nama').value = d.nama || '';
+        document.getElementById('edit-tempat-lahir').value = d.tempatLahir || '';
+        document.getElementById('edit-tanggal-lahir').value = d.tanggalLahir || '';
+        document.getElementById('edit-jenis-kelamin').value = d.jenisKelamin || '';
+        document.getElementById('edit-agama').value = d.agama || '';
+        SIKAP.MasterDataPegawai.setSelectValue(document.getElementById('edit-pendidikan'), d.pendidikanTerakhir);
+        document.getElementById('edit-status-pernikahan').value = d.statusPernikahan || '';
+        document.getElementById('edit-goldar').value = d.golonganDarah || '';
+
+        // Foto preview
+        var previewImg = document.getElementById('edit-foto-preview');
+        var placeholder = document.getElementById('edit-foto-placeholder');
+        if (d.fotoUrl) {
+          previewImg.src = d.fotoUrl;
+          previewImg.classList.remove('hidden');
+          placeholder.classList.add('hidden');
+        } else {
+          previewImg.src = '';
+          previewImg.classList.add('hidden');
+          placeholder.classList.remove('hidden');
+        }
+
+        // KEPEGAWAIAN
         document.getElementById('edit-status-kep').value = d.statusKepegawaian || 'PNS';
         SIKAP.MasterDataPegawai.setSelectValue(document.getElementById('edit-pangkat'), d.pangkatGolongan);
+        document.getElementById('edit-tmt-pangkat').value = d.tmtPangkat || '';
+        document.getElementById('edit-jenis-jabatan').value = d.jenisJabatan || '';
         document.getElementById('edit-jabatan').value = d.jabatan || '';
+        document.getElementById('edit-tmt-jabatan').value = d.tmtJabatan || '';
+        SIKAP.MasterDataPegawai.setSelectValue(document.getElementById('edit-unit-organisasi'), d.unitOrganisasi);
+
+        // KONTAK & SISTEM
         document.getElementById('edit-hp').value = d.noHp || '';
         document.getElementById('edit-email').value = d.email || '';
+        document.getElementById('edit-role').value = d.role || 'Pegawai';
+        document.getElementById('edit-status-akun').value = d.statusAkun || 'Aktif';
         document.getElementById('edit-alamat').value = d.alamat || '';
-        document.getElementById('edit-role').value = d.role;
+
+        // ARSIP DOKUMEN PEGAWAI
+        SIKAP.MasterDataPegawai.loadEmployeeDocs(nip);
       } else {
         SIKAP.MasterDataPegawai.closeEdit();
         SIKAP.Toast.show(result.message, 'error');
@@ -343,6 +596,50 @@ SIKAP.MasterDataPegawai.openEdit = function(nip) {
     .adminGetPegawaiDetail(SIKAP.state.token, nip);
 };
 
+SIKAP.MasterDataPegawai.loadEmployeeDocs = function(nip) {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (res.success) {
+        var d = res.data;
+        var badge = document.getElementById('edit-doc-summary-badge');
+        if (badge) {
+          badge.textContent = (d.availableCount || 0) + ' dari ' + (d.totalDocs || 11) + ' tersedia';
+        }
+
+        var renderItem = function(item) {
+          var isAvail = item.isAvailable;
+          var safeName = SIKAP.escapeHtml(item.nama);
+          var statusBadge = isAvail
+            ? '<span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">Tersedia</span>'
+            : '<span class="text-[11px] text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">Belum diunggah</span>';
+
+          var viewBtn = (isAvail && item.fileUrl)
+            ? '<a href="' + encodeURI(item.fileUrl) + '" target="_blank" class="p-1 text-on-surface-variant hover:text-primary transition-colors" title="Buka Dokumen"><span class="material-symbols-outlined text-[16px]">open_in_new</span></a>'
+            : '';
+
+          return '<div class="p-2.5 rounded-lg border border-outline-variant/30 bg-surface-container-low/40 flex items-center justify-between gap-2">' +
+            '<div class="flex items-center gap-2 min-w-0">' +
+              '<span class="material-symbols-outlined text-[16px] ' + (isAvail ? 'text-emerald-700' : 'text-on-surface-variant') + '">' + (isAvail ? 'description' : 'hourglass_empty') + '</span>' +
+              '<span class="text-xs text-on-surface font-medium truncate">' + safeName + '</span>' +
+            '</div>' +
+            '<div class="flex items-center gap-1.5 shrink-0">' + statusBadge + viewBtn + '</div>' +
+          '</div>';
+        };
+
+        var wajibContainer = document.getElementById('edit-wajib-doc-list');
+        if (wajibContainer && d.wajibRows) {
+          wajibContainer.innerHTML = d.wajibRows.map(renderItem).join('');
+        }
+
+        var opsContainer = document.getElementById('edit-opsional-doc-list');
+        if (opsContainer && d.opsionalRows) {
+          opsContainer.innerHTML = d.opsionalRows.map(renderItem).join('');
+        }
+      }
+    })
+    .getArsipDokumenPegawai(SIKAP.state.token, nip);
+};
+
 SIKAP.MasterDataPegawai.closeEdit = function() {
   document.getElementById('mdp-edit-slide').classList.add('translate-x-full');
   setTimeout(function() {
@@ -353,6 +650,43 @@ SIKAP.MasterDataPegawai.closeEdit = function() {
 
 SIKAP.MasterDataPegawai.handleEdit = function(event) {
   event.preventDefault();
+  
+  var nikVal = (document.getElementById('edit-nik').value || '').trim();
+  var namaVal = (document.getElementById('edit-nama').value || '').trim();
+  var statusKepVal = document.getElementById('edit-status-kep').value;
+  var roleVal = document.getElementById('edit-role').value;
+  var statusAkunVal = document.getElementById('edit-status-akun').value;
+
+  // Frontend Validations
+  if (!/^\d{16}$/.test(nikVal)) {
+    document.getElementById('edit-nik-err').classList.remove('hidden');
+    document.getElementById('edit-nik').focus();
+    return;
+  }
+  document.getElementById('edit-nik-err').classList.add('hidden');
+
+  if (!namaVal) {
+    SIKAP.Toast.show('Nama lengkap wajib diisi.', 'error');
+    return;
+  }
+
+  var noHpVal = (document.getElementById('edit-hp').value || '').trim();
+  var emailVal = (document.getElementById('edit-email').value || '').trim();
+
+  // Contact validations
+  if (noHpVal) {
+    var cleanPhone = noHpVal.replace(/[\s\-]/g, '');
+    if (!/^(\+62|62|0)8[1-9][0-9]{6,11}$/.test(cleanPhone) && !/^(0[2-9][0-9]{1,3})[0-9]{5,8}$/.test(cleanPhone)) {
+      SIKAP.Toast.show('Format nomor HP tidak valid (cth. 082247254006).', 'error');
+      return;
+    }
+  }
+
+  if (emailVal && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(emailVal)) {
+    SIKAP.Toast.show('Format email tidak valid (cth. nama@domain.com).', 'error');
+    return;
+  }
+
   var btn = document.getElementById('edit-save-btn');
   var icon = document.getElementById('edit-save-icon');
   var text = document.getElementById('edit-save-text');
@@ -361,26 +695,75 @@ SIKAP.MasterDataPegawai.handleEdit = function(event) {
   text.textContent = 'Menyimpan...';
 
   var updates = {
-    nama: document.getElementById('edit-nama').value.trim(),
-    statusKepegawaian: document.getElementById('edit-status-kep').value,
+    // IDENTITAS
+    nik: nikVal,
+    nama: namaVal,
+    tempatLahir: document.getElementById('edit-tempat-lahir').value.trim(),
+    tanggalLahir: document.getElementById('edit-tanggal-lahir').value,
+    jenisKelamin: document.getElementById('edit-jenis-kelamin').value,
+    agama: document.getElementById('edit-agama').value,
+    pendidikanTerakhir: document.getElementById('edit-pendidikan').value,
+    statusPernikahan: document.getElementById('edit-status-pernikahan').value,
+    golonganDarah: document.getElementById('edit-goldar').value,
+
+    // KEPEGAWAIAN
+    statusKepegawaian: statusKepVal,
     pangkatGolongan: document.getElementById('edit-pangkat').value.trim(),
+    tmtPangkat: document.getElementById('edit-tmt-pangkat').value,
     jabatan: document.getElementById('edit-jabatan').value.trim(),
+    jenisJabatan: document.getElementById('edit-jenis-jabatan').value,
+    tmtJabatan: document.getElementById('edit-tmt-jabatan').value,
+    unitOrganisasi: document.getElementById('edit-unit-organisasi').value,
+
+    // KONTAK & SISTEM
     noHp: document.getElementById('edit-hp').value.trim(),
     email: document.getElementById('edit-email').value.trim(),
-    alamat: document.getElementById('edit-alamat').value.trim(),
-    role: document.getElementById('edit-role').value
+    role: roleVal,
+    statusAkun: statusAkunVal,
+    alamat: document.getElementById('edit-alamat').value.trim()
   };
 
   google.script.run
     .withSuccessHandler(function(result) {
-      btn.disabled = false;
-      icon.textContent = 'save';
-      text.textContent = 'Simpan Perubahan';
       if (result.success) {
-        SIKAP.MasterDataPegawai.closeEdit();
-        SIKAP.Toast.show(result.message, 'success');
-        SIKAP.MasterDataPegawai.load();
+        // Upload photo if changed
+        if (SIKAP.MasterDataPegawai._editFoto) {
+          text.textContent = 'Mengunggah foto...';
+          google.script.run
+            .withSuccessHandler(function(photoRes) {
+              btn.disabled = false;
+              icon.textContent = 'save';
+              text.textContent = 'Simpan Perubahan';
+              SIKAP.MasterDataPegawai.closeEdit();
+              SIKAP.Toast.show(result.message, 'success');
+              SIKAP.MasterDataPegawai.load();
+            })
+            .withFailureHandler(function() {
+              btn.disabled = false;
+              icon.textContent = 'save';
+              text.textContent = 'Simpan Perubahan';
+              SIKAP.MasterDataPegawai.closeEdit();
+              SIKAP.Toast.show('Data berhasil diperbarui (gagal upload foto).', 'warning');
+              SIKAP.MasterDataPegawai.load();
+            })
+            .adminUploadFotoPegawai(
+              SIKAP.state.token,
+              SIKAP.MasterDataPegawai._editTarget,
+              SIKAP.MasterDataPegawai._editFoto.base64,
+              SIKAP.MasterDataPegawai._editFoto.mimeType
+            );
+        } else {
+          btn.disabled = false;
+          icon.textContent = 'save';
+          text.textContent = 'Simpan Perubahan';
+          SIKAP.MasterDataPegawai.closeEdit();
+          SIKAP.Toast.show(result.message, 'success');
+          SIKAP.MasterDataPegawai.load();
+        }
       } else {
+        btn.disabled = false;
+        icon.textContent = 'save';
+        text.textContent = 'Simpan Perubahan';
         SIKAP.Toast.show(result.message, 'error');
         if (result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
       }

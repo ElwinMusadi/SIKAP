@@ -1,6 +1,8 @@
 <script>
 // ============================================================
 // JS_ArsipDokumen.html — Arsip Dokumen Controller
+// Handles Categorized Documents (Wajib & Opsional),
+// Status Tersedia / Belum diunggah, Preview, Open, Replace, Delete.
 // ============================================================
 
 SIKAP.Arsip = SIKAP.Arsip || {};
@@ -8,8 +10,13 @@ SIKAP.Arsip = SIKAP.Arsip || {};
 // State
 SIKAP.Arsip.state = {
   docs: [],
+  wajibDocs: [],
+  opsionalDocs: [],
   selectedFile: null,
-  uploadingId: null, // Holds doc ID during penolakan -> reupload flow
+  uploadingId: null, // Holds doc ID during upload / replace flow
+  deletingArsipId: null, // Holds ID_Arsip during delete confirmation
+  deletingDocName: '',
+  currentPreviewId: null
 };
 
 /**
@@ -20,17 +27,20 @@ SIKAP.Arsip.load = function() {
   google.script.run
     .withSuccessHandler(function(result) {
       if (result.success) {
-        SIKAP.Arsip.state.docs = result.data.tableRows;
+        SIKAP.Arsip.state.docs = result.data.tableRows || [];
+        SIKAP.Arsip.state.wajibDocs = result.data.wajibRows || [];
+        SIKAP.Arsip.state.opsionalDocs = result.data.opsionalRows || [];
+
         SIKAP.Arsip.renderSummary(result.data);
-        SIKAP.Arsip.renderTable(result.data.tableRows);
-        SIKAP.Arsip.populateUploadSelect(result.data.tableRows);
+        SIKAP.Arsip.renderCategorizedTables(result.data);
+        SIKAP.Arsip.populateUploadSelect(result.data.tableRows || []);
       } else {
         SIKAP.Toast.show(result.message, 'error');
       }
       SIKAP.UI.hideLoading();
     })
     .withFailureHandler(function(error) {
-      SIKAP.Toast.show('Terjadi kesalahan jaringan.', 'error');
+      SIKAP.Toast.show('Terjadi kesalahan jaringan saat memuat arsip.', 'error');
       SIKAP.UI.hideLoading();
     })
     .getArsipDokumenPegawai(SIKAP.state.token);
@@ -41,15 +51,27 @@ SIKAP.Arsip.load = function() {
 // ============================================================
 
 /**
- * Updates the top summary card.
+ * Updates the top summary card and progress bar.
  */
 SIKAP.Arsip.renderSummary = function(data) {
-  var pct = data.pct;
+  var totalDocs = data.totalDocs || 11;
+  var availableCount = data.availableCount || 0;
+  var wajibTotal = data.wajibTotal || 9;
+  var wajibAvailable = data.wajibAvailable || 0;
+  var pct = wajibTotal > 0 ? Math.round((wajibAvailable / wajibTotal) * 100) : 0;
   
-  // Update text
-  document.getElementById('arsip-progress-text').textContent = pct + '%';
-  document.getElementById('arsip-progress-desc').innerHTML = 
-    '<strong>' + data.wajibVerified + ' dari ' + data.wajibTotal + '</strong> dokumen wajib telah berhasil diverifikasi oleh tim kepegawaian.';
+  // Progress Circle & Text
+  var textEl = document.getElementById('arsip-progress-text');
+  if (textEl) textEl.textContent = pct + '%';
+  
+  var badgeEl = document.getElementById('arsip-summary-badge');
+  if (badgeEl) badgeEl.textContent = availableCount + ' dari ' + totalDocs + ' dokumen tersedia';
+
+  var descEl = document.getElementById('arsip-progress-desc');
+  if (descEl) {
+    descEl.innerHTML = '<strong>' + wajibAvailable + ' dari ' + wajibTotal + '</strong> dokumen wajib telah tersedia. ' +
+      '<span class="text-on-surface-variant/80 text-xs block mt-1">Dokumen opsional tidak dianggap sebagai missing atau mengurangi kelengkapan.</span>';
+  }
   
   // Animate Bar
   var bar = document.getElementById('arsip-progress-bar');
@@ -63,87 +85,130 @@ SIKAP.Arsip.renderSummary = function(data) {
     circle.style.strokeDashoffset = offset;
   }
   
-  // Update counts
-  document.getElementById('arsip-count-verified').textContent = data.counts.terverifikasi;
-  document.getElementById('arsip-count-waiting').textContent = data.counts.menunggu;
-  document.getElementById('arsip-count-rejected').textContent = data.counts.ditolak;
-  document.getElementById('arsip-count-empty').textContent = data.counts.belumUnggah;
+  // Metric counts
+  if (document.getElementById('arsip-count-available')) {
+    document.getElementById('arsip-count-available').textContent = availableCount;
+  }
+  if (document.getElementById('arsip-count-verified')) {
+    document.getElementById('arsip-count-verified').textContent = (data.counts && data.counts.terverifikasi) || 0;
+  }
+  if (document.getElementById('arsip-count-waiting')) {
+    document.getElementById('arsip-count-waiting').textContent = (data.counts && data.counts.menunggu) || 0;
+  }
+  if (document.getElementById('arsip-count-empty')) {
+    document.getElementById('arsip-count-empty').textContent = (data.counts && data.counts.belumUnggah) || 0;
+  }
+
+  // Section Badges
+  if (document.getElementById('arsip-wajib-count-badge')) {
+    document.getElementById('arsip-wajib-count-badge').textContent = wajibAvailable + ' / ' + wajibTotal + ' Tersedia';
+  }
+  if (document.getElementById('arsip-opsional-count-badge')) {
+    var opsTotal = (data.opsionalRows && data.opsionalRows.length) || 2;
+    var opsAvailable = (data.opsionalRows || []).filter(function(d) { return d.isAvailable; }).length;
+    document.getElementById('arsip-opsional-count-badge').textContent = opsAvailable + ' / ' + opsTotal + ' Tersedia';
+  }
 };
 
 /**
- * Renders the documents table.
+ * Renders both Dokumen Wajib and Dokumen Opsional tables.
  */
-SIKAP.Arsip.renderTable = function(rows) {
-  var tbody = document.getElementById('arsip-table-body');
+SIKAP.Arsip.renderCategorizedTables = function(data) {
+  SIKAP.Arsip.renderTableSection('arsip-wajib-tbody', data.wajibRows || [], true);
+  SIKAP.Arsip.renderTableSection('arsip-opsional-tbody', data.opsionalRows || [], false);
+};
+
+/**
+ * Renders a specific table section.
+ */
+SIKAP.Arsip.renderTableSection = function(tbodyId, rows, isWajib) {
+  var tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   
   if (!rows || rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-on-surface-variant">Tidak ada dokumen yang ditemukan.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-on-surface-variant font-body-md">Tidak ada dokumen pada kategori ini.</td></tr>';
     return;
   }
   
   var html = '';
-  rows.forEach(function(r) {
-    var statusInfo = SIKAP.Arsip.getStatusInfo(r.status, r.catatan);
+  rows.forEach(function(r, index) {
+    var isAvailable = r.isAvailable;
+    var statusInfo = SIKAP.Arsip.getStatusDisplay(r);
     
-    // Build row classes based on status
-    var rowClass = 'hover:bg-surface-container-lowest transition-colors group';
+    var rowClass = 'hover:bg-surface-container-lowest/80 transition-colors group';
     if (r.status === 'Ditolak') {
-      rowClass += ' bg-error-container/20';
-    } else if (r.status === 'Belum Unggah') {
-      rowClass += ' bg-surface-container-lowest opacity-75 hover:opacity-100';
+      rowClass += ' bg-error-container/15';
+    } else if (!isAvailable) {
+      rowClass += ' bg-surface-container-lowest opacity-85 hover:opacity-100';
     }
     
+    var safeNama = SIKAP.escapeHtml(r.nama);
+    var safeIdDoc = SIKAP.escapeHtml(r.idDokumen);
+    var safeKategori = SIKAP.escapeHtml(r.kategori || 'Administrasi');
+    var safeWaktu = SIKAP.escapeHtml(r.waktuUpload);
+
     html += '<tr class="' + rowClass + '">';
     
     // Col 1: Icon
     html += '<td class="px-6 py-4">' + statusInfo.iconHtml + '</td>';
     
-    // Col 2: Name
-    html += '<td class="px-6 py-4 font-label-md text-on-surface">' + r.nama + '</td>';
-    
-    // Col 3: Wajib Badge
+    // Col 2: Document Name
     html += '<td class="px-6 py-4">';
-    if (r.wajib === 'Ya') {
-      html += '<span class="px-2.5 py-1 bg-surface-container-highest text-on-surface-variant text-[11px] font-label-sm rounded uppercase tracking-wide">Wajib</span>';
-    } else {
-      html += '<span class="px-2.5 py-1 bg-surface-container-low text-on-surface-variant text-[11px] border border-outline-variant/30 font-label-sm rounded uppercase tracking-wide">Opsional</span>';
-    }
+    html += '<div class="flex flex-col">';
+    html += '<span class="font-label-md text-on-surface font-semibold text-sm">' + safeNama + '</span>';
+    html += '<span class="font-body-sm text-on-surface-variant text-xs mt-0.5">' + safeIdDoc + '</span>';
+    html += '</div>';
     html += '</td>';
     
-    // Col 4: Status Badge
+    // Col 3: Category
+    html += '<td class="px-6 py-4">';
+    html += '<span class="px-2.5 py-1 bg-surface-container-high text-on-surface-variant text-[11px] font-label-sm rounded-md tracking-wide">' + safeKategori + '</span>';
+    html += '</td>';
+    
+    // Col 4: Status (Tersedia / Belum diunggah)
     html += '<td class="px-6 py-4">' + statusInfo.badgeHtml + '</td>';
     
-    // Col 5: Time / Detail
+    // Col 5: Upload Timestamp
     html += '<td class="px-6 py-4">';
     if (r.waktuUpload && r.waktuUpload !== '-') {
-      html += '<span class="text-[12px] text-on-surface-variant">' + r.waktuUpload + '</span>';
+      html += '<span class="text-[12px] text-on-surface-variant font-medium">' + safeWaktu + '</span>';
     } else {
-      html += '<span class="text-[12px] text-on-surface-variant italic">-</span>';
+      html += '<span class="text-[12px] text-on-surface-variant italic">—</span>';
     }
     html += '</td>';
     
     // Col 6: Actions
-    html += '<td class="px-6 py-4"><div class="flex items-center justify-end gap-2">';
+    html += '<td class="px-6 py-4 text-right">';
+    html += '<div class="flex items-center justify-end gap-1.5">';
     
-    if (r.status === 'Terverifikasi' || r.status === 'Menunggu') {
-      // Normal actions (hidden until hover)
-      html += '<div class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">';
-      html += '<button onclick="SIKAP.Arsip.openPreviewModal(\'' + r.idArsip + '\')" aria-label="Preview" class="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors tooltip">';
-      html += '<span class="material-symbols-outlined text-[20px]">visibility</span></button>';
-      html += '</div>';
-    } else if (r.status === 'Ditolak') {
-      // Action button always visible
-      html += '<button onclick="SIKAP.Arsip.openPenolakanModal(\'' + r.idArsip + '\')" class="px-3 py-1.5 bg-error/10 text-error hover:bg-error/20 rounded-lg font-label-sm transition-colors flex items-center gap-1">';
-      html += '<span class="material-symbols-outlined text-[16px]">upload</span> Revisi</button>';
-    } else if (r.status === 'Belum Unggah' || r.status === 'Belum_Unggah' || (r.status && r.status.indexOf('Belum') !== -1)) {
-      // Action button always visible
-      var btnClass = r.wajib === 'Ya' 
-        ? 'border border-primary text-primary hover:bg-primary/5' 
-        : 'text-on-surface-variant hover:text-primary hover:bg-primary/5';
-      html += '<button onclick="SIKAP.Arsip.openUploadModal(\'' + r.idDokumen + '\')" class="px-3 py-1.5 ' + btnClass + ' rounded-lg font-label-sm transition-colors flex items-center gap-1">';
-      if (r.wajib === 'Ya') html += '<span class="material-symbols-outlined text-[16px]">upload</span>';
-      html += 'Unggah</button>';
+    if (isAvailable) {
+      // 1. Preview Button
+      html += '<button onclick="SIKAP.Arsip.openPreviewModal(\'' + SIKAP.escapeHtml(r.idArsip) + '\')" class="p-2 text-on-surface-variant hover:text-primary hover:bg-primary-container/20 rounded-lg transition-colors" title="Lihat Informasi & Preview">';
+      html += '<span class="material-symbols-outlined text-[19px]">visibility</span></button>';
+
+      // 2. Open Direct Link Button
+      if (r.fileUrl) {
+        html += '<a href="' + encodeURI(r.fileUrl) + '" target="_blank" class="p-2 text-on-surface-variant hover:text-primary hover:bg-primary-container/20 rounded-lg transition-colors inline-flex items-center" title="Buka Dokumen di Tab Baru">';
+        html += '<span class="material-symbols-outlined text-[19px]">open_in_new</span></a>';
+      }
+
+      // 3. Replace / Ganti Dokumen
+      html += '<button onclick="SIKAP.Arsip.openUploadModal(\'' + SIKAP.escapeHtml(r.idDokumen) + '\', true)" class="p-2 text-on-surface-variant hover:text-primary hover:bg-primary-container/20 rounded-lg transition-colors" title="Ganti Dokumen">';
+      html += '<span class="material-symbols-outlined text-[19px]">sync</span></button>';
+
+      // 4. Delete / Hapus Dokumen
+      html += '<button onclick="SIKAP.Arsip.openHapusModal(\'' + SIKAP.escapeHtml(r.idArsip) + '\', \'' + SIKAP.escapeHtml(r.nama).replace(/'/g, '\\\'') + '\')" class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded-lg transition-colors" title="Hapus Dokumen">';
+      html += '<span class="material-symbols-outlined text-[19px]">delete</span></button>';
+
+    } else {
+      // Missing / Belum diunggah -> Upload Button
+      var btnClass = isWajib 
+        ? 'bg-primary text-on-primary hover:bg-primary/90 shadow-sm' 
+        : 'bg-surface-container-high text-on-surface hover:bg-surface-container-highest border border-outline-variant/30';
+      
+      html += '<button onclick="SIKAP.Arsip.openUploadModal(\'' + SIKAP.escapeHtml(r.idDokumen) + '\')" class="px-3 py-1.5 ' + btnClass + ' rounded-lg font-label-sm text-xs transition-all flex items-center gap-1.5 active:scale-95">';
+      html += '<span class="material-symbols-outlined text-[16px]">cloud_upload</span>';
+      html += 'Upload</button>';
     }
     
     html += '</div></td></tr>';
@@ -153,93 +218,109 @@ SIKAP.Arsip.renderTable = function(rows) {
 };
 
 /**
- * Returns formatted HTML for status displays.
+ * Formats status display (Tersedia vs Belum diunggah with verification pills).
  */
-SIKAP.Arsip.getStatusInfo = function(status, catatan) {
+SIKAP.Arsip.getStatusDisplay = function(doc) {
   var iconHtml = '';
   var badgeHtml = '';
   
-  if (status === 'Terverifikasi') {
-    iconHtml = '<div class="w-10 h-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined">description</span></div>';
-    badgeHtml = '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#e6f4ea] text-[#137333] font-label-sm"><span class="material-symbols-outlined text-[14px]">check_circle</span> Terverifikasi</div>';
-  } 
-  else if (status === 'Menunggu') {
-    iconHtml = '<div class="w-10 h-10 rounded-lg bg-[#fef7e0] text-[#b06000] flex items-center justify-center shrink-0"><span class="material-symbols-outlined">pending</span></div>';
-    badgeHtml = '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#fef7e0] text-[#b06000] font-label-sm"><span class="material-symbols-outlined text-[14px]">pending</span> Menunggu Verifikasi</div>';
-  } 
-  else if (status === 'Ditolak') {
-    iconHtml = '<div class="w-10 h-10 rounded-lg bg-error-container text-on-error-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined">account_balance_wallet</span></div>';
-    badgeHtml = '<div class="flex flex-col gap-1 items-start"><div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-error-container text-on-error-container font-label-sm"><span class="material-symbols-outlined text-[14px]">error</span> Perlu Revisi</div><span class="text-[11px] text-error font-medium italic flex items-center gap-1 mt-1 truncate max-w-[150px]" title="' + catatan + '"><span class="material-symbols-outlined text-[12px]">info</span> "' + catatan + '"</span></div>';
-  } 
-  else {
-    iconHtml = '<div class="w-10 h-10 rounded-lg bg-surface-container-highest text-on-surface-variant border border-dashed border-outline-variant flex items-center justify-center shrink-0"><span class="material-symbols-outlined opacity-50">school</span></div>';
-    badgeHtml = '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-variant text-on-surface-variant font-label-sm"><span class="material-symbols-outlined text-[14px]">remove</span> Belum Diunggah</div>';
+  if (doc.isAvailable) {
+    iconHtml = '<div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/60"><span class="material-symbols-outlined text-[20px]">check_circle</span></div>';
+    
+    // Base badge: Tersedia
+    badgeHtml = '<div class="flex flex-col gap-1 items-start">';
+    badgeHtml += '<div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-label-sm text-[11px] font-semibold">';
+    badgeHtml += '<span class="material-symbols-outlined text-[13px]">check</span> Tersedia</div>';
+    
+    // Sub-verification pill if pending or rejected
+    if (doc.status === 'Menunggu') {
+      badgeHtml += '<span class="inline-flex items-center gap-1 text-[10px] text-[#b06000] font-medium bg-[#fef7e0] px-2 py-0.5 rounded border border-[#ffe0b2]">';
+      badgeHtml += '<span class="material-symbols-outlined text-[11px]">pending</span> Menunggu Verifikasi</span>';
+    } else if (doc.status === 'Ditolak') {
+      badgeHtml += '<span class="inline-flex items-center gap-1 text-[10px] text-error font-medium bg-error-container/30 px-2 py-0.5 rounded border border-error-container cursor-pointer" onclick="SIKAP.Arsip.openPenolakanModal(\'' + doc.idArsip + '\')">';
+      badgeHtml += '<span class="material-symbols-outlined text-[11px]">warning</span> Perlu Revisi</span>';
+    }
+    badgeHtml += '</div>';
+
+  } else {
+    iconHtml = '<div class="w-9 h-9 rounded-lg bg-surface-container text-on-surface-variant flex items-center justify-center shrink-0 border border-dashed border-outline-variant/50"><span class="material-symbols-outlined text-[18px] opacity-60">hourglass_empty</span></div>';
+    badgeHtml = '<div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-variant/80 text-on-surface-variant font-label-sm text-[11px]">';
+    badgeHtml += '<span class="material-symbols-outlined text-[13px]">remove</span> Belum diunggah</div>';
   }
   
   return { iconHtml: iconHtml, badgeHtml: badgeHtml };
 };
 
-
 // ============================================================
-// UPLOAD MODAL LOGIC
+// UPLOAD / GANTI MODAL LOGIC
 // ============================================================
 
 /**
- * Fills the document type dropdown. Only shows docs that are NOT Menunggu or Terverifikasi.
+ * Fills the document type dropdown in upload modal.
  */
 SIKAP.Arsip.populateUploadSelect = function(docs) {
   var sel = document.getElementById('arsip-upload-select');
   if (!sel) return;
   
-  // Clear existing
   sel.innerHTML = '<option value="" disabled selected>Pilih jenis dokumen...</option>';
   
   docs.forEach(function(d) {
-    // Hide if already waiting or verified
-    if (d.status === 'Menunggu' || d.status === 'Terverifikasi') return;
-    
     var text = d.nama;
     if (d.wajib === 'Ya') text += ' (Wajib)';
     else text += ' (Opsional)';
     
-    if (d.status === 'Ditolak') text += ' — Perlu Revisi';
+    if (d.isAvailable) text += ' — [Sudah Ada / Ganti]';
+    if (d.status === 'Ditolak') text += ' — [Perlu Revisi]';
     
-    sel.innerHTML += '<option value="' + d.idDokumen + '">' + text + '</option>';
+    sel.innerHTML += '<option value="' + SIKAP.escapeHtml(d.idDokumen) + '">' + SIKAP.escapeHtml(text) + '</option>';
   });
 };
 
-SIKAP.Arsip.openUploadModal = function(preselectId) {
+SIKAP.Arsip.openUploadModal = function(preselectId, isReplace) {
   document.getElementById('modal-upload-dokumen').classList.remove('hidden');
   SIKAP.Arsip.clearSelectedFile();
   
+  var titleEl = document.getElementById('modal-upload-title');
+  var btnTextEl = document.getElementById('upload-btn-text');
+  if (isReplace) {
+    if (titleEl) titleEl.textContent = 'Ganti Dokumen';
+    if (btnTextEl) btnTextEl.textContent = 'Ganti Dokumen';
+  } else {
+    if (titleEl) titleEl.textContent = 'Unggah Dokumen Baru';
+    if (btnTextEl) btnTextEl.textContent = 'Unggah Dokumen';
+  }
+
   var sel = document.getElementById('arsip-upload-select');
   if (preselectId && sel) {
     sel.value = preselectId;
-    sel.disabled = true; // Lock selection if launched from specific row
+    sel.disabled = true; // Lock selection
     SIKAP.Arsip.state.uploadingId = preselectId;
   } else {
-    sel.value = '';
-    sel.disabled = false;
+    if (sel) {
+      sel.value = '';
+      sel.disabled = false;
+    }
     SIKAP.Arsip.state.uploadingId = null;
   }
+  SIKAP.Arsip.updateUploadBtnState();
 };
 
 SIKAP.Arsip.closeUploadModal = function() {
   document.getElementById('modal-upload-dokumen').classList.add('hidden');
+  SIKAP.Arsip.clearSelectedFile();
 };
 
 // File Selection Handler
 document.addEventListener('DOMContentLoaded', function() {
   var fileInput = document.getElementById('arsip-upload-file');
   if (fileInput) {
-    fileInput.addEventListener('change', function(e) {
+    fileInput.addEventListener('change', function() {
       if (this.files && this.files[0]) {
         SIKAP.Arsip.handleFileSelect(this.files[0]);
       }
     });
   }
   
-  // Handle select change
   var sel = document.getElementById('arsip-upload-select');
   if (sel) {
     sel.addEventListener('change', function() {
@@ -250,25 +331,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 SIKAP.Arsip.handleFileSelect = function(file) {
-  // Validate size (5MB)
   if (file.size > 5 * 1024 * 1024) {
-    SIKAP.Toast.show('Ukuran file maksimal 5MB.', 'error');
+    SIKAP.Toast.show('Ukuran file melebihi batas maksimal 5 MB.', 'error');
     return;
   }
   
-  // Validate type
   var allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/jfif', 'image/pjpeg'];
   var ext = (file.name || '').split('.').pop().toLowerCase();
   var isAllowedExt = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'jfif'].indexOf(ext) !== -1;
   
   if (allowedTypes.indexOf(file.type) === -1 && !isAllowedExt) {
-    SIKAP.Toast.show('Format file tidak didukung. Gunakan PDF, JPG, PNG, atau WEBP.', 'error');
+    SIKAP.Toast.show('Format file tidak didukung. Gunakan PDF, JPG, atau PNG.', 'error');
     return;
   }
   
   SIKAP.Arsip.state.selectedFile = file;
   
-  // Update UI
   document.getElementById('arsip-upload-dropzone').classList.add('hidden');
   document.getElementById('arsip-upload-selected').classList.remove('hidden');
   document.getElementById('arsip-upload-filename').textContent = file.name;
@@ -277,8 +355,8 @@ SIKAP.Arsip.handleFileSelect = function(file) {
   document.getElementById('arsip-upload-filesize').textContent = mb + ' MB';
   
   var icon = 'description';
-  if (file.type.indexOf('pdf') !== -1) icon = 'picture_as_pdf';
-  else if (file.type.indexOf('image') !== -1) icon = 'image';
+  if (file.type.indexOf('pdf') !== -1 || ext === 'pdf') icon = 'picture_as_pdf';
+  else if (file.type.indexOf('image') !== -1 || ['jpg', 'jpeg', 'png'].indexOf(ext) !== -1) icon = 'image';
   document.getElementById('arsip-upload-icon').textContent = icon;
   
   SIKAP.Arsip.updateUploadBtnState();
@@ -289,8 +367,10 @@ SIKAP.Arsip.clearSelectedFile = function() {
   var input = document.getElementById('arsip-upload-file');
   if (input) input.value = '';
   
-  document.getElementById('arsip-upload-dropzone').classList.remove('hidden');
-  document.getElementById('arsip-upload-selected').classList.add('hidden');
+  var dropzone = document.getElementById('arsip-upload-dropzone');
+  var selected = document.getElementById('arsip-upload-selected');
+  if (dropzone) dropzone.classList.remove('hidden');
+  if (selected) selected.classList.add('hidden');
   
   SIKAP.Arsip.updateUploadBtnState();
 };
@@ -306,17 +386,12 @@ SIKAP.Arsip.updateUploadBtnState = function() {
   }
 };
 
-/**
- * Handles the actual upload process.
- * Reads file to base64, calls server to upload.
- */
 SIKAP.Arsip.submitUpload = function() {
   var file = SIKAP.Arsip.state.selectedFile;
   var docId = SIKAP.Arsip.state.uploadingId;
   
   if (!file || !docId) return;
   
-  // Set UI to loading state
   var btn = document.getElementById('arsip-btn-upload');
   var progress = document.getElementById('arsip-upload-progress-container');
   var removeBtn = document.getElementById('arsip-upload-remove');
@@ -324,17 +399,17 @@ SIKAP.Arsip.submitUpload = function() {
   var cancelBtn = document.getElementById('btn-cancel-upload');
   var select = document.getElementById('arsip-upload-select');
   
-  btn.disabled = true;
-  removeBtn.disabled = true;
-  closeBtn.disabled = true;
-  cancelBtn.disabled = true;
-  select.disabled = true;
+  if (btn) btn.disabled = true;
+  if (removeBtn) removeBtn.disabled = true;
+  if (closeBtn) closeBtn.disabled = true;
+  if (cancelBtn) cancelBtn.disabled = true;
+  if (select) select.disabled = true;
+  
   document.getElementById('upload-btn-text').textContent = 'Mengunggah...';
   document.getElementById('upload-btn-icon').textContent = 'sync';
   document.getElementById('upload-btn-icon').classList.add('animate-spin');
-  progress.classList.remove('hidden');
+  if (progress) progress.classList.remove('hidden');
   
-  // Show app blocking loader
   SIKAP.UI.showLoading();
   
   var reader = new FileReader();
@@ -346,18 +421,15 @@ SIKAP.Arsip.submitUpload = function() {
       var n = (file.name || '').toLowerCase();
       if (n.indexOf('.pdf') !== -1) mimeType = 'application/pdf';
       else if (n.indexOf('.png') !== -1) mimeType = 'image/png';
-      else if (n.indexOf('.webp') !== -1) mimeType = 'image/webp';
       else mimeType = 'image/jpeg';
     }
     
-    // Call server
     google.script.run
       .withSuccessHandler(function(res) {
         SIKAP.UI.hideLoading();
         if (res.success) {
           SIKAP.Toast.show(res.message, 'success');
           SIKAP.Arsip.closeUploadModal();
-          // Reload data silently to update table
           SIKAP.Arsip.load(); 
         } else {
           SIKAP.Toast.show(res.message, 'error');
@@ -366,7 +438,7 @@ SIKAP.Arsip.submitUpload = function() {
       })
       .withFailureHandler(function(err) {
         SIKAP.UI.hideLoading();
-        SIKAP.Toast.show('Terjadi kesalahan jaringan.', 'error');
+        SIKAP.Toast.show('Terjadi kesalahan jaringan saat mengunggah.', 'error');
         SIKAP.Arsip.resetUploadUIState();
       })
       .uploadDokumen(SIKAP.state.token, docId, base64Data, mimeType);
@@ -387,35 +459,32 @@ SIKAP.Arsip.resetUploadUIState = function() {
   var removeBtn = document.getElementById('arsip-upload-remove');
   var closeBtn = document.getElementById('btn-close-upload');
   var cancelBtn = document.getElementById('btn-cancel-upload');
-  var select = document.getElementById('arsip-upload-select');
   
-  btn.disabled = false;
-  removeBtn.disabled = false;
-  closeBtn.disabled = false;
-  cancelBtn.disabled = false;
-  // Select disabled state depends on whether it was launched specifically or not, 
-  // but let's just make it editable unless specifically blocked
-  // It's safer to just rely on re-opening logic.
+  if (btn) btn.disabled = false;
+  if (removeBtn) removeBtn.disabled = false;
+  if (closeBtn) closeBtn.disabled = false;
+  if (cancelBtn) cancelBtn.disabled = false;
   
-  document.getElementById('upload-btn-text').textContent = 'Upload Dokumen';
+  document.getElementById('upload-btn-text').textContent = 'Unggah Dokumen';
   document.getElementById('upload-btn-icon').textContent = 'upload';
   document.getElementById('upload-btn-icon').classList.remove('animate-spin');
-  progress.classList.add('hidden');
+  if (progress) progress.classList.add('hidden');
 };
-
 
 // ============================================================
 // PREVIEW MODAL LOGIC
 // ============================================================
 
 SIKAP.Arsip.openPreviewModal = function(idArsip) {
+  SIKAP.Arsip.state.currentPreviewId = idArsip;
   document.getElementById('modal-preview-dokumen').classList.remove('hidden');
   document.getElementById('preview-loader').classList.remove('hidden');
   
-  // Reset fields
-  document.getElementById('preview-nama-dokumen').textContent = 'Memuat...';
+  document.getElementById('preview-nama-dokumen').textContent = 'Memuat Dokumen...';
+  document.getElementById('preview-info-nama').textContent = 'Memuat...';
+  document.getElementById('preview-info-kategori').textContent = 'Memuat...';
   document.getElementById('preview-waktu-upload').textContent = '-';
-  document.getElementById('preview-status-text').textContent = 'MEMUAT';
+  document.getElementById('preview-status-text').textContent = 'TERSEDIA';
   document.getElementById('preview-waktu-verifikasi').textContent = '';
   document.getElementById('preview-catatan-container').classList.add('hidden');
   document.getElementById('preview-iframe').src = 'about:blank';
@@ -425,21 +494,20 @@ SIKAP.Arsip.openPreviewModal = function(idArsip) {
       if (res.success) {
         var d = res.data;
         document.getElementById('preview-nama-dokumen').textContent = d.namaDokumen;
+        document.getElementById('preview-info-nama').textContent = d.namaDokumen;
+        document.getElementById('preview-info-kategori').textContent = d.idDokumen;
         document.getElementById('preview-waktu-upload').textContent = d.waktuUpload;
         
-        // Iframe / Links
         document.getElementById('preview-iframe').src = d.previewUrl;
         document.getElementById('preview-btn-download').href = d.downloadUrl;
         document.getElementById('preview-btn-newtab').href = d.previewUrl;
         
-        // Status Badge
         var badge = document.getElementById('preview-status-badge');
         var text = document.getElementById('preview-status-text');
         var icon = document.getElementById('preview-status-icon');
         
-        // Reset classes
         badge.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full';
-        text.textContent = d.statusVerifikasi.toUpperCase();
+        text.textContent = 'TERSEDIA (' + (d.statusVerifikasi || 'Aktif').toUpperCase() + ')';
         
         if (d.statusVerifikasi === 'Terverifikasi') {
           badge.classList.add('bg-[#dcfce7]', 'text-[#166534]');
@@ -450,27 +518,27 @@ SIKAP.Arsip.openPreviewModal = function(idArsip) {
         } else if (d.statusVerifikasi === 'Ditolak') {
           badge.classList.add('bg-error-container', 'text-on-error-container');
           icon.textContent = 'error';
+        } else {
+          badge.classList.add('bg-emerald-100', 'text-emerald-800');
+          icon.textContent = 'check_circle';
         }
         
-        // Verifier text
-        if (d.statusVerifikasi !== 'Menunggu') {
+        if (d.statusVerifikasi && d.statusVerifikasi !== 'Menunggu') {
           document.getElementById('preview-waktu-verifikasi').textContent = 'Diverifikasi oleh ' + (d.namaVerifier || 'Admin') + ' pada ' + d.waktuVerifikasi;
         }
         
-        // Catatan Admin
         if (d.catatanAdmin && d.catatanAdmin.trim() !== '') {
           document.getElementById('preview-catatan-container').classList.remove('hidden');
           document.getElementById('preview-catatan-admin').textContent = d.catatanAdmin;
         }
-        
       } else {
         SIKAP.Toast.show(res.message, 'error');
         SIKAP.Arsip.closePreviewModal();
-        if (SIKAP.Arsip.load) SIKAP.Arsip.load();
+        SIKAP.Arsip.load();
       }
     })
     .withFailureHandler(function() {
-      SIKAP.Toast.show('Terjadi kesalahan jaringan.', 'error');
+      SIKAP.Toast.show('Terjadi kesalahan jaringan saat memuat preview.', 'error');
       SIKAP.Arsip.closePreviewModal();
     })
     .getDokumenPreview(SIKAP.state.token, idArsip);
@@ -479,8 +547,88 @@ SIKAP.Arsip.openPreviewModal = function(idArsip) {
 SIKAP.Arsip.closePreviewModal = function() {
   document.getElementById('modal-preview-dokumen').classList.add('hidden');
   document.getElementById('preview-iframe').src = 'about:blank';
+  SIKAP.Arsip.state.currentPreviewId = null;
 };
 
+SIKAP.Arsip.replaceFromPreview = function() {
+  var idArsip = SIKAP.Arsip.state.currentPreviewId;
+  var doc = (SIKAP.Arsip.state.docs || []).find(function(d) { return d.idArsip === idArsip; });
+  SIKAP.Arsip.closePreviewModal();
+  if (doc) {
+    SIKAP.Arsip.openUploadModal(doc.idDokumen, true);
+  }
+};
+
+SIKAP.Arsip.deleteFromPreview = function() {
+  var idArsip = SIKAP.Arsip.state.currentPreviewId;
+  var doc = (SIKAP.Arsip.state.docs || []).find(function(d) { return d.idArsip === idArsip; });
+  SIKAP.Arsip.closePreviewModal();
+  if (doc) {
+    SIKAP.Arsip.openHapusModal(idArsip, doc.nama);
+  }
+};
+
+// ============================================================
+// DELETE CONFIRMATION MODAL LOGIC
+// ============================================================
+
+SIKAP.Arsip.openHapusModal = function(idArsip, namaDokumen) {
+  SIKAP.Arsip.state.deletingArsipId = idArsip;
+  SIKAP.Arsip.state.deletingDocName = namaDokumen;
+  
+  var descEl = document.getElementById('hapus-modal-desc');
+  if (descEl) {
+    descEl.textContent = 'Apakah Anda yakin ingin menghapus arsip dokumen "' + namaDokumen + '"? File fisik di Google Drive akan dipindahkan ke tempat sampah dan status dokumen berubah menjadi "Belum diunggah".';
+  }
+  
+  document.getElementById('modal-konfirmasi-hapus').classList.remove('hidden');
+};
+
+SIKAP.Arsip.closeHapusModal = function() {
+  document.getElementById('modal-konfirmasi-hapus').classList.add('hidden');
+  SIKAP.Arsip.state.deletingArsipId = null;
+  SIKAP.Arsip.state.deletingDocName = '';
+};
+
+SIKAP.Arsip.confirmDelete = function() {
+  var idArsip = SIKAP.Arsip.state.deletingArsipId;
+  if (!idArsip) return;
+  
+  var btn = document.getElementById('btn-confirm-delete');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">sync</span> Menghapus...';
+  }
+  
+  SIKAP.UI.showLoading();
+  
+  google.script.run
+    .withSuccessHandler(function(res) {
+      SIKAP.UI.hideLoading();
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">delete</span> Hapus Dokumen';
+      }
+      SIKAP.Arsip.closeHapusModal();
+      
+      if (res.success) {
+        SIKAP.Toast.show(res.message, 'success');
+        SIKAP.Arsip.load();
+      } else {
+        SIKAP.Toast.show(res.message, 'error');
+      }
+    })
+    .withFailureHandler(function(err) {
+      SIKAP.UI.hideLoading();
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">delete</span> Hapus Dokumen';
+      }
+      SIKAP.Arsip.closeHapusModal();
+      SIKAP.Toast.show('Terjadi kesalahan jaringan saat menghapus dokumen.', 'error');
+    })
+    .hapusDokumen(SIKAP.state.token, idArsip);
+};
 
 // ============================================================
 // PENOLAKAN MODAL LOGIC
@@ -488,15 +636,11 @@ SIKAP.Arsip.closePreviewModal = function() {
 
 SIKAP.Arsip.openPenolakanModal = function(idArsip) {
   document.getElementById('modal-detail-penolakan').classList.remove('hidden');
-  
-  // Find record from local state
   var record = SIKAP.Arsip.state.docs.find(function(d) { return d.idArsip === idArsip; });
   if (!record) return;
   
   document.getElementById('penolakan-nama-dokumen').textContent = record.nama;
-  document.getElementById('penolakan-catatan-admin').textContent = record.catatan;
-  
-  // Save idDokumen for re-upload flow
+  document.getElementById('penolakan-catatan-admin').textContent = record.catatan || 'Dokumen belum memenuhi ketentuan verifikasi.';
   SIKAP.Arsip.state.uploadingId = record.idDokumen;
 };
 
@@ -506,8 +650,7 @@ SIKAP.Arsip.closePenolakanModal = function() {
 
 SIKAP.Arsip.reuploadFromPenolakan = function() {
   SIKAP.Arsip.closePenolakanModal();
-  // Open upload modal with specific doc ID pre-selected
-  SIKAP.Arsip.openUploadModal(SIKAP.Arsip.state.uploadingId);
+  SIKAP.Arsip.openUploadModal(SIKAP.Arsip.state.uploadingId, true);
 };
 
 </script>

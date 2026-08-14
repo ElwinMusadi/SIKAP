@@ -106,16 +106,28 @@ function getOrCreateEmployeeFolder(nip) {
 // ============================================================
 
 /**
- * Returns master documents + current archive status for the logged-in employee.
+ * Returns master documents + current archive status for the employee.
+ * Can be called by employee for self, or by Admin with targetNip.
  * @param {string} token - Session token.
- * @returns {Object} { success, data: { pct, counts, tableRows } }
+ * @param {string} [targetNip] - Optional target employee NIP (Admin only).
+ * @returns {Object} { success, data: { pct, counts, tableRows, wajibRows, opsionalRows, totalDocs, availableCount, wajibTotal, wajibAvailable, wajibVerified } }
  */
-function getArsipDokumenPegawai(token) {
+function getArsipDokumenPegawai(token, targetNip) {
   try {
     var auth = authorize(token, null, false);
     if (!auth.authorized) return { success: false, message: auth.error };
 
     var nip = auth.session.nip;
+    var targetNama = auth.session.nama;
+
+    // Admin can query any employee's document archive
+    if (targetNip && auth.session.role === ROLES.ADMIN) {
+      nip = String(targetNip).trim();
+      var targetUser = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, nip);
+      if (targetUser) {
+        targetNama = targetUser.data[COL_PEGAWAI.NAMA_LENGKAP];
+      }
+    }
 
     var masterDocs = getAllData(SHEET_NAMES.MASTER_DOKUMEN);
     var allArsip   = getAllData(SHEET_NAMES.ARSIP_DOKUMEN);
@@ -124,16 +136,19 @@ function getArsipDokumenPegawai(token) {
     var myArsip = {};
     for (var a = 0; a < allArsip.length; a++) {
       var row = allArsip[a];
-      if (String(row[COL_ARSIP.NIP]) !== String(nip)) continue;
+      if (String(row[COL_ARSIP.NIP]).trim() !== String(nip).trim()) continue;
       var docId = row[COL_ARSIP.ID_DOKUMEN];
       // Later rows overwrite earlier — last appended row is authoritative
       myArsip[docId] = row;
     }
 
-    var counts = { terverifikasi: 0, menunggu: 0, ditolak: 0, belumUnggah: 0 };
+    var counts = { terverifikasi: 0, menunggu: 0, ditolak: 0, belumUnggah: 0, tersedia: 0 };
     var wajibTotal    = 0;
     var wajibVerified = 0;
+    var wajibAvailable = 0;
     var tableRows     = [];
+    var wajibRows     = [];
+    var opsionalRows  = [];
 
     for (var m = 0; m < masterDocs.length; m++) {
       var doc      = masterDocs[m];
@@ -149,7 +164,7 @@ function getArsipDokumenPegawai(token) {
         idArsip     = arsipRow[COL_ARSIP.ID_ARSIP];
         status      = arsipRow[COL_ARSIP.STATUS_VERIFIKASI];
         waktuUpload = arsipRow[COL_ARSIP.WAKTU_UPLOAD];
-        catatan     = arsipRow[COL_ARSIP.CATATAN_ADMIN] || '';
+        catatan     = unescapeFormula(arsipRow[COL_ARSIP.CATATAN_ADMIN] || '');
         fileUrl     = arsipRow[COL_ARSIP.FILE_URL] || '';
         fileDriveId = String(arsipRow[COL_ARSIP.FILE_DRIVE_ID] || '').replace(/^'+/, '').trim();
 
@@ -188,48 +203,141 @@ function getArsipDokumenPegawai(token) {
         fileDriveId = '';
       }
 
+      var isAvailable = (status !== DOC_STATUS.BELUM_UNGGAH && fileDriveId !== '');
+      var statusLabel = isAvailable ? 'Tersedia' : 'Belum diunggah';
+
       // Tally counts
       if (status === DOC_STATUS.TERVERIFIKASI)  counts.terverifikasi++;
       else if (status === DOC_STATUS.MENUNGGU)  counts.menunggu++;
       else if (status === DOC_STATUS.DITOLAK)   counts.ditolak++;
       else                                      counts.belumUnggah++;
 
+      if (isAvailable) counts.tersedia++;
+
       if (wajib === 'Ya') {
         wajibTotal++;
+        if (isAvailable) wajibAvailable++;
         if (status === DOC_STATUS.TERVERIFIKASI) wajibVerified++;
       }
 
-      tableRows.push({
+      var docItem = {
         idArsip:     idArsip,
         idDokumen:   id,
         nama:        nama,
         kategori:    kategori,
         wajib:       wajib,
         status:      status,
+        statusLabel: statusLabel,
+        isAvailable: isAvailable,
         waktuUpload: waktuUpload ? _formatDate(waktuUpload) : '-',
         catatan:     catatan,
         fileUrl:     fileUrl,
         fileDriveId: fileDriveId
-      });
+      };
+
+      tableRows.push(docItem);
+      if (wajib === 'Ya') {
+        wajibRows.push(docItem);
+      } else {
+        opsionalRows.push(docItem);
+      }
     }
 
-    var pct = wajibTotal > 0 ? Math.round((wajibVerified / wajibTotal) * 100) : 0;
+    var pct = wajibTotal > 0 ? Math.round((wajibAvailable / wajibTotal) * 100) : 0;
+    var totalDocs = masterDocs.length;
+    var availableCount = counts.tersedia;
+    var summaryText = availableCount + ' dari ' + totalDocs + ' dokumen tersedia';
 
     return {
       success: true,
       data: {
-        nip:           nip,
-        nama:          auth.session.nama,
-        pct:           pct,
-        wajibTotal:    wajibTotal,
-        wajibVerified: wajibVerified,
-        counts:        counts,
-        tableRows:     tableRows
+        nip:            nip,
+        nama:           targetNama,
+        pct:            pct,
+        totalDocs:      totalDocs,
+        availableCount: availableCount,
+        summaryText:    summaryText,
+        wajibTotal:     wajibTotal,
+        wajibAvailable: wajibAvailable,
+        wajibVerified:  wajibVerified,
+        counts:         counts,
+        tableRows:      tableRows,
+        wajibRows:      wajibRows,
+        opsionalRows:   opsionalRows
       }
     };
   } catch (e) {
     Logger.log('getArsipDokumenPegawai error: ' + e.toString());
-    return { success: false, message: 'Terjadi kesalahan sistem.' };
+    return { success: false, message: 'Terjadi kesalahan sistem: ' + (e.message || e.toString()) };
+  }
+}
+
+/**
+ * Deletes an uploaded document and marks it as Belum_Unggah.
+ * Only the document owner or an Admin is authorized to delete.
+ * @param {string} token - Session token.
+ * @param {string} idArsip - ID_Arsip primary key.
+ * @returns {Object} Result object.
+ */
+function hapusDokumen(token, idArsip) {
+  try {
+    var auth = authorize(token, null, false);
+    if (!auth.authorized) return { success: false, message: auth.error };
+
+    if (!idArsip) return { success: false, message: 'ID Arsip tidak valid.' };
+
+    var arsipRecord = findByPrimaryKey(SHEET_NAMES.ARSIP_DOKUMEN, idArsip);
+    if (!arsipRecord) {
+      return { success: false, message: 'Dokumen tidak ditemukan di arsip.' };
+    }
+
+    var ar = arsipRecord.data;
+    var ownerNip = String(ar[COL_ARSIP.NIP]);
+
+    // Ownership check
+    if (auth.session.role !== ROLES.ADMIN && String(auth.session.nip) !== ownerNip) {
+      return { success: false, message: 'Anda tidak memiliki izin untuk menghapus dokumen ini.' };
+    }
+
+    // Trash file from Drive
+    var fileDriveId = String(ar[COL_ARSIP.FILE_DRIVE_ID] || '').replace(/^'+/, '').trim();
+    if (fileDriveId) {
+      try {
+        DriveApp.getFileById(fileDriveId).setTrashed(true);
+        Logger.log('File trashed during document deletion: ' + fileDriveId);
+      } catch (trashErr) {
+        Logger.log('Could not trash file ' + fileDriveId + ': ' + trashErr.toString());
+      }
+    }
+
+    // Reset row fields in Arsip_Dokumen
+    updateRowFields(SHEET_NAMES.ARSIP_DOKUMEN, arsipRecord.rowIndex, {
+      [COL_ARSIP.FILE_DRIVE_ID]: '',
+      [COL_ARSIP.FILE_URL]: '',
+      [COL_ARSIP.STATUS_VERIFIKASI]: DOC_STATUS.BELUM_UNGGAH,
+      [COL_ARSIP.CATATAN_ADMIN]: '',
+      [COL_ARSIP.WAKTU_UPLOAD]: '',
+      [COL_ARSIP.WAKTU_VERIFIKASI]: '',
+      [COL_ARSIP.NIP_VERIFIER]: ''
+    });
+
+    var masterDoc = findByPrimaryKey(SHEET_NAMES.MASTER_DOKUMEN, ar[COL_ARSIP.ID_DOKUMEN]);
+    var namaDokumen = masterDoc ? masterDoc.data[COL_MASTER_DOKUMEN.NAMA_DOKUMEN] : ar[COL_ARSIP.ID_DOKUMEN];
+
+    logActivity(
+      auth.session.nip, auth.session.role, 'DOKUMEN_DELETE', 'DOCUMENT',
+      idArsip,
+      'Dokumen dihapus: ' + namaDokumen,
+      'SUCCESS'
+    );
+
+    return {
+      success: true,
+      message: 'Dokumen ' + namaDokumen + ' berhasil dihapus.'
+    };
+  } catch (e) {
+    Logger.log('hapusDokumen error: ' + e.toString());
+    return { success: false, message: 'Gagal menghapus dokumen: ' + (e.message || e.toString()) };
   }
 }
 
@@ -315,7 +423,7 @@ function getDokumenPreview(token, idArsip) {
         namaDokumen:      namaDokumen,
         ownerNip:         ownerNip,
         statusVerifikasi: ar[COL_ARSIP.STATUS_VERIFIKASI],
-        catatanAdmin:     ar[COL_ARSIP.CATATAN_ADMIN] || '',
+        catatanAdmin:     unescapeFormula(ar[COL_ARSIP.CATATAN_ADMIN] || ''),
         waktuUpload:      ar[COL_ARSIP.WAKTU_UPLOAD]      ? _formatDate(ar[COL_ARSIP.WAKTU_UPLOAD])      : '-',
         waktuVerifikasi:  ar[COL_ARSIP.WAKTU_VERIFIKASI]  ? _formatDate(ar[COL_ARSIP.WAKTU_VERIFIKASI])  : '-',
         nipVerifier:      nipVerifier,
@@ -351,12 +459,21 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
     var auth = authorize(token, null, false);
     if (!auth.authorized) return { success: false, message: auth.error };
 
-    var nip  = String(auth.session.nip || '').trim();
-    var nama = String(auth.session.nama || 'Pegawai').trim();
-
+    var nip = String(auth.session.nip || '').trim();
     if (!nip) {
       return { success: false, message: 'Sesi tidak valid (NIP tidak ditemukan).' };
     }
+
+    // ---- Validate Employee Metadata in Database ----
+    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, nip);
+    if (!user) {
+      return { success: false, message: 'Data pegawai tidak ditemukan di database.' };
+    }
+    if (user.data[COL_PEGAWAI.STATUS_AKUN] !== 'Aktif') {
+      return { success: false, message: 'Akun pegawai tidak aktif. Unggah dokumen tidak diizinkan.' };
+    }
+
+    var nama = String(user.data[COL_PEGAWAI.NAMA_LENGKAP] || auth.session.nama || 'Pegawai').trim();
 
     // ---- Validate idDokumen exists in Master_Dokumen ----
     if (!idDokumen) {
@@ -380,6 +497,9 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
       cleanBase64 = cleanBase64.split(',')[1];
     }
     cleanBase64 = cleanBase64.replace(/\s/g, '');
+    if (!cleanBase64) {
+      return { success: false, message: 'Konten file kosong.' };
+    }
 
     // ---- Validate MIME type ----
     var cleanMime = String(mimeType || '').toLowerCase().trim();
@@ -507,10 +627,15 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
       success: true,
       message: namaDokumen + ' berhasil diunggah dan sedang menunggu verifikasi.',
       data: {
-        idArsip:  idArsip,
-        status:   DOC_STATUS.MENUNGGU,
-        fileUrl:  newFileUrl,
-        fileName: autoFileName
+        idArsip:     idArsip,
+        idDokumen:   idDokumen,
+        namaDokumen: namaDokumen,
+        nip:         nip,
+        status:      DOC_STATUS.MENUNGGU,
+        fileUrl:     newFileUrl,
+        fileName:    autoFileName,
+        fileDriveId: newFileDriveId,
+        waktuUpload: now
       }
     };
 

@@ -12,12 +12,12 @@
   <!-- ============================== -->
   <!-- PAGE HEADER                    -->
   <!-- ============================== -->
-  <div class="px-xl py-md flex justify-between items-center bg-surface-container-lowest z-10 sticky top-0 border-b border-outline-variant/20 shadow-sm">
+  <div class="px-6 py-4 flex justify-between items-center bg-surface-container-lowest z-10 sticky top-0 border-b border-outline-variant/20 shadow-xs">
     <div>
-      <h1 class="font-h1 text-on-surface">Master Data Pegawai</h1>
-      <p class="font-body-sm text-on-surface-variant mt-0.5" id="mdp-summary-text">Memuat data...</p>
+      <h1 class="font-h1 text-on-surface text-2xl font-bold">Master Data Pegawai</h1>
+      <p class="font-body-sm text-on-surface-variant mt-0.5 text-xs" id="mdp-summary-text">Memuat data...</p>
     </div>
-    <button class="bg-primary hover:bg-primary/90 text-on-primary font-label-md px-lg py-sm rounded-lg flex items-center gap-xs shadow-md transition-all active:scale-95"
+    <button class="bg-primary hover:bg-primary/90 text-on-primary font-label-md px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition-all active:scale-95 text-sm"
             id="mdp-btn-tambah" onclick="SIKAP.MasterDataPegawai.openTambah()">
       <span class="material-symbols-outlined text-[18px]">add</span>
       Tambah Pegawai
@@ -27,49 +27,49 @@
   <!-- ============================== -->
   <!-- FILTER / SEARCH BAR            -->
   <!-- ============================== -->
-  <div class="px-xl py-md bg-surface-container-low border-b border-outline-variant/20 flex flex-col gap-md lg:flex-row lg:items-center lg:justify-between">
+  <div class="px-6 py-3.5 bg-surface-container-low border-b border-outline-variant/20 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
     <div class="relative w-full lg:w-96">
-      <span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
-      <input class="w-full bg-surface-container-lowest text-on-surface font-body-md pl-xl pr-md py-sm rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all placeholder:text-outline"
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+      <input class="w-full bg-surface-container-lowest text-on-surface font-body-md pl-10 pr-4 py-2 rounded-lg border border-outline-variant/30 shadow-xs focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-outline text-sm"
              id="mdp-search" placeholder="Cari nama atau NIP..." type="text"
              oninput="SIKAP.MasterDataPegawai.applyFilters()">
     </div>
-    <div class="flex flex-wrap items-center gap-sm w-full lg:w-auto">
+    <div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
       <!-- Filter: Status Kepegawaian -->
       <div class="relative">
-        <select class="appearance-none bg-surface-container-lowest text-on-surface font-label-md pl-md pr-xl py-sm rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+        <select class="appearance-none bg-surface-container-lowest text-on-surface font-label-md pl-3 pr-9 py-2 rounded-lg border border-outline-variant/30 shadow-xs focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer text-sm"
                 id="mdp-filter-kepegawaian" onchange="SIKAP.MasterDataPegawai.applyFilters()">
           <option value="">Status Kepegawaian</option>
           <option value="PNS">PNS</option>
           <option value="CPNS">CPNS</option>
-          <option value="P3K">P3K</option>
+          <option value="PPPK">PPPK</option>
         </select>
-        <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[20px]">expand_more</span>
+        <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">expand_more</span>
       </div>
       <!-- Filter: Status Akun -->
       <div class="relative">
-        <select class="appearance-none bg-surface-container-lowest text-on-surface font-label-md pl-md pr-xl py-sm rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+        <select class="appearance-none bg-surface-container-lowest text-on-surface font-label-md pl-3 pr-9 py-2 rounded-lg border border-outline-variant/30 shadow-xs focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer text-sm"
                 id="mdp-filter-akun" onchange="SIKAP.MasterDataPegawai.applyFilters()">
           <option value="">Status Akun</option>
           <option value="Aktif">Aktif</option>
           <option value="Nonaktif">Nonaktif</option>
         </select>
-        <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[20px]">expand_more</span>
+        <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">expand_more</span>
       </div>
       <!-- Filter: Kelengkapan -->
       <div class="relative">
-        <select class="appearance-none bg-surface-container-lowest text-on-surface font-label-md pl-md pr-xl py-sm rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+        <select class="appearance-none bg-surface-container-lowest text-on-surface font-label-md pl-3 pr-9 py-2 rounded-lg border border-outline-variant/30 shadow-xs focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer text-sm"
                 id="mdp-filter-kelengkapan" onchange="SIKAP.MasterDataPegawai.applyFilters()">
           <option value="">Kelengkapan</option>
           <option value="Lengkap">Lengkap</option>
           <option value="Belum Lengkap">Belum Lengkap</option>
           <option value="Perlu Revisi">Perlu Revisi</option>
         </select>
-        <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[20px]">expand_more</span>
+        <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">expand_more</span>
       </div>
-      <button class="bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md px-md py-sm rounded-lg flex items-center gap-xs shadow-sm transition-colors"
+      <button class="bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md px-3.5 py-2 rounded-lg flex items-center gap-1.5 border border-outline-variant/30 shadow-xs transition-colors text-sm"
               onclick="SIKAP.MasterDataPegawai.resetFilters()">
-        <span class="material-symbols-outlined text-[18px]">filter_alt_off</span>
+        <span class="material-symbols-outlined text-[16px]">filter_alt_off</span>
         Reset
       </button>
     </div>
@@ -104,34 +104,34 @@
   <!-- ============================== -->
   <!-- DATA STATE — TABLE             -->
   <!-- ============================== -->
-  <div id="mdp-data" class="hidden flex-1 p-xl bg-surface-bright overflow-auto">
-    <div class="bg-surface-container-lowest rounded-xl shadow-md overflow-hidden">
+  <div id="mdp-data" class="hidden flex-1 p-6 lg:p-container-margin bg-surface overflow-auto">
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-left whitespace-nowrap">
-          <thead class="bg-surface-container-low text-on-surface-variant font-label-sm uppercase tracking-wider sticky top-0 z-0">
-            <tr>
-              <th class="px-md py-sm font-label-sm font-medium">Pegawai</th>
-              <th class="px-md py-sm font-label-sm font-medium">Status / Golongan</th>
-              <th class="px-md py-sm font-label-sm font-medium">Jabatan</th>
-              <th class="px-md py-sm font-label-sm font-medium w-40">Kelengkapan</th>
-              <th class="px-md py-sm font-label-sm font-medium text-center">Status Akun</th>
-              <th class="px-md py-sm font-label-sm font-medium text-right">Aksi</th>
+        <table class="w-full text-left border-collapse min-w-[900px]">
+          <thead>
+            <tr class="bg-surface-container-low border-b border-outline-variant/30">
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider min-w-[240px]">Pegawai</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider min-w-[160px]">Status / Golongan</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider min-w-[200px]">Jabatan</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider min-w-[180px]">Kelengkapan</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-center w-36">Status Akun</th>
+              <th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-right w-44">Aksi</th>
             </tr>
           </thead>
-          <tbody class="text-on-surface font-body-sm divide-y divide-surface-container-high/50" id="mdp-tbody">
+          <tbody class="font-body-md divide-y divide-outline-variant/20" id="mdp-tbody">
           </tbody>
         </table>
       </div>
       <!-- Pagination / Count -->
-      <div class="px-md py-sm border-t border-outline-variant/20 bg-surface-container-low flex items-center justify-between">
+      <div class="px-6 py-4 border-t border-outline-variant/30 bg-surface-container-low flex items-center justify-between">
         <span class="font-body-sm text-on-surface-variant" id="mdp-count-label">—</span>
-        <div class="flex items-center gap-xs">
-          <button class="p-xs rounded-md text-outline hover:text-on-surface hover:bg-surface-container-highest transition-colors disabled:opacity-50"
+        <div class="flex items-center gap-2">
+          <button class="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container-highest transition-colors disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed"
                   id="mdp-prev-btn" onclick="SIKAP.MasterDataPegawai.prevPage()" disabled>
             <span class="material-symbols-outlined text-[20px]">chevron_left</span>
           </button>
-          <span class="font-label-sm text-on-surface-variant px-xs" id="mdp-page-label">Hal. 1</span>
-          <button class="p-xs rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors disabled:opacity-50"
+          <span class="font-label-sm text-on-surface-variant px-2" id="mdp-page-label">Hal. 1</span>
+          <button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed"
                   id="mdp-next-btn" onclick="SIKAP.MasterDataPegawai.nextPage()">
             <span class="material-symbols-outlined text-[20px]">chevron_right</span>
           </button>
@@ -194,16 +194,16 @@
 <!-- ============================================================ -->
 <div class="fixed inset-0 z-[200] hidden" id="mdp-tambah-panel">
   <div class="absolute inset-0 bg-on-background/30 backdrop-blur-sm" onclick="SIKAP.MasterDataPegawai.closeTambah()"></div>
-  <div class="absolute right-0 top-0 h-full w-full max-w-2xl bg-surface-container-lowest shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300" id="mdp-tambah-slide">
+  <div class="absolute right-0 top-0 h-full w-full max-w-3xl bg-surface-container-lowest shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300" id="mdp-tambah-slide">
 
     <!-- Header -->
-    <div class="px-xl py-lg bg-surface-container-low flex items-center gap-md border-b border-outline-variant/20">
+    <div class="px-xl py-lg bg-surface-container-low flex items-center gap-md border-b border-outline-variant/20 shrink-0">
       <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
         <span class="material-symbols-outlined text-on-primary">person_add</span>
       </div>
       <div class="flex flex-col flex-1">
         <h2 class="font-h2 text-on-surface">Tambah Pegawai Baru</h2>
-        <p class="font-body-sm text-on-surface-variant">Daftarkan pegawai baru ke dalam sistem.</p>
+        <p class="font-body-sm text-on-surface-variant">Lengkapi data identitas, kepegawaian, dan kontak pegawai.</p>
       </div>
       <button class="p-sm rounded-full hover:bg-surface-container-high transition-colors" onclick="SIKAP.MasterDataPegawai.closeTambah()">
         <span class="material-symbols-outlined text-on-surface-variant">close</span>
@@ -211,42 +211,193 @@
     </div>
 
     <!-- Body -->
-    <form class="flex-1 overflow-y-auto p-xl flex flex-col gap-xl" id="mdp-tambah-form" onsubmit="SIKAP.MasterDataPegawai.handleTambah(event)" novalidate>
-      <!-- Section 1: Identitas -->
-      <div class="flex flex-col gap-gutter">
-        <h3 class="font-label-md text-primary uppercase tracking-wider">Informasi Pribadi &amp; Jabatan</h3>
+    <form class="flex-1 overflow-y-auto p-xl flex flex-col gap-8" id="mdp-tambah-form" onsubmit="SIKAP.MasterDataPegawai.handleTambah(event)" novalidate>
+      
+      <!-- ============================================ -->
+      <!-- SECTION 1: DATA IDENTITAS                   -->
+      <!-- ============================================ -->
+      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/30">
+        <div class="flex items-center gap-2 border-b border-outline-variant/20 pb-3">
+          <span class="material-symbols-outlined text-primary">badge</span>
+          <h3 class="font-h3 text-on-surface">Data Identitas Pegawai</h3>
+        </div>
+
+        <!-- Foto Profil Input & Preview -->
+        <div class="flex flex-col sm:flex-row items-center gap-md bg-surface-container-low p-md rounded-xl border border-outline-variant/30">
+          <div class="relative w-20 h-20 rounded-full bg-surface-container-high border-2 border-outline-variant overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
+            <img id="tambah-foto-preview" src="" alt="Preview Foto" class="w-full h-full object-cover hidden">
+            <span id="tambah-foto-placeholder" class="material-symbols-outlined text-[40px] text-outline">account_circle</span>
+          </div>
+          <div class="flex flex-col gap-xs text-center sm:text-left flex-1">
+            <span class="font-label-md text-on-surface">Pasfoto Pegawai</span>
+            <span class="font-body-sm text-on-surface-variant text-[12px]">Format JPEG, JPG, atau PNG (Maksimal 5 MB)</span>
+            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-xs mt-1">
+              <label for="tambah-foto-input" class="cursor-pointer px-md py-1 bg-primary/10 hover:bg-primary/20 text-primary font-label-sm rounded-lg flex items-center gap-1 transition-colors">
+                <span class="material-symbols-outlined text-[16px]">photo_camera</span>
+                <span>Pilih Pasfoto</span>
+              </label>
+              <input type="file" id="tambah-foto-input" accept="image/jpeg,image/jpg,image/png" class="hidden" onchange="SIKAP.MasterDataPegawai.handleFotoChange(this, 'tambah')">
+              <button type="button" id="tambah-foto-remove" class="hidden px-sm py-1 text-error hover:bg-error-container/20 font-label-sm rounded-lg transition-colors" onclick="SIKAP.MasterDataPegawai.removeFoto('tambah')">
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
           <!-- NIP -->
           <div class="flex flex-col gap-xs">
-            <label class="font-label-sm text-on-surface-variant" for="tambah-nip">NIP (18 digit) <span class="text-error">*</span></label>
+            <label class="font-label-sm text-on-surface" for="tambah-nip">NIP (18 Digit) <span class="text-error">*</span></label>
             <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
-                   id="tambah-nip" type="text" placeholder="198506122010011002" maxlength="18" required>
-            <span class="font-body-sm text-error hidden" id="tambah-nip-err">NIP harus 18 digit angka.</span>
+                   id="tambah-nip" type="text" placeholder="199707162025061002" maxlength="18" required
+                   oninput="document.getElementById('tambah-nip-err').classList.add('hidden')">
+            <span class="font-body-sm text-error hidden text-[12px]" id="tambah-nip-err">NIP harus terdiri dari tepat 18 digit angka.</span>
           </div>
-          <!-- Nama -->
+
+          <!-- NIK -->
           <div class="flex flex-col gap-xs">
-            <label class="font-label-sm text-on-surface-variant" for="tambah-nama">Nama Lengkap <span class="text-error">*</span></label>
+            <label class="font-label-sm text-on-surface" for="tambah-nik">NIK (16 Digit) <span class="text-error">*</span></label>
             <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
-                   id="tambah-nama" type="text" placeholder="Nama beserta gelar" required>
+                   id="tambah-nik" type="text" placeholder="5371041607970001" maxlength="16" required
+                   oninput="document.getElementById('tambah-nik-err').classList.add('hidden')">
+            <span class="font-body-sm text-error hidden text-[12px]" id="tambah-nik-err">NIK harus terdiri dari tepat 16 digit angka.</span>
           </div>
+
+          <!-- Nama Lengkap -->
+          <div class="flex flex-col gap-xs md:col-span-2">
+            <label class="font-label-sm text-on-surface" for="tambah-nama">Nama Lengkap (beserta Gelar) <span class="text-error">*</span></label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="tambah-nama" type="text" placeholder="Elwin Musadi Bessie Sura, S.Kom" required>
+          </div>
+
+          <!-- Tempat Lahir -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="tambah-tempat-lahir">Tempat Lahir</label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="tambah-tempat-lahir" type="text" placeholder="Kupang">
+          </div>
+
+          <!-- Tanggal Lahir -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="tambah-tanggal-lahir">Tanggal Lahir</label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="tambah-tanggal-lahir" type="date">
+          </div>
+
+          <!-- Jenis Kelamin -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="tambah-jenis-kelamin">Jenis Kelamin</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="tambah-jenis-kelamin">
+                <option value="">— Pilih Jenis Kelamin —</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Agama -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="tambah-agama">Agama</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="tambah-agama">
+                <option value="">— Pilih Agama —</option>
+                <option value="Kristen Protestan">Kristen Protestan</option>
+                <option value="Kristen Katholik">Kristen Katholik</option>
+                <option value="Islam">Islam</option>
+                <option value="Hindu">Hindu</option>
+                <option value="Buddha">Buddha</option>
+                <option value="Konghucu">Konghucu</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Pendidikan Terakhir -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="tambah-pendidikan">Pendidikan Terakhir</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="tambah-pendidikan">
+                <option value="">— Pilih Pendidikan Terakhir —</option>
+                <option value="SMA / SMK / Sederajat">SMA / SMK / Sederajat</option>
+                <option value="D-I / Diploma Satu">D-I / Diploma Satu</option>
+                <option value="D-II / Diploma Dua">D-II / Diploma Dua</option>
+                <option value="D-III / Diploma Tiga">D-III / Diploma Tiga</option>
+                <option value="D-IV / Sarjana Terapan">D-IV / Sarjana Terapan</option>
+                <option value="S-1 / Sarjana">S-1 / Sarjana</option>
+                <option value="S-2 / Magister">S-2 / Magister</option>
+                <option value="S-3 / Doktoral">S-3 / Doktoral</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Status Pernikahan -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="tambah-status-pernikahan">Status Pernikahan</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="tambah-status-pernikahan">
+                <option value="">— Pilih Status Pernikahan —</option>
+                <option value="Belum Menikah">Belum Menikah</option>
+                <option value="Menikah">Menikah</option>
+                <option value="Cerai">Cerai</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Golongan Darah -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="tambah-goldar">Golongan Darah</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="tambah-goldar">
+                <option value="">— Pilih Golongan Darah —</option>
+                <option value="O">O</option>
+                <option value="AB">AB</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="Tidak Tahu">Tidak Tahu</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- SECTION 2: DATA KEPEGAWAIAN                 -->
+      <!-- ============================================ -->
+      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/30">
+        <div class="flex items-center gap-2 border-b border-outline-variant/20 pb-3">
+          <span class="material-symbols-outlined text-primary">work</span>
+          <h3 class="font-h3 text-on-surface">Data Kepegawaian</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
           <!-- Status Kepegawaian -->
           <div class="flex flex-col gap-xs">
-            <label class="font-label-sm text-on-surface-variant" for="tambah-status-kepegawaian">Status Kepegawaian <span class="text-error">*</span></label>
+            <label class="font-label-sm text-on-surface" for="tambah-status-kepegawaian">Status Kepegawaian <span class="text-error">*</span></label>
             <div class="relative">
               <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
                       id="tambah-status-kepegawaian" required>
                 <option value="" disabled selected>Pilih Status</option>
                 <option value="PNS">PNS (Pegawai Negeri Sipil)</option>
-                <option value="CPNS">CPNS</option>
-                <option value="P3K">P3K / PPPK</option>
-                <option value="Honorer">Honorer / PTT</option>
+                <option value="CPNS">CPNS (Calon PNS)</option>
+                <option value="PPPK">PPPK (Pegawai Pemerintah dengan Perjanjian Kerja)</option>
               </select>
               <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
             </div>
           </div>
+
           <!-- Pangkat / Golongan -->
           <div class="flex flex-col gap-xs">
-            <label class="font-label-sm text-on-surface-variant" for="tambah-pangkat">Pangkat / Golongan</label>
+            <label class="font-label-sm text-on-surface" for="tambah-pangkat">Pangkat / Golongan</label>
             <div class="relative">
               <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
                       id="tambah-pangkat">
@@ -281,56 +432,113 @@
               <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
             </div>
           </div>
-          <!-- Jabatan (Full Width) -->
-          <div class="flex flex-col gap-xs md:col-span-2">
-            <label class="font-label-sm text-on-surface-variant" for="tambah-jabatan">Jabatan</label>
+
+          <!-- TMT Pangkat -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="tambah-tmt-pangkat">TMT Pangkat</label>
             <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
-                   id="tambah-jabatan" type="text" placeholder="cth. Staf Pelayanan">
+                   id="tambah-tmt-pangkat" type="date">
+          </div>
+
+          <!-- Jenis Jabatan -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="tambah-jenis-jabatan">Jenis Jabatan</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="tambah-jenis-jabatan">
+                <option value="">— Pilih Jenis Jabatan —</option>
+                <option value="Fungsional">Fungsional</option>
+                <option value="Pelaksana">Pelaksana</option>
+                <option value="Struktural">Struktural</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Jabatan -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="tambah-jabatan">Nama Jabatan</label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="tambah-jabatan" type="text" placeholder="Penata Kelola Sistem dan Teknologi Informasi">
+          </div>
+
+          <!-- TMT Jabatan -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="tambah-tmt-jabatan">TMT Jabatan</label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="tambah-tmt-jabatan" type="date">
+          </div>
+
+          <!-- Unit Organisasi (Full Width) -->
+          <div class="flex flex-col gap-xs md:col-span-2">
+            <label class="font-label-sm text-on-surface" for="tambah-unit-organisasi">Unit Organisasi</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="tambah-unit-organisasi">
+                <option value="">— Pilih Unit Organisasi —</option>
+                <option value="Subbagian Tata Usaha">Subbagian Tata Usaha</option>
+                <option value="Seksi Penetapan">Seksi Penetapan</option>
+                <option value="Seksi Verifikasi">Seksi Verifikasi</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="w-full h-px bg-outline-variant/30"></div>
+      <!-- ============================================ -->
+      <!-- SECTION 3: KONTAK & AKSES SISTEM            -->
+      <!-- ============================================ -->
+      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/30">
+        <div class="flex items-center gap-2 border-b border-outline-variant/20 pb-3">
+          <span class="material-symbols-outlined text-primary">contacts</span>
+          <h3 class="font-h3 text-on-surface">Kontak &amp; Akses Sistem</h3>
+        </div>
 
-      <!-- Section 2: Kontak & Akses -->
-      <div class="flex flex-col gap-gutter">
-        <h3 class="font-label-md text-primary uppercase tracking-wider">Kontak &amp; Akses Sistem</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-          <!-- No HP -->
+          <!-- Nomor HP -->
           <div class="flex flex-col gap-xs">
-            <label class="font-label-sm text-on-surface-variant" for="tambah-hp">Nomor Handphone</label>
+            <label class="font-label-sm text-on-surface" for="tambah-hp">Nomor HP</label>
             <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
-                   id="tambah-hp" type="tel" placeholder="081234567890">
+                   id="tambah-hp" type="tel" placeholder="cth. 082247254006">
           </div>
-          <!-- Role -->
+
+          <!-- Email -->
           <div class="flex flex-col gap-xs">
-            <label class="font-label-sm text-on-surface-variant" for="tambah-role">Role Sistem <span class="text-error">*</span></label>
+            <label class="font-label-sm text-on-surface" for="tambah-email">Email</label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="tambah-email" type="email" placeholder="cth. elwinmusadi@gmail.com">
+          </div>
+
+          <!-- Role -->
+          <div class="flex flex-col gap-xs md:col-span-2">
+            <label class="font-label-sm text-on-surface" for="tambah-role">Role Sistem <span class="text-error">*</span></label>
             <div class="relative">
               <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
                       id="tambah-role" required>
-                <option value="" disabled selected>Pilih Role</option>
-                <option value="Pegawai">Pegawai</option>
+                <option value="Pegawai" selected>Pegawai</option>
                 <option value="Admin">Administrator TU</option>
               </select>
               <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
             </div>
           </div>
+
           <!-- Alamat (Full Width) -->
           <div class="flex flex-col gap-xs md:col-span-2">
-            <label class="font-label-sm text-on-surface-variant" for="tambah-alamat">Alamat Domisili</label>
+            <label class="font-label-sm text-on-surface" for="tambah-alamat">Alamat</label>
             <textarea class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none border border-outline-variant focus:border-primary"
-                      id="tambah-alamat" rows="3" placeholder="Alamat lengkap..."></textarea>
+                      id="tambah-alamat" rows="3" placeholder="Alamat tempat tinggal..."></textarea>
           </div>
         </div>
       </div>
 
-      <!-- Info: Default password -->
+      <!-- Info Default Password -->
       <div class="flex items-center gap-sm bg-surface-container-low px-md py-sm rounded-lg border border-outline-variant/30">
         <span class="material-symbols-outlined text-primary text-[20px]">info</span>
-        <span class="font-body-sm text-on-surface-variant">Password default = 6 digit terakhir NIP. Pegawai harus ganti password saat login pertama.</span>
+        <span class="font-body-sm text-on-surface-variant text-[13px]">Password default = 6 digit terakhir NIP. Akun otomatis berstatus Aktif.</span>
       </div>
 
-      <!-- Submit -->
+      <!-- Submit Actions -->
       <div class="mt-auto pt-xl flex items-center justify-end gap-md">
         <button type="button" class="px-lg py-sm rounded-lg bg-surface-container text-on-surface font-label-md hover:bg-outline-variant/20 transition-colors"
                 onclick="SIKAP.MasterDataPegawai.closeTambah()">Batal</button>
@@ -349,10 +557,10 @@
 <!-- ============================================================ -->
 <div class="fixed inset-0 z-[200] hidden" id="mdp-edit-panel">
   <div class="absolute inset-0 bg-on-background/30 backdrop-blur-sm" onclick="SIKAP.MasterDataPegawai.closeEdit()"></div>
-  <div class="absolute right-0 top-0 h-full w-full max-w-2xl bg-surface-container-lowest shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300" id="mdp-edit-slide">
+  <div class="absolute right-0 top-0 h-full w-full max-w-3xl bg-surface-container-lowest shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300" id="mdp-edit-slide">
 
     <!-- Header -->
-    <div class="px-xl py-lg bg-surface-container-low flex items-center gap-md border-b border-outline-variant/20">
+    <div class="px-xl py-lg bg-surface-container-low flex items-center gap-md border-b border-outline-variant/20 shrink-0">
       <div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
         <span class="material-symbols-outlined text-on-secondary-container">edit</span>
       </div>
@@ -366,52 +574,200 @@
     </div>
 
     <!-- Loading state inside panel -->
-    <div id="edit-loading" class="hidden flex flex-col items-center justify-center flex-1 gap-4">
+    <div id="edit-loading" class="hidden flex flex-col items-center justify-center flex-1 gap-4 py-24">
       <svg class="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
       </svg>
-      <p class="font-body-sm text-on-surface-variant">Memuat data...</p>
+      <p class="font-body-sm text-on-surface-variant">Memuat data pegawai...</p>
     </div>
 
     <!-- Body -->
     <form class="flex-1 overflow-y-auto p-xl flex flex-col gap-8" id="mdp-edit-form" onsubmit="SIKAP.MasterDataPegawai.handleEdit(event)" novalidate>
-      <!-- Identitas Utama -->
-      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/20">
-        <h3 class="font-h3 text-on-surface flex items-center gap-2">
+      
+      <!-- ============================================ -->
+      <!-- SECTION 1: DATA IDENTITAS                   -->
+      <!-- ============================================ -->
+      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/30">
+        <div class="flex items-center gap-2 border-b border-outline-variant/20 pb-3">
           <span class="material-symbols-outlined text-primary">badge</span>
-          Identitas Utama Pegawai
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- NIP RO -->
-          <div class="flex flex-col gap-2">
-            <label class="font-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1">NIP <span class="material-symbols-outlined text-[16px] text-outline">lock</span></label>
-            <div class="px-4 py-3 bg-surface-container-low rounded-lg font-body-md text-on-surface-variant shadow-inner cursor-not-allowed" id="edit-ro-nip">—</div>
+          <h3 class="font-h3 text-on-surface">Data Identitas Pegawai</h3>
+        </div>
+
+        <!-- Foto Profil Input & Preview -->
+        <div class="flex flex-col sm:flex-row items-center gap-md bg-surface-container-low p-md rounded-xl border border-outline-variant/30">
+          <div class="relative w-20 h-20 rounded-full bg-surface-container-high border-2 border-outline-variant overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
+            <img id="edit-foto-preview" src="" alt="Foto Pegawai" class="w-full h-full object-cover hidden">
+            <span id="edit-foto-placeholder" class="material-symbols-outlined text-[40px] text-outline">account_circle</span>
           </div>
-          <!-- Nama Lengkap -->
-          <div class="flex flex-col gap-2">
-            <label class="font-label-sm text-on-surface uppercase tracking-wider" for="edit-nama">Nama Lengkap <span class="text-error">*</span></label>
-            <input class="px-4 py-3 bg-surface rounded-lg font-body-md text-on-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow border border-outline-variant"
-                   id="edit-nama" type="text" required>
-          </div>
-          <!-- Status Kepegawaian -->
-          <div class="flex flex-col gap-2">
-            <label class="font-label-sm text-on-surface uppercase tracking-wider" for="edit-status-kep">Status Kepegawaian <span class="text-error">*</span></label>
-            <div class="relative">
-              <select class="w-full px-4 py-3 bg-surface rounded-lg font-body-md text-on-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow appearance-none border border-outline-variant"
-                      id="edit-status-kep" required>
-                <option value="PNS">PNS</option>
-                <option value="CPNS">CPNS</option>
-                <option value="PPPK">PPPK</option>
-              </select>
-              <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+          <div class="flex flex-col gap-xs text-center sm:text-left flex-1">
+            <span class="font-label-md text-on-surface">Pasfoto Pegawai</span>
+            <span class="font-body-sm text-on-surface-variant text-[12px]">Format JPEG, JPG, atau PNG (Maksimal 5 MB)</span>
+            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-xs mt-1">
+              <label for="edit-foto-input" class="cursor-pointer px-md py-1 bg-primary/10 hover:bg-primary/20 text-primary font-label-sm rounded-lg flex items-center gap-1 transition-colors">
+                <span class="material-symbols-outlined text-[16px]">photo_camera</span>
+                <span>Ubah Pasfoto</span>
+              </label>
+              <input type="file" id="edit-foto-input" accept="image/jpeg,image/jpg,image/png" class="hidden" onchange="SIKAP.MasterDataPegawai.handleFotoChange(this, 'edit')">
+              <button type="button" id="edit-foto-remove" class="hidden px-sm py-1 text-error hover:bg-error-container/20 font-label-sm rounded-lg transition-colors" onclick="SIKAP.MasterDataPegawai.removeFoto('edit')">
+                Batalkan Perubahan Foto
+              </button>
             </div>
           </div>
-          <!-- Pangkat / Golongan -->
-          <div class="flex flex-col gap-2">
-            <label class="font-label-sm text-on-surface uppercase tracking-wider" for="edit-pangkat">Pangkat / Golongan</label>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+          <!-- NIP (Read Only) -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface-variant flex items-center gap-1">NIP <span class="material-symbols-outlined text-[14px] text-outline">lock</span></label>
+            <div class="p-sm bg-surface-container-low rounded-lg font-body-md text-on-surface-variant shadow-inner cursor-not-allowed border border-outline-variant/30" id="edit-ro-nip">—</div>
+          </div>
+
+          <!-- NIK -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-nik">NIK (16 Digit) <span class="text-error">*</span></label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="edit-nik" type="text" placeholder="5371041607970001" maxlength="16" required
+                   oninput="document.getElementById('edit-nik-err').classList.add('hidden')">
+            <span class="font-body-sm text-error hidden text-[12px]" id="edit-nik-err">NIK harus terdiri dari tepat 16 digit angka.</span>
+          </div>
+
+          <!-- Nama Lengkap -->
+          <div class="flex flex-col gap-xs md:col-span-2">
+            <label class="font-label-sm text-on-surface" for="edit-nama">Nama Lengkap (beserta Gelar) <span class="text-error">*</span></label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="edit-nama" type="text" required>
+          </div>
+
+          <!-- Tempat Lahir -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-tempat-lahir">Tempat Lahir</label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="edit-tempat-lahir" type="text">
+          </div>
+
+          <!-- Tanggal Lahir -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-tanggal-lahir">Tanggal Lahir</label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="edit-tanggal-lahir" type="date">
+          </div>
+
+          <!-- Jenis Kelamin -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-jenis-kelamin">Jenis Kelamin</label>
             <div class="relative">
-              <select class="w-full px-4 py-3 bg-surface rounded-lg font-body-md text-on-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow appearance-none border border-outline-variant cursor-pointer"
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="edit-jenis-kelamin">
+                <option value="">— Pilih Jenis Kelamin —</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Agama -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-agama">Agama</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="edit-agama">
+                <option value="">— Pilih Agama —</option>
+                <option value="Kristen Protestan">Kristen Protestan</option>
+                <option value="Kristen Katholik">Kristen Katholik</option>
+                <option value="Islam">Islam</option>
+                <option value="Hindu">Hindu</option>
+                <option value="Buddha">Buddha</option>
+                <option value="Konghucu">Konghucu</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Pendidikan Terakhir -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-pendidikan">Pendidikan Terakhir</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="edit-pendidikan">
+                <option value="">— Pilih Pendidikan Terakhir —</option>
+                <option value="SMA / SMK / Sederajat">SMA / SMK / Sederajat</option>
+                <option value="D-I / Diploma Satu">D-I / Diploma Satu</option>
+                <option value="D-II / Diploma Dua">D-II / Diploma Dua</option>
+                <option value="D-III / Diploma Tiga">D-III / Diploma Tiga</option>
+                <option value="D-IV / Sarjana Terapan">D-IV / Sarjana Terapan</option>
+                <option value="S-1 / Sarjana">S-1 / Sarjana</option>
+                <option value="S-2 / Magister">S-2 / Magister</option>
+                <option value="S-3 / Doktoral">S-3 / Doktoral</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Status Pernikahan -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-status-pernikahan">Status Pernikahan</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="edit-status-pernikahan">
+                <option value="">— Pilih Status Pernikahan —</option>
+                <option value="Belum Menikah">Belum Menikah</option>
+                <option value="Menikah">Menikah</option>
+                <option value="Cerai">Cerai</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Golongan Darah -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-goldar">Golongan Darah</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="edit-goldar">
+                <option value="">— Pilih Golongan Darah —</option>
+                <option value="O">O</option>
+                <option value="AB">AB</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="Tidak Tahu">Tidak Tahu</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- SECTION 2: DATA KEPEGAWAIAN                 -->
+      <!-- ============================================ -->
+      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/30">
+        <div class="flex items-center gap-2 border-b border-outline-variant/20 pb-3">
+          <span class="material-symbols-outlined text-primary">work</span>
+          <h3 class="font-h3 text-on-surface">Data Kepegawaian</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+          <!-- Status Kepegawaian -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-status-kep">Status Kepegawaian <span class="text-error">*</span></label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="edit-status-kep" required>
+                <option value="PNS">PNS (Pegawai Negeri Sipil)</option>
+                <option value="CPNS">CPNS (Calon PNS)</option>
+                <option value="PPPK">PPPK (Pegawai Pemerintah dengan Perjanjian Kerja)</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Pangkat / Golongan -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-pangkat">Pangkat / Golongan</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
                       id="edit-pangkat">
                 <option value="">— Pilih Pangkat / Golongan —</option>
                 <option value="-">- (Tanpa Golongan / PPPK)</option>
@@ -441,76 +797,174 @@
                   <option value="Pembina Utama (IV/e)">Pembina Utama (IV/e)</option>
                 </optgroup>
               </select>
-              <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- TMT Pangkat -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-tmt-pangkat">TMT Pangkat</label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="edit-tmt-pangkat" type="date">
+          </div>
+
+          <!-- Jenis Jabatan -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-jenis-jabatan">Jenis Jabatan</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="edit-jenis-jabatan">
+                <option value="">— Pilih Jenis Jabatan —</option>
+                <option value="Fungsional">Fungsional</option>
+                <option value="Pelaksana">Pelaksana</option>
+                <option value="Struktural">Struktural</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Jabatan -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-jabatan">Nama Jabatan</label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="edit-jabatan" type="text">
+          </div>
+
+          <!-- TMT Jabatan -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-tmt-jabatan">TMT Jabatan</label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
+                   id="edit-tmt-jabatan" type="date">
+          </div>
+
+          <!-- Unit Organisasi (Full Width) -->
+          <div class="flex flex-col gap-xs md:col-span-2">
+            <label class="font-label-sm text-on-surface" for="edit-unit-organisasi">Unit Organisasi</label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="edit-unit-organisasi">
+                <option value="">— Pilih Unit Organisasi —</option>
+                <option value="Subbagian Tata Usaha">Subbagian Tata Usaha</option>
+                <option value="Seksi Penetapan">Seksi Penetapan</option>
+                <option value="Seksi Verifikasi">Seksi Verifikasi</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Editable: Kontak & Jabatan -->
-      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/20">
-        <h3 class="font-h3 text-on-surface flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary">edit_document</span>
-          Informasi Kontak &amp; Jabatan
-        </h3>
-        <div class="flex flex-col gap-5">
-          <div class="flex flex-col gap-2">
-            <label class="font-label-sm text-on-surface uppercase tracking-wider" for="edit-jabatan">Jabatan</label>
-            <input class="px-4 py-3 bg-surface rounded-lg font-body-md text-on-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow border border-outline-variant"
-                   id="edit-jabatan" type="text">
-          </div>
-          <div class="flex flex-col gap-2">
-            <label class="font-label-sm text-on-surface uppercase tracking-wider" for="edit-hp">Nomor Handphone</label>
-            <input class="px-4 py-3 bg-surface rounded-lg font-body-md text-on-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow border border-outline-variant"
+      <!-- ============================================ -->
+      <!-- SECTION 3: KONTAK & AKSES SISTEM            -->
+      <!-- ============================================ -->
+      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/30">
+        <div class="flex items-center gap-2 border-b border-outline-variant/20 pb-3">
+          <span class="material-symbols-outlined text-primary">contacts</span>
+          <h3 class="font-h3 text-on-surface">Kontak &amp; Pengaturan Akun</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+          <!-- Nomor HP -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-hp">Nomor HP</label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
                    id="edit-hp" type="tel">
           </div>
-          <div class="flex flex-col gap-2">
-            <label class="font-label-sm text-on-surface uppercase tracking-wider" for="edit-email">Email</label>
-            <input class="px-4 py-3 bg-surface rounded-lg font-body-md text-on-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow border border-outline-variant"
+
+          <!-- Email -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-email">Email</label>
+            <input class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all border border-outline-variant focus:border-primary"
                    id="edit-email" type="email">
           </div>
-          <div class="flex flex-col gap-2">
-            <label class="font-label-sm text-on-surface uppercase tracking-wider" for="edit-alamat">Alamat Domisili</label>
-            <textarea class="px-4 py-3 bg-surface rounded-lg font-body-md text-on-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow resize-none border border-outline-variant"
+
+          <!-- Role -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-role">Role Sistem <span class="text-error">*</span></label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="edit-role">
+                <option value="Pegawai">Pegawai</option>
+                <option value="Admin">Administrator TU</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Status Akun -->
+          <div class="flex flex-col gap-xs">
+            <label class="font-label-sm text-on-surface" for="edit-status-akun">Status Akun <span class="text-error">*</span></label>
+            <div class="relative">
+              <select class="w-full bg-surface font-body-md text-on-surface p-sm pr-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none transition-all cursor-pointer border border-outline-variant focus:border-primary"
+                      id="edit-status-akun">
+                <option value="Aktif">Aktif</option>
+                <option value="Nonaktif">Nonaktif</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Alamat (Full Width) -->
+          <div class="flex flex-col gap-xs md:col-span-2">
+            <label class="font-label-sm text-on-surface" for="edit-alamat">Alamat</label>
+            <textarea class="bg-surface font-body-md text-on-surface p-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none border border-outline-variant focus:border-primary"
                       id="edit-alamat" rows="3"></textarea>
           </div>
         </div>
       </div>
 
-      <!-- Account Settings -->
-      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/20 relative overflow-hidden">
-        <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none"></div>
-        <h3 class="font-h3 text-on-surface flex items-center gap-2 z-10">
-          <span class="material-symbols-outlined text-primary">admin_panel_settings</span>
-          Pengaturan Akun
-        </h3>
-        <div class="flex flex-col gap-5 z-10">
-          <!-- Role -->
-          <div class="flex flex-col gap-2">
-            <label class="font-label-sm text-on-surface uppercase tracking-wider" for="edit-role">Role Sistem</label>
-            <div class="relative">
-              <select class="w-full px-4 py-3 bg-surface rounded-lg font-body-md text-on-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow appearance-none border border-outline-variant"
-                      id="edit-role">
-                <option value="Pegawai">Pegawai</option>
-                <option value="Admin">Administrator TU</option>
-              </select>
-              <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+      <!-- ============================================ -->
+      <!-- SECTION 4: ARSIP DOKUMEN PEGAWAI            -->
+      <!-- ============================================ -->
+      <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-6 border border-outline-variant/30">
+        <div class="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">folder_shared</span>
+            <h3 class="font-h3 text-on-surface">Arsip Dokumen Pegawai</h3>
+          </div>
+          <span class="font-label-sm px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold" id="edit-doc-summary-badge">
+            Memuat dokumen...
+          </span>
+        </div>
+
+        <!-- Dokumen Wajib -->
+        <div>
+          <h4 class="font-label-sm text-on-surface font-semibold mb-2 flex items-center gap-1 text-xs uppercase tracking-wider text-on-surface-variant">
+            <span class="material-symbols-outlined text-primary text-[16px]">verified</span>
+            Dokumen Wajib (9 Dokumen)
+          </h4>
+          <div id="edit-wajib-doc-list" class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div class="p-3 bg-surface-container-low rounded-lg text-center text-on-surface-variant text-xs col-span-2">
+              Memuat berkas wajib...
+            </div>
+          </div>
+        </div>
+
+        <!-- Dokumen Opsional -->
+        <div class="pt-3 border-t border-outline-variant/20">
+          <h4 class="font-label-sm text-on-surface font-semibold mb-2 flex items-center gap-1 text-xs uppercase tracking-wider text-on-surface-variant">
+            <span class="material-symbols-outlined text-outline text-[16px]">folder_special</span>
+            Dokumen Opsional (2 Dokumen)
+          </h4>
+          <div id="edit-opsional-doc-list" class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div class="p-3 bg-surface-container-low rounded-lg text-center text-on-surface-variant text-xs col-span-2">
+              Memuat berkas opsional...
             </div>
           </div>
         </div>
       </div>
 
       <!-- Action Buttons -->
-      <div class="flex flex-col gap-3 mt-auto">
+      <div class="flex items-center justify-end gap-md mt-auto pt-xl">
+        <button type="button"
+                class="px-lg py-sm rounded-lg bg-surface-container text-on-surface font-label-md hover:bg-outline-variant/20 transition-colors"
+                onclick="SIKAP.MasterDataPegawai.closeEdit()">Batal</button>
         <button type="submit"
-                class="w-full py-3 px-4 bg-primary text-on-primary rounded-lg font-label-md shadow-md hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                class="px-lg py-sm rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-xs disabled:opacity-50"
                 id="edit-save-btn">
           <span class="material-symbols-outlined text-[18px]" id="edit-save-icon">save</span>
           <span id="edit-save-text">Simpan Perubahan</span>
         </button>
-        <button type="button"
-                class="w-full py-3 px-4 bg-surface-container text-on-surface rounded-lg font-label-md hover:bg-surface-container-highest transition-colors"
-                onclick="SIKAP.MasterDataPegawai.closeEdit()">Batal</button>
       </div>
     </form>
   </div>

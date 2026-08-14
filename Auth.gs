@@ -204,16 +204,7 @@ function getUserProfile(token) {
 
     return {
       success: true,
-      data: {
-        nip: auth.session.nip,
-        nama: user.data[COL_PEGAWAI.NAMA_LENGKAP],
-        role: user.data[COL_PEGAWAI.ROLE],
-        statusKepegawaian: user.data[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
-        pangkatGolongan: user.data[COL_PEGAWAI.PANGKAT_GOLONGAN],
-        jabatan: user.data[COL_PEGAWAI.JABATAN],
-        noHp: formatPhoneForDisplay(user.data[COL_PEGAWAI.NO_HP]),
-        alamat: user.data[COL_PEGAWAI.ALAMAT]
-      }
+      data: _mapPegawaiRowToObject(user.data)
     };
   } catch (e) {
     Logger.log('getUserProfile error: ' + e.toString());
@@ -486,42 +477,54 @@ function seedData() {
   pegawaiSheet.appendRow([
     'NIP', 'Password_Hash', 'Role', 'Status_Akun', 'Nama_Lengkap',
     'Status_Kepegawaian', 'Pangkat_Golongan', 'Jabatan', 'No_HP', 'Alamat',
-    'Folder_Drive_ID', 'Email', 'Golongan_Darah'
+    'Folder_Drive_ID', 'Email', 'Golongan_Darah', 'NIK', 'Tempat_Lahir',
+    'Tanggal_Lahir', 'Jenis_Kelamin', 'Agama', 'Pendidikan_Terakhir', 'Status_Pernikahan',
+    'TMT_Pangkat', 'Jenis_Jabatan', 'TMT_Jabatan', 'Unit_Organisasi', 'Foto_Drive_ID'
   ]);
   
   // Admin user — default password is last 6 digits of NIP: "011002"
   pegawaiSheet.appendRow([
     '198506122010011002', hashPassword('011002'), 'Admin', 'Aktif',
-    'Maria Klementina, S.Sos', 'PNS', 'Penata / III.c', 'Staf Sub-bagian TU',
-    '081234567890', 'Jl. Timor Raya No. 12, Kupang', '', 'maria.klementina@ntt.go.id', 'O'
+    'Maria Klementina, S.Sos', 'PNS', 'Penata / III.c', 'Kepala Subbagian Tata Usaha',
+    formatPhoneForStorage('081234567890'), 'Jl. Timor Raya No. 12, Kupang', '', 'maria.klementina@ntt.go.id', 'O',
+    formatNikForStorage('5371015206850001'), 'Kupang', '1985-06-12', 'Perempuan', 'Kristen Katholik', 'S-1 / Ilmu Administrasi Negara', 'Menikah',
+    '2022-04-01', 'Struktural', '2020-01-15', 'Subbagian Tata Usaha', ''
   ]);
 
   // Employee user — default password: "022003"
   pegawaiSheet.appendRow([
     '199003152015022003', hashPassword('022003'), 'Pegawai', 'Aktif',
-    'Budi Santoso, S.Kom', 'PNS', 'Penata Muda / III.a', 'Staf Pelayanan',
-    '085678901234', 'Jl. El Tari No. 5, Kupang', '', 'budi.santoso@ntt.go.id', 'A'
+    'Budi Santoso, S.Kom', 'PNS', 'Penata Muda / III.a', 'Penata Kelola Sistem dan Teknologi Informasi',
+    formatPhoneForStorage('085678901234'), 'Jl. El Tari No. 5, Kupang', '', 'budi.santoso@ntt.go.id', 'A',
+    formatNikForStorage('5371021503900002'), 'Kupang', '1990-03-15', 'Laki-laki', 'Kristen Protestan', 'S-1 / Teknik Informatika', 'Menikah',
+    '2023-10-01', 'Fungsional', '2021-06-01', 'Subbagian Tata Usaha', ''
   ]);
 
   // Another employee — default password: "033001"
   pegawaiSheet.appendRow([
     '198812012020033001', hashPassword('033001'), 'Pegawai', 'Aktif',
-    'Antonius Ola, A.Md', 'CPNS', 'Pengatur / II.c', 'Staf Pendataan',
-    '082345678901', 'Jl. Lalamentik No. 8, Kupang', '', '', 'B'
+    'Antonius Ola, A.Md', 'CPNS', 'Pengatur / II.c', 'Pengelola Penetapan Pajak Daerah',
+    formatPhoneForStorage('082345678901'), 'Jl. Lalamentik No. 8, Kupang', '', '', 'B',
+    formatNikForStorage('5371030112880003'), 'Flores Timur', '1988-12-01', 'Laki-laki', 'Kristen Katholik', 'D-III / Perpajakan', 'Belum Menikah',
+    '2024-03-01', 'Pelaksana', '2024-03-01', 'Seksi Penetapan', ''
   ]);
 
-  // P3K employee — default password: "044001"
+  // PPPK employee — default password: "044001"
   pegawaiSheet.appendRow([
     '200105202022044001', hashPassword('044001'), 'Pegawai', 'Aktif',
-    'Siti Aminah', 'P3K', '-', 'Staf Administrasi',
-    '087654321098', 'Jl. Soekarno No. 3, Kupang', '', '', ''
+    'Siti Aminah, S.E', 'PPPK', 'Ahli Pertama (IX)', 'Verifikator Pajak Daerah',
+    formatPhoneForStorage('087654321098'), 'Jl. Soekarno No. 3, Kupang', '', '', 'AB',
+    formatNikForStorage('5371046005010004'), 'Kupang', '2001-05-20', 'Perempuan', 'Islam', 'S-1 / Akuntansi', 'Belum Menikah',
+    '2022-04-01', 'Fungsional', '2022-04-01', 'Seksi Verifikasi', ''
   ]);
 
   // Inactive employee for testing — default password: "055001"
   pegawaiSheet.appendRow([
     '197501012005055001', hashPassword('055001'), 'Pegawai', 'Nonaktif',
-    'Ahmad Fauzi, S.H', 'PNS', 'Pembina / IV.a', 'Staf (Pensiun)',
-    '089012345678', 'Jl. Veteran No. 20, Kupang', '', '', ''
+    'Ahmad Fauzi, S.H', 'PNS', 'Pembina / IV.a', 'Pemeriksa Pajak Daerah (Pensiun)',
+    formatPhoneForStorage('089012345678'), 'Jl. Veteran No. 20, Kupang', '', '', '',
+    formatNikForStorage('5371010101750005'), 'Rote', '1975-01-01', 'Laki-laki', 'Islam', 'S-1 / Ilmu Hukum', 'Menikah',
+    '2018-04-01', 'Fungsional', '2015-02-01', 'Seksi Penetapan', ''
   ]);
 
   // --- Master_Dokumen ---
@@ -532,10 +535,13 @@ function seedData() {
   dokumenSheet.appendRow(['DOC-KK', 'Kartu Keluarga (KK)', 'Dokumen Pribadi', 'Ya']);
   dokumenSheet.appendRow(['DOC-NPWP', 'NPWP', 'Dokumen Pribadi', 'Ya']);
   dokumenSheet.appendRow(['DOC-SK-CPNS', 'SK CPNS', 'Dokumen Kepegawaian', 'Ya']);
+  dokumenSheet.appendRow(['DOC-SPMT-CPNS', 'SPMT CPNS', 'Dokumen Kepegawaian', 'Ya']);
   dokumenSheet.appendRow(['DOC-SK-PNS', 'SK PNS', 'Dokumen Kepegawaian', 'Ya']);
-  dokumenSheet.appendRow(['DOC-SPMT', 'Surat Pernyataan Melaksanakan Tugas (SPMT)', 'Dokumen Kepegawaian', 'Ya']);
+  dokumenSheet.appendRow(['DOC-DRH', 'DRH', 'Dokumen Kepegawaian', 'Ya']);
+  dokumenSheet.appendRow(['DOC-IJAZAH', 'Ijazah Terakhir', 'Dokumen Pendidikan', 'Ya']);
+  dokumenSheet.appendRow(['DOC-SKP', 'SKP', 'Dokumen Kepegawaian', 'Ya']);
   dokumenSheet.appendRow(['DOC-KARPEG', 'Kartu Pegawai (KARPEG)', 'Dokumen Kepegawaian', 'Tidak']);
-  dokumenSheet.appendRow(['DOC-TASPEN', 'Kartu TASPEN', 'Dokumen Kepegawaian', 'Tidak']);
+  dokumenSheet.appendRow(['DOC-TASPEN', 'Kartu Taspen', 'Dokumen Kepegawaian', 'Tidak']);
 
   // --- Arsip_Dokumen (sample data for Budi Santoso dashboard) ---
   var arsipSheet = sheets[SHEET_NAMES.ARSIP_DOKUMEN];
@@ -551,8 +557,8 @@ function seedData() {
   arsipSheet.appendRow([generateUUID(), sampleNip, 'DOC-NPWP', '', '', 'Terverifikasi', '', now2, now2, '198506122010011002']);
   arsipSheet.appendRow([generateUUID(), sampleNip, 'DOC-SK-CPNS', '', '', 'Terverifikasi', '', now2, now2, '198506122010011002']);
   arsipSheet.appendRow([generateUUID(), sampleNip, 'DOC-SK-PNS', '', '', 'Menunggu', '', now2, '', '']);
-  arsipSheet.appendRow([generateUUID(), sampleNip, 'DOC-SPMT', '', '', 'Ditolak', 'Dokumen tidak terbaca, harap unggah ulang dengan resolusi lebih tinggi.', now2, now2, '198506122010011002']);
-  // DOC-KARPEG and DOC-TASPEN intentionally not uploaded
+  arsipSheet.appendRow([generateUUID(), sampleNip, 'DOC-SPMT-CPNS', '', '', 'Ditolak', 'Dokumen tidak terbaca, harap unggah ulang dengan resolusi lebih tinggi.', now2, now2, '198506122010011002']);
+  // DOC-DRH, DOC-IJAZAH, DOC-SKP, DOC-KARPEG, DOC-TASPEN intentionally not uploaded yet
 
   // --- Sesi_Login ---
   var sesiSheet = sheets[SHEET_NAMES.SESI_LOGIN];

@@ -123,6 +123,12 @@ function adminGetDashboardStats(token) {
  * @param {string} token - Session token.
  * @returns {Object} Result with array of employee rows + summary counts.
  */
+/**
+ * Returns all employee records for the admin table.
+ * Includes full employee data and document completeness % per employee.
+ * @param {string} token - Session token.
+ * @returns {Object} Result with array of employee rows + summary counts.
+ */
 function adminGetAllPegawai(token) {
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
@@ -141,7 +147,7 @@ function adminGetAllPegawai(token) {
     // Index arsip by NIP -> { docId: status }
     var arsipByNip = {};
     for (var a = 0; a < allArsip.length; a++) {
-      var nip = String(allArsip[a][COL_ARSIP.NIP]);
+      var nip = String(allArsip[a][COL_ARSIP.NIP]).replace(/^'+/, '').trim();
       var docId = allArsip[a][COL_ARSIP.ID_DOKUMEN];
       var status = allArsip[a][COL_ARSIP.STATUS_VERIFIKASI];
       if (!arsipByNip[nip]) arsipByNip[nip] = {};
@@ -156,10 +162,13 @@ function adminGetAllPegawai(token) {
 
     for (var i = 0; i < allPegawai.length; i++) {
       var d = allPegawai[i];
-      var empNip = String(d[COL_PEGAWAI.NIP]);
+      var empObj = _mapPegawaiRowToObject(d);
+      if (!empObj) continue;
+
+      var empNip = empObj.nip;
       summaryTotal++;
-      if (d[COL_PEGAWAI.STATUS_AKUN] === 'Aktif') summaryAktif++;
-      else if (d[COL_PEGAWAI.STATUS_AKUN] === 'Nonaktif') summaryNonaktif++;
+      if (empObj.statusAkun === 'Aktif') summaryAktif++;
+      else if (empObj.statusAkun === 'Nonaktif') summaryNonaktif++;
 
       // Calculate doc completeness
       var empArsip = arsipByNip[empNip] || {};
@@ -173,21 +182,10 @@ function adminGetAllPegawai(token) {
       var pct = wajibIds.length > 0 ? Math.round((wajibVerified / wajibIds.length) * 100) : 0;
       var completenessLabel = hasRejected ? 'Perlu Revisi' : (pct === 100 ? 'Lengkap' : 'Belum Lengkap');
 
-      rows.push({
-        nip: empNip,
-        nama: d[COL_PEGAWAI.NAMA_LENGKAP],
-        role: d[COL_PEGAWAI.ROLE],
-        statusAkun: d[COL_PEGAWAI.STATUS_AKUN],
-        statusKepegawaian: d[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
-        pangkatGolongan: d[COL_PEGAWAI.PANGKAT_GOLONGAN],
-        jabatan: d[COL_PEGAWAI.JABATAN],
-        noHp: formatPhoneForDisplay(d[COL_PEGAWAI.NO_HP]),
-        alamat: d[COL_PEGAWAI.ALAMAT] || '',
-        email: d[COL_PEGAWAI.EMAIL] || '',
-        golonganDarah: d[COL_PEGAWAI.GOLONGAN_DARAH] || '',
-        docPct: pct,
-        docLabel: completenessLabel
-      });
+      empObj.docPct = pct;
+      empObj.docLabel = completenessLabel;
+
+      rows.push(empObj);
     }
 
     return {
@@ -204,35 +202,27 @@ function adminGetAllPegawai(token) {
 }
 
 /**
- * Returns full detail of a single employee for the edit form.
+ * Returns full detail of a single employee for the edit form or detail view.
  * @param {string} token - Session token.
  * @param {string} targetNip - NIP of employee to fetch.
- * @returns {Object} Result with employee data.
+ * @returns {Object} Result with complete employee data.
  */
 function adminGetPegawaiDetail(token, targetNip) {
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
 
-    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, targetNip);
+    if (!targetNip) {
+      return { success: false, message: 'NIP target harus diisi.' };
+    }
+
+    var cleanNip = String(targetNip).replace(/^'+/, '').trim();
+    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, cleanNip);
     if (!user) return { success: false, message: 'Pegawai tidak ditemukan.' };
 
-    var d = user.data;
     return {
       success: true,
-      data: {
-        nip: String(d[COL_PEGAWAI.NIP]),
-        nama: d[COL_PEGAWAI.NAMA_LENGKAP],
-        role: d[COL_PEGAWAI.ROLE],
-        statusAkun: d[COL_PEGAWAI.STATUS_AKUN],
-        statusKepegawaian: d[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
-        pangkatGolongan: d[COL_PEGAWAI.PANGKAT_GOLONGAN],
-        jabatan: d[COL_PEGAWAI.JABATAN],
-        noHp: formatPhoneForDisplay(d[COL_PEGAWAI.NO_HP]),
-        alamat: d[COL_PEGAWAI.ALAMAT] || '',
-        email: d[COL_PEGAWAI.EMAIL] || '',
-        golonganDarah: d[COL_PEGAWAI.GOLONGAN_DARAH] || ''
-      }
+      data: _mapPegawaiRowToObject(user.data)
     };
   } catch (e) {
     Logger.log('adminGetPegawaiDetail error: ' + e.toString());
@@ -245,10 +235,10 @@ function adminGetPegawaiDetail(token, targetNip) {
 // ============================================================
 
 /**
- * Creates a new employee record.
+ * Creates a new employee record with complete Identitas, Kepegawaian, and Kontak fields.
  * Default password = last 6 digits of NIP.
- * @param {string} token - Session token.
- * @param {Object} data - Employee data.
+ * @param {string} token - Session token (Admin only).
+ * @param {Object} data - Employee data payload.
  * @returns {Object} Result object.
  */
 function adminTambahPegawai(token, data) {
@@ -256,52 +246,126 @@ function adminTambahPegawai(token, data) {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
 
-    // Validate required fields
-    if (!data.nip || !data.nama || !data.statusKepegawaian || !data.role) {
-      return { success: false, message: 'NIP, Nama, Status Kepegawaian, dan Role wajib diisi.' };
+    if (!data || typeof data !== 'object') {
+      return { success: false, message: 'Data pegawai tidak valid.' };
     }
 
-    // NIP: 18-digit numeric
-    var nipStr = String(data.nip).trim();
+    // 1. Mandatory Validations
+    if (!data.nip) {
+      return { success: false, message: 'NIP wajib diisi.' };
+    }
+    var nipStr = String(data.nip).replace(/^'+/, '').trim();
     if (!/^\d{18}$/.test(nipStr)) {
       return { success: false, message: 'NIP harus terdiri dari 18 digit angka.' };
     }
 
-    // Check for duplicate NIP
-    var existing = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, nipStr);
-    if (existing) {
+    if (!data.nik) {
+      return { success: false, message: 'NIK wajib diisi.' };
+    }
+    var nikStr = String(data.nik).replace(/^'+/, '').trim();
+    if (!/^\d{16}$/.test(nikStr)) {
+      return { success: false, message: 'NIK harus terdiri dari 16 digit angka.' };
+    }
+
+    if (!data.nama || !String(data.nama).trim()) {
+      return { success: false, message: 'Nama Lengkap wajib diisi.' };
+    }
+
+    if (!data.statusKepegawaian) {
+      return { success: false, message: 'Status Kepegawaian wajib diisi.' };
+    }
+    var statusKepegawaianStr = String(data.statusKepegawaian).trim();
+    if (statusKepegawaianStr === 'P3K') statusKepegawaianStr = 'PPPK';
+    if (['PNS', 'CPNS', 'PPPK'].indexOf(statusKepegawaianStr) === -1) {
+      return { success: false, message: 'Status Kepegawaian harus salah satu dari: PNS, CPNS, atau PPPK.' };
+    }
+
+    var roleStr = data.role ? String(data.role).trim() : ROLES.PEGAWAI;
+    if ([ROLES.ADMIN, ROLES.PEGAWAI].indexOf(roleStr) === -1) {
+      return { success: false, message: 'Role tidak valid (harus Admin atau Pegawai).' };
+    }
+
+    // 2. Uniqueness Checks
+    // Check NIP uniqueness
+    var existingNip = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, nipStr);
+    if (existingNip) {
       return { success: false, message: 'NIP ' + nipStr + ' sudah terdaftar dalam sistem.' };
     }
 
-    // Validate role
-    if ([ROLES.ADMIN, ROLES.PEGAWAI].indexOf(data.role) === -1) {
-      return { success: false, message: 'Role tidak valid.' };
+    // Check NIK uniqueness
+    if (isNikDuplicate(nikStr)) {
+      return { success: false, message: 'NIK ' + nikStr + ' sudah terdaftar pada pegawai lain.' };
     }
 
-    // Default password = last 6 digits of NIP
+    // 3. Optional Field Format Validations
+    if (data.noHp && !isValidPhoneNumber(data.noHp)) {
+      return { success: false, message: 'Format nomor HP tidak valid.' };
+    }
+    if (data.email && !isValidEmail(data.email)) {
+      return { success: false, message: 'Format email tidak valid.' };
+    }
+
+    var allowedJenisKelamin = ['Laki-laki', 'Perempuan', ''];
+    if (data.jenisKelamin !== undefined && allowedJenisKelamin.indexOf(data.jenisKelamin) === -1) {
+      return { success: false, message: 'Pilihan jenis kelamin tidak valid.' };
+    }
+
+    var allowedAgama = ['Kristen Protestan', 'Kristen Katholik', 'Islam', 'Hindu', 'Buddha', 'Konghucu', ''];
+    if (data.agama !== undefined && allowedAgama.indexOf(data.agama) === -1) {
+      return { success: false, message: 'Pilihan agama tidak valid.' };
+    }
+
+    var allowedMarital = ['Belum Menikah', 'Menikah', 'Cerai', ''];
+    if (data.statusPernikahan !== undefined && allowedMarital.indexOf(data.statusPernikahan) === -1) {
+      return { success: false, message: 'Pilihan status pernikahan tidak valid.' };
+    }
+
+    var allowedBloodTypes = ['A', 'B', 'AB', 'O', 'Tidak Tahu', ''];
+    if (data.golonganDarah !== undefined && allowedBloodTypes.indexOf(data.golonganDarah) === -1) {
+      return { success: false, message: 'Golongan darah tidak valid.' };
+    }
+
+    var allowedJenisJabatan = ['Fungsional', 'Pelaksana', 'Struktural', ''];
+    if (data.jenisJabatan !== undefined && allowedJenisJabatan.indexOf(data.jenisJabatan) === -1) {
+      return { success: false, message: 'Jenis jabatan tidak valid.' };
+    }
+
+    // 4. Default password = last 6 digits of NIP
     var defaultPw = getDefaultPassword(nipStr);
     var passwordHash = hashPassword(defaultPw);
 
-    // Build row
+    // 5. Build full 25-column row matching COL_PEGAWAI
     var newRow = [
-      nipStr,
-      passwordHash,
-      data.role,
-      'Aktif',
-      String(data.nama).trim(),
-      String(data.statusKepegawaian).trim(),
-      String(data.pangkatGolongan || '').trim(),
-      String(data.jabatan || '').trim(),
-      formatPhoneForStorage(data.noHp),
-      String(data.alamat || '').trim(),
-      '', // Folder_Drive_ID — set later
-      String(data.email || '').trim(),
-      String(data.golonganDarah || '').trim()
+      nipStr,                                        // 0: NIP
+      passwordHash,                                  // 1: PASSWORD_HASH
+      roleStr,                                       // 2: ROLE
+      'Aktif',                                       // 3: STATUS_AKUN
+      escapeFormula(data.nama),                      // 4: NAMA_LENGKAP
+      statusKepegawaianStr,                          // 5: STATUS_KEPEGAWAIAN
+      escapeFormula(data.pangkatGolongan),           // 6: PANGKAT_GOLONGAN
+      escapeFormula(data.jabatan),                   // 7: JABATAN
+      formatPhoneForStorage(data.noHp),              // 8: NO_HP
+      escapeFormula(data.alamat),                    // 9: ALAMAT
+      '',                                            // 10: FOLDER_DRIVE_ID
+      escapeFormula(data.email),                     // 11: EMAIL
+      escapeFormula(data.golonganDarah),             // 12: GOLONGAN_DARAH
+      formatNikForStorage(nikStr),                   // 13: NIK
+      escapeFormula(data.tempatLahir),               // 14: TEMPAT_LAHIR
+      formatDateOnly(data.tanggalLahir),             // 15: TANGGAL_LAHIR
+      escapeFormula(data.jenisKelamin),              // 16: JENIS_KELAMIN
+      escapeFormula(data.agama),                     // 17: AGAMA
+      escapeFormula(data.pendidikanTerakhir),        // 18: PENDIDIKAN_TERAKHIR
+      escapeFormula(data.statusPernikahan),          // 19: STATUS_PERNIKAHAN
+      formatDateOnly(data.tmtPangkat),               // 20: TMT_PANGKAT
+      escapeFormula(data.jenisJabatan),              // 21: JENIS_JABATAN
+      formatDateOnly(data.tmtJabatan),               // 22: TMT_JABATAN
+      escapeFormula(data.unitOrganisasi),            // 23: UNIT_ORGANISASI
+      ''                                             // 24: FOTO_DRIVE_ID
     ];
 
     appendRow(SHEET_NAMES.DATA_PEGAWAI, newRow);
 
-    // Trigger Google Drive folder creation for new employee
+    // 6. Trigger Google Drive folder creation for new employee
     try {
       getOrCreateEmployeeFolder(nipStr);
     } catch (driveErr) {
@@ -309,15 +373,19 @@ function adminTambahPegawai(token, data) {
     }
 
     logActivity(auth.session.nip, auth.session.role, 'PEGAWAI_CREATE', 'USER',
-      nipStr, 'Pegawai baru ditambahkan: ' + data.nama, 'SUCCESS');
+      nipStr, 'Pegawai baru ditambahkan: ' + data.nama + ' (NIP: ' + nipStr + ')', 'SUCCESS');
 
     return {
       success: true,
-      message: 'Pegawai berhasil ditambahkan. Password default: ' + defaultPw
+      message: 'Pegawai berhasil ditambahkan. Password default: ' + defaultPw,
+      data: {
+        nip: nipStr,
+        nama: data.nama
+      }
     };
   } catch (e) {
     Logger.log('adminTambahPegawai error: ' + e.toString());
-    return { success: false, message: 'Terjadi kesalahan sistem.' };
+    return { success: false, message: 'Terjadi kesalahan sistem: ' + (e.message || e.toString()) };
   }
 }
 
@@ -326,9 +394,7 @@ function adminTambahPegawai(token, data) {
 // ============================================================
 
 /**
- * Updates an employee's editable fields (Admin can edit more fields than self).
- * Admin-editable: jabatan, noHp, alamat, email, golonganDarah, role, statusAkun.
- * Read-only (system): nip, nama, statusKepegawaian, pangkatGolongan.
+ * Updates an employee's editable fields (Admin can edit all identity, employment, contact, and system fields).
  * @param {string} token - Session token.
  * @param {string} targetNip - NIP of employee to update.
  * @param {Object} updates - Field updates.
@@ -339,44 +405,117 @@ function adminUpdatePegawai(token, targetNip, updates) {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
 
-    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, targetNip);
+    if (!targetNip) {
+      return { success: false, message: 'NIP target harus diisi.' };
+    }
+
+    var cleanNip = String(targetNip).replace(/^'+/, '').trim();
+    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, cleanNip);
     if (!user) return { success: false, message: 'Pegawai tidak ditemukan.' };
 
-    // Validate role if being changed
+    if (!updates || typeof updates !== 'object') {
+      return { success: false, message: 'Data pembaruan tidak valid.' };
+    }
+
+    // 1. Validate NIK if provided & uniqueness check
+    if (updates.nik !== undefined) {
+      var cleanNik = String(updates.nik).replace(/^'+/, '').trim();
+      if (cleanNik && !/^\d{16}$/.test(cleanNik)) {
+        return { success: false, message: 'NIK harus terdiri dari 16 digit angka.' };
+      }
+      if (cleanNik && isNikDuplicate(cleanNik, cleanNip)) {
+        return { success: false, message: 'NIK ' + cleanNik + ' sudah terdaftar pada pegawai lain.' };
+      }
+    }
+
+    // 2. Validate Role
     if (updates.role !== undefined && [ROLES.ADMIN, ROLES.PEGAWAI].indexOf(updates.role) === -1) {
       return { success: false, message: 'Role tidak valid.' };
     }
 
-    // Validate statusAkun if being changed
+    // 3. Validate Status Akun
     var validStatuses = ['Aktif', 'Nonaktif', 'Ganti_Password'];
     if (updates.statusAkun !== undefined && validStatuses.indexOf(updates.statusAkun) === -1) {
       return { success: false, message: 'Status akun tidak valid.' };
     }
 
-    // Validate noHp if provided
-    if (updates.noHp && !/^[0-9+\-\s]{6,20}$/.test(updates.noHp)) {
-      return { success: false, message: 'Nomor HP tidak valid.' };
+    // 4. Validate Status Kepegawaian
+    if (updates.statusKepegawaian !== undefined) {
+      var stNorm = String(updates.statusKepegawaian).trim();
+      if (stNorm === 'P3K') stNorm = 'PPPK';
+      if (['PNS', 'CPNS', 'PPPK'].indexOf(stNorm) === -1) {
+        return { success: false, message: 'Status Kepegawaian harus salah satu dari: PNS, CPNS, atau PPPK.' };
+      }
     }
 
-    // Validate email if provided
-    if (updates.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(updates.email)) {
+    // 5. Format & Enum validations
+    if (updates.noHp && !isValidPhoneNumber(updates.noHp)) {
+      return { success: false, message: 'Format nomor HP tidak valid.' };
+    }
+    if (updates.email && !isValidEmail(updates.email)) {
       return { success: false, message: 'Format email tidak valid.' };
     }
 
-    // Build update map — admin-editable columns
-    var fields = {};
-    if (updates.nama !== undefined && String(updates.nama).trim()) {
-      fields[COL_PEGAWAI.NAMA_LENGKAP] = String(updates.nama).trim();
+    var allowedJenisKelamin = ['Laki-laki', 'Perempuan', ''];
+    if (updates.jenisKelamin !== undefined && allowedJenisKelamin.indexOf(updates.jenisKelamin) === -1) {
+      return { success: false, message: 'Pilihan jenis kelamin tidak valid.' };
     }
-    if (updates.statusKepegawaian !== undefined) fields[COL_PEGAWAI.STATUS_KEPEGAWAIAN] = String(updates.statusKepegawaian).trim();
-    if (updates.pangkatGolongan !== undefined)   fields[COL_PEGAWAI.PANGKAT_GOLONGAN] = String(updates.pangkatGolongan).trim();
-    if (updates.jabatan !== undefined)           fields[COL_PEGAWAI.JABATAN] = String(updates.jabatan).trim();
-    if (updates.noHp !== undefined)              fields[COL_PEGAWAI.NO_HP] = formatPhoneForStorage(updates.noHp);
-    if (updates.alamat !== undefined)            fields[COL_PEGAWAI.ALAMAT] = String(updates.alamat).trim();
-    if (updates.email !== undefined)             fields[COL_PEGAWAI.EMAIL] = String(updates.email).trim();
-    if (updates.golonganDarah !== undefined)     fields[COL_PEGAWAI.GOLONGAN_DARAH] = String(updates.golonganDarah).trim();
-    if (updates.role !== undefined)              fields[COL_PEGAWAI.ROLE] = updates.role;
-    if (updates.statusAkun !== undefined)        fields[COL_PEGAWAI.STATUS_AKUN] = updates.statusAkun;
+
+    var allowedAgama = ['Kristen Protestan', 'Kristen Katholik', 'Islam', 'Hindu', 'Buddha', 'Konghucu', ''];
+    if (updates.agama !== undefined && allowedAgama.indexOf(updates.agama) === -1) {
+      return { success: false, message: 'Pilihan agama tidak valid.' };
+    }
+
+    var allowedMarital = ['Belum Menikah', 'Menikah', 'Cerai', ''];
+    if (updates.statusPernikahan !== undefined && allowedMarital.indexOf(updates.statusPernikahan) === -1) {
+      return { success: false, message: 'Pilihan status pernikahan tidak valid.' };
+    }
+
+    var allowedBloodTypes = ['A', 'B', 'AB', 'O', 'Tidak Tahu', ''];
+    if (updates.golonganDarah !== undefined && allowedBloodTypes.indexOf(updates.golonganDarah) === -1) {
+      return { success: false, message: 'Golongan darah tidak valid.' };
+    }
+
+    var allowedJenisJabatan = ['Fungsional', 'Pelaksana', 'Struktural', ''];
+    if (updates.jenisJabatan !== undefined && allowedJenisJabatan.indexOf(updates.jenisJabatan) === -1) {
+      return { success: false, message: 'Jenis jabatan tidak valid.' };
+    }
+
+    // 6. Build update map
+    var fields = {};
+
+    // IDENTITAS
+    if (updates.nik !== undefined) fields[COL_PEGAWAI.NIK] = formatNikForStorage(updates.nik);
+    if (updates.nama !== undefined && String(updates.nama).trim()) fields[COL_PEGAWAI.NAMA_LENGKAP] = escapeFormula(updates.nama);
+    if (updates.tempatLahir !== undefined) fields[COL_PEGAWAI.TEMPAT_LAHIR] = escapeFormula(updates.tempatLahir);
+    if (updates.tanggalLahir !== undefined) fields[COL_PEGAWAI.TANGGAL_LAHIR] = formatDateOnly(updates.tanggalLahir);
+    if (updates.jenisKelamin !== undefined) fields[COL_PEGAWAI.JENIS_KELAMIN] = escapeFormula(updates.jenisKelamin);
+    if (updates.agama !== undefined) fields[COL_PEGAWAI.AGAMA] = escapeFormula(updates.agama);
+    if (updates.pendidikanTerakhir !== undefined) fields[COL_PEGAWAI.PENDIDIKAN_TERAKHIR] = escapeFormula(updates.pendidikanTerakhir);
+    if (updates.statusPernikahan !== undefined) fields[COL_PEGAWAI.STATUS_PERNIKAHAN] = escapeFormula(updates.statusPernikahan);
+    if (updates.golonganDarah !== undefined) fields[COL_PEGAWAI.GOLONGAN_DARAH] = escapeFormula(updates.golonganDarah);
+
+    // KEPEGAWAIAN
+    if (updates.statusKepegawaian !== undefined) {
+      var stKepeg = String(updates.statusKepegawaian).trim();
+      if (stKepeg === 'P3K') stKepeg = 'PPPK';
+      fields[COL_PEGAWAI.STATUS_KEPEGAWAIAN] = escapeFormula(stKepeg);
+    }
+    if (updates.pangkatGolongan !== undefined) fields[COL_PEGAWAI.PANGKAT_GOLONGAN] = escapeFormula(updates.pangkatGolongan);
+    if (updates.tmtPangkat !== undefined) fields[COL_PEGAWAI.TMT_PANGKAT] = formatDateOnly(updates.tmtPangkat);
+    if (updates.jabatan !== undefined) fields[COL_PEGAWAI.JABATAN] = escapeFormula(updates.jabatan);
+    if (updates.jenisJabatan !== undefined) fields[COL_PEGAWAI.JENIS_JABATAN] = escapeFormula(updates.jenisJabatan);
+    if (updates.tmtJabatan !== undefined) fields[COL_PEGAWAI.TMT_JABATAN] = formatDateOnly(updates.tmtJabatan);
+    if (updates.unitOrganisasi !== undefined) fields[COL_PEGAWAI.UNIT_ORGANISASI] = escapeFormula(updates.unitOrganisasi);
+
+    // KONTAK
+    if (updates.noHp !== undefined) fields[COL_PEGAWAI.NO_HP] = formatPhoneForStorage(updates.noHp);
+    if (updates.email !== undefined) fields[COL_PEGAWAI.EMAIL] = escapeFormula(updates.email);
+    if (updates.alamat !== undefined) fields[COL_PEGAWAI.ALAMAT] = escapeFormula(updates.alamat);
+
+    // SYSTEM
+    if (updates.role !== undefined) fields[COL_PEGAWAI.ROLE] = escapeFormula(updates.role);
+    if (updates.statusAkun !== undefined) fields[COL_PEGAWAI.STATUS_AKUN] = escapeFormula(updates.statusAkun);
 
     if (Object.keys(fields).length === 0) {
       return { success: false, message: 'Tidak ada perubahan untuk disimpan.' };
@@ -385,12 +524,105 @@ function adminUpdatePegawai(token, targetNip, updates) {
     updateRowFields(SHEET_NAMES.DATA_PEGAWAI, user.rowIndex, fields);
 
     logActivity(auth.session.nip, auth.session.role, 'PEGAWAI_UPDATE', 'USER',
-      targetNip, 'Data pegawai diperbarui: ' + Object.keys(fields).join(', '), 'SUCCESS');
+      cleanNip, 'Data pegawai diperbarui: ' + Object.keys(fields).join(', '), 'SUCCESS');
 
     return { success: true, message: 'Data pegawai berhasil diperbarui.' };
   } catch (e) {
     Logger.log('adminUpdatePegawai error: ' + e.toString());
-    return { success: false, message: 'Terjadi kesalahan sistem.' };
+    return { success: false, message: 'Terjadi kesalahan sistem: ' + (e.message || e.toString()) };
+  }
+}
+
+/**
+ * Uploads a profile photo for any target employee (Admin only).
+ * @param {string} token - Session token (Admin only).
+ * @param {string} targetNip - NIP of employee.
+ * @param {string} base64Data - Base64 encoded image data.
+ * @param {string} mimeType - Image mime type (JPEG, JPG, PNG).
+ * @returns {Object} Result object.
+ */
+function adminUploadFotoPegawai(token, targetNip, base64Data, mimeType) {
+  try {
+    var auth = authorize(token, [ROLES.ADMIN], false);
+    if (!auth.authorized) return { success: false, message: auth.error };
+
+    if (!targetNip) {
+      return { success: false, message: 'NIP target harus diisi.' };
+    }
+
+    var cleanNip = String(targetNip).replace(/^'+/, '').trim();
+    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, cleanNip);
+    if (!user) return { success: false, message: 'Pegawai tidak ditemukan.' };
+
+    if (!base64Data || typeof base64Data !== 'string') {
+      return { success: false, message: 'Data file foto tidak valid atau kosong.' };
+    }
+
+    var cleanBase64 = base64Data.trim();
+    if (cleanBase64.indexOf(',') !== -1) {
+      cleanBase64 = cleanBase64.split(',')[1];
+    }
+    cleanBase64 = cleanBase64.replace(/\s/g, '');
+
+    var cleanMime = String(mimeType || '').toLowerCase().trim();
+    var ext = '';
+    if (cleanMime === 'image/jpeg' || cleanMime === 'image/jpg' || cleanMime === 'image/pjpeg' || cleanMime === 'image/jfif') {
+      ext = 'jpg';
+      cleanMime = 'image/jpeg';
+    } else if (cleanMime === 'image/png') {
+      ext = 'png';
+      cleanMime = 'image/png';
+    } else {
+      return { success: false, message: 'Format foto tidak valid. Hanya JPG dan PNG yang didukung.' };
+    }
+
+    var approxBytes = Math.ceil(cleanBase64.length * 0.75);
+    if (approxBytes > 5 * 1024 * 1024) {
+      return { success: false, message: 'Ukuran foto melebihi batas maksimal 5 MB.' };
+    }
+
+    // Trash old photo if exists
+    var oldFotoDriveId = String(user.data[COL_PEGAWAI.FOTO_DRIVE_ID] || '').replace(/^'+/, '').trim();
+    if (oldFotoDriveId) {
+      try {
+        DriveApp.getFileById(oldFotoDriveId).setTrashed(true);
+      } catch (e) {
+        Logger.log('Could not trash old photo ' + oldFotoDriveId + ': ' + e.toString());
+      }
+    }
+
+    var empFolder = getOrCreateEmployeeFolder(cleanNip);
+    var fileName = cleanNip + '_FOTO.' + ext;
+
+    var decodedBytes = Utilities.newBlob(
+      Utilities.base64Decode(cleanBase64),
+      cleanMime,
+      fileName
+    );
+
+    var newFile = empFolder.createFile(decodedBytes);
+    var newFileId = newFile.getId();
+
+    updateRowFields(SHEET_NAMES.DATA_PEGAWAI, user.rowIndex, {
+      [COL_PEGAWAI.FOTO_DRIVE_ID]: newFileId
+    });
+
+    logActivity(auth.session.nip, auth.session.role, 'FOTO_PROFIL_UPLOAD', 'USER',
+      cleanNip, 'Foto profil pegawai diunggah oleh Admin: ' + fileName, 'SUCCESS');
+
+    var fotoUrl = 'https://drive.google.com/thumbnail?id=' + newFileId + '&sz=w500';
+
+    return {
+      success: true,
+      message: 'Foto profil berhasil diperbarui.',
+      data: {
+        fotoDriveId: newFileId,
+        fotoUrl: fotoUrl
+      }
+    };
+  } catch (e) {
+    Logger.log('adminUploadFotoPegawai error: ' + e.toString());
+    return { success: false, message: 'Gagal mengunggah foto profil: ' + (e.message || e.toString()) };
   }
 }
 
@@ -721,7 +953,7 @@ function adminRejectDokumen(token, idArsip, alasanPenolakan) {
 
     updateRowFields(SHEET_NAMES.ARSIP_DOKUMEN, record.rowIndex, {
       [COL_ARSIP.STATUS_VERIFIKASI]: 'Ditolak',
-      [COL_ARSIP.CATATAN_ADMIN]: reasonStr,
+      [COL_ARSIP.CATATAN_ADMIN]: escapeFormula(reasonStr),
       [COL_ARSIP.WAKTU_VERIFIKASI]: nowStr,
       [COL_ARSIP.NIP_VERIFIER]: verifierNip
     });
@@ -823,6 +1055,57 @@ function test_admin_tambah_duplicate_nip() {
 }
 
 /**
+ * TEST: Duplicate NIK detection and validation on tambah & update.
+ */
+function test_admin_pegawai_crud_validation() {
+  Logger.log('=== TEST: Pegawai CRUD Validation (NIP, NIK, Updates) ===');
+
+  var sessions = getAllData(SHEET_NAMES.SESI_LOGIN);
+  var adminToken = null;
+  for (var i = 0; i < sessions.length; i++) {
+    var nip = sessions[i][COL_SESI.NIP];
+    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, nip);
+    if (user && user.data[COL_PEGAWAI.ROLE] === ROLES.ADMIN) {
+      adminToken = sessions[i][COL_SESI.TOKEN_ID];
+      break;
+    }
+  }
+  if (!adminToken) { Logger.log('No Admin session found — login as Admin first.'); return; }
+
+  // Test 1: Invalid NIK format (< 16 digits)
+  var r1 = adminTambahPegawai(adminToken, {
+    nip: '199901012025011099',
+    nik: '12345',
+    nama: 'Test NIK Pendek',
+    statusKepegawaian: 'PNS',
+    role: ROLES.PEGAWAI
+  });
+  Logger.log('T1 (invalid NIK length): ' + (r1.success === false ? 'PASS ✓' : 'FAIL ✗') + ' — ' + r1.message);
+
+  // Test 2: Duplicate NIK on create
+  var r2 = adminTambahPegawai(adminToken, {
+    nip: '199901012025011099',
+    nik: '5371015206850001',
+    nama: 'Test NIK Duplikat',
+    statusKepegawaian: 'PNS',
+    role: ROLES.PEGAWAI
+  });
+  Logger.log('T2 (duplicate NIK on create): ' + (r2.success === false ? 'PASS ✓' : 'FAIL ✗') + ' — ' + r2.message);
+
+  // Test 3: Duplicate NIK on update to another employee's NIK
+  var r3 = adminUpdatePegawai(adminToken, '199003152015022003', {
+    nik: '5371015206850001'
+  });
+  Logger.log('T3 (duplicate NIK on update): ' + (r3.success === false ? 'PASS ✓' : 'FAIL ✗') + ' — ' + r3.message);
+
+  // Test 4: Successful detail retrieval
+  var r4 = adminGetPegawaiDetail(adminToken, '199003152015022003');
+  Logger.log('T4 (getPegawaiDetail): ' + (r4.success === true && r4.data && r4.data.nik !== undefined ? 'PASS ✓' : 'FAIL ✗'));
+
+  Logger.log('=== CRUD VALIDATION TESTS COMPLETE ===');
+}
+
+/**
  * TEST: Document verification engine (Queue, Approve, Reject, Authorization).
  */
 function test_admin_verification() {
@@ -862,4 +1145,5 @@ function test_admin_verification() {
 
   Logger.log('=== TESTS COMPLETE ===');
 }
+
 

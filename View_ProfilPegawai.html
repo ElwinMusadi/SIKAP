@@ -1,9 +1,6 @@
 <!-- ============================================================ -->
-<!-- View_ProfilPegawai.html — Employee Profile                  -->
-<!-- Faithfully reproduces Halaman Profil Pegawai.html            -->
-<!-- Read-only: NIP, Nama, Status, Pangkat, Jabatan              -->
-<!-- Editable: No HP, Alamat, Email, Golongan Darah              -->
-<!-- Three states: loading, error, data                           -->
+<!-- View_ProfilPegawai.html — Employee Detail Page (Profil)      -->
+<!-- Structured into: IDENTITAS, KEPEGAWAIAN, KONTAK, ARSIP      -->
 <!-- ============================================================ -->
 
 <div class="flex flex-col w-full" id="profil-root">
@@ -16,7 +13,7 @@
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
       <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
     </svg>
-    <p class="font-body-md text-on-surface-variant">Memuat profil...</p>
+    <p class="font-body-md text-on-surface-variant">Memuat data profil pegawai...</p>
   </div>
 
   <!-- ============================== -->
@@ -41,52 +38,67 @@
 
     <!-- Header Area -->
     <div class="px-6 lg:px-container-margin py-8">
-      <h1 class="font-h1 text-on-surface mb-2">Profil Pegawai</h1>
-      <p class="font-body-md text-on-surface-variant max-w-2xl">Kelola informasi pribadi dan data kepegawaian Anda.
-        Beberapa data dikelola oleh sistem dan tidak dapat diubah secara langsung.</p>
+      <h1 class="font-h1 text-on-surface mb-2">Detail Data Pegawai</h1>
+      <p class="font-body-md text-on-surface-variant max-w-3xl">
+        Informasi terpadu data identitas, status kepegawaian, kontak, dan arsip dokumen pegawai.
+      </p>
     </div>
 
-    <div class="px-6 lg:px-container-margin pb-12 grid grid-cols-1 xl:grid-cols-12 gap-6">
+    <div class="px-6 lg:px-container-margin pb-16 grid grid-cols-1 xl:grid-cols-12 gap-8">
 
-      <!-- Left Column: Profile Summary Card -->
+      <!-- ============================================================ -->
+      <!-- LEFT COLUMN: PROFILE CARD & PROGRESS SUMMARY                 -->
+      <!-- ============================================================ -->
       <div class="xl:col-span-4 flex flex-col gap-6">
 
         <!-- Summary Card -->
-        <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden relative group">
+        <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden relative group">
           <!-- Decorative Top Bar -->
-          <div class="h-24 bg-surface-container w-full relative overflow-hidden">
+          <div class="h-28 bg-gradient-to-r from-primary/15 via-primary/5 to-secondary/10 w-full relative overflow-hidden">
             <div class="absolute inset-0 opacity-20">
               <svg class="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
                 <path class="text-primary" d="M0,100 C30,80 70,120 100,50 L100,0 L0,0 Z" fill="currentColor"></path>
               </svg>
             </div>
           </div>
+
           <div class="px-6 pb-6 relative">
-            <!-- Avatar (initials-based) -->
-            <div class="w-20 h-20 bg-primary-container rounded-full flex items-center justify-center -mt-10 mb-4 shadow-md border-4 border-surface-container-lowest group-hover:scale-105 transition-transform duration-300">
-              <span class="font-h2 text-on-primary-container" id="profil-avatar-initials">—</span>
+            <!-- Avatar with Photo Upload Support -->
+            <div class="relative w-28 h-28 rounded-full -mt-14 mb-4 shadow-md border-4 border-surface-container-lowest overflow-hidden bg-primary-container flex items-center justify-center group/avatar">
+              <img id="profil-avatar-img" src="" alt="Foto Profil" class="w-full h-full object-cover hidden">
+              <span class="font-h1 text-on-primary-container text-3xl font-bold" id="profil-avatar-initials">—</span>
+              
+              <!-- Hover Overlay for Upload -->
+              <label for="profil-foto-input" class="absolute inset-0 bg-on-surface/60 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
+                <span class="material-symbols-outlined text-[22px]">photo_camera</span>
+                <span class="text-[10px] font-bold mt-0.5 uppercase tracking-wider">Ubah Foto</span>
+              </label>
+              <input type="file" id="profil-foto-input" accept="image/jpeg,image/jpg,image/png" class="hidden" onchange="SIKAP.ProfilPegawai.handleFotoUpload(this)">
             </div>
+
             <div class="flex flex-col">
-              <h2 class="font-h3 text-on-surface" id="profil-card-nama">—</h2>
-              <span class="font-body-sm text-on-surface-variant mb-4">NIP. <span id="profil-card-nip">—</span></span>
+              <h2 class="font-h2 text-on-surface text-xl font-semibold leading-tight" id="profil-card-nama">—</h2>
+              <span class="font-body-sm text-on-surface-variant mt-1 mb-4 font-mono">NIP. <span id="profil-card-nip">—</span></span>
+              
               <div class="flex flex-wrap gap-2 mb-6">
-                <span class="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm" id="profil-card-status">—</span>
-                <span class="inline-flex items-center px-2 py-1 rounded-full bg-surface-container-high text-on-surface font-label-sm" id="profil-card-role-badge">—</span>
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm font-semibold text-xs" id="profil-card-status">—</span>
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-surface-container-high text-on-surface font-label-sm font-semibold text-xs" id="profil-card-role-badge">—</span>
               </div>
-              <div class="space-y-3">
+
+              <div class="space-y-3 bg-surface-container-low/50 p-4 rounded-xl border border-outline-variant/20">
                 <div class="flex flex-col">
-                  <span class="font-label-sm text-on-surface-variant mb-1 uppercase tracking-wider text-[10px]">Pangkat / Golongan</span>
-                  <span class="font-body-md text-on-surface" id="profil-card-pangkat">—</span>
+                  <span class="font-label-sm text-on-surface-variant uppercase tracking-wider text-[10px]">Pangkat / Golongan</span>
+                  <span class="font-body-md text-on-surface font-medium mt-0.5" id="profil-card-pangkat">—</span>
                 </div>
                 <div class="w-full h-px bg-outline-variant/20"></div>
                 <div class="flex flex-col">
-                  <span class="font-label-sm text-on-surface-variant mb-1 uppercase tracking-wider text-[10px]">Jabatan</span>
-                  <span class="font-body-md text-on-surface" id="profil-card-jabatan">—</span>
+                  <span class="font-label-sm text-on-surface-variant uppercase tracking-wider text-[10px]">Jabatan</span>
+                  <span class="font-body-md text-on-surface font-medium mt-0.5" id="profil-card-jabatan">—</span>
                 </div>
                 <div class="w-full h-px bg-outline-variant/20"></div>
                 <div class="flex flex-col">
-                  <span class="font-label-sm text-on-surface-variant mb-1 uppercase tracking-wider text-[10px]">Unit Kerja</span>
-                  <span class="font-body-md text-on-surface">SAMSAT Kupang</span>
+                  <span class="font-label-sm text-on-surface-variant uppercase tracking-wider text-[10px]">Unit Organisasi</span>
+                  <span class="font-body-md text-on-surface font-medium mt-0.5" id="profil-card-unit">—</span>
                 </div>
               </div>
             </div>
@@ -94,154 +106,354 @@
         </div>
 
         <!-- Quick Info: Document completeness link -->
-        <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 p-5 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer"
-             onclick="SIKAP.Router.navigate('view-dashboard-pegawai')">
+        <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 p-5 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer group"
+             onclick="SIKAP.Router.navigate('view-arsip-dokumen')">
           <div class="flex flex-col">
-            <span class="font-label-sm text-on-surface-variant uppercase tracking-wider text-[10px]">Status Dokumen</span>
-            <span class="font-h3 text-primary mt-0.5">Lihat Dashboard</span>
+            <span class="font-label-sm text-on-surface-variant uppercase tracking-wider text-[10px]">Kelengkapan Berkas</span>
+            <span class="font-h3 text-primary text-base font-semibold mt-0.5" id="profil-card-doc-status">Buka Arsip Dokumen</span>
+            <span class="text-[11px] text-on-surface-variant mt-0.5" id="profil-card-doc-count">Memuat dokumen...</span>
           </div>
-          <div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center">
-            <span class="material-symbols-outlined text-primary">insert_chart</span>
+          <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors">
+            <span class="material-symbols-outlined">folder_open</span>
           </div>
         </div>
 
       </div>
 
-      <!-- Right Column: Detail Forms -->
-      <div class="xl:col-span-8 flex flex-col gap-6">
-        <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 p-6 lg:p-8">
+      <!-- ============================================================ -->
+      <!-- RIGHT COLUMN: 4 STRUCTURED SECTIONS                          -->
+      <!-- ============================================================ -->
+      <div class="xl:col-span-8 flex flex-col gap-8">
 
-          <!-- Section: Data Utama (Read-only) -->
-          <div class="mb-10">
-            <div class="flex items-center gap-2 mb-6">
-              <span class="material-symbols-outlined text-primary text-xl">badge</span>
-              <h3 class="font-h3 text-on-surface">Data Utama</h3>
-              <span class="font-label-sm text-on-surface-variant bg-surface-container px-2 py-1 rounded ml-auto">Dikelola Sistem</span>
+        <!-- Global Save/Success Notification -->
+        <div class="hidden flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 font-body-md" id="profil-save-success">
+          <span class="material-symbols-outlined text-emerald-600">check_circle</span>
+          <span>Perubahan data berhasil disimpan ke sistem kepegawaian.</span>
+        </div>
+
+        <form id="profil-edit-form" onsubmit="SIKAP.ProfilPegawai.handleSave(event)">
+
+          <!-- ============================================================ -->
+          <!-- 1. IDENTITAS                                                 -->
+          <!-- ============================================================ -->
+          <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 p-6 lg:p-8 flex flex-col gap-6 mb-8">
+            <div class="flex items-center justify-between border-b border-outline-variant/20 pb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xl">badge</span>
+                </div>
+                <div>
+                  <h3 class="font-h3 text-on-surface text-lg font-semibold">Identitas Pegawai</h3>
+                  <p class="font-body-sm text-on-surface-variant text-xs">Data identitas resmi dan informasi personal pegawai</p>
+                </div>
+              </div>
+              <span class="font-label-sm text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-md text-xs">Identitas</span>
             </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-              <!-- Nama Lengkap -->
-              <div class="flex flex-col">
-                <label class="font-label-sm text-on-surface-variant mb-1.5">Nama Lengkap</label>
-                <div class="px-4 py-2.5 bg-surface-container/50 border border-outline-variant/20 rounded-lg text-on-surface-variant font-body-md flex items-center justify-between cursor-not-allowed">
-                  <span id="profil-ro-nama">—</span>
-                  <span class="material-symbols-outlined text-[16px] text-outline flex-shrink-0">lock</span>
-                </div>
-              </div>
-              <!-- NIP -->
-              <div class="flex flex-col">
-                <label class="font-label-sm text-on-surface-variant mb-1.5">NIP</label>
-                <div class="px-4 py-2.5 bg-surface-container/50 border border-outline-variant/20 rounded-lg text-on-surface-variant font-body-md flex items-center justify-between cursor-not-allowed">
-                  <span id="profil-ro-nip">—</span>
-                  <span class="material-symbols-outlined text-[16px] text-outline flex-shrink-0">lock</span>
-                </div>
-              </div>
-              <!-- Status Kepegawaian -->
-              <div class="flex flex-col">
-                <label class="font-label-sm text-on-surface-variant mb-1.5">Status Kepegawaian</label>
-                <div class="px-4 py-2.5 bg-surface-container/50 border border-outline-variant/20 rounded-lg text-on-surface-variant font-body-md flex items-center justify-between cursor-not-allowed">
-                  <span id="profil-ro-status">—</span>
-                  <span class="material-symbols-outlined text-[16px] text-outline flex-shrink-0">lock</span>
-                </div>
-              </div>
-              <!-- Pangkat / Golongan -->
-              <div class="flex flex-col">
-                <label class="font-label-sm text-on-surface-variant mb-1.5">Pangkat / Golongan</label>
-                <div class="px-4 py-2.5 bg-surface-container/50 border border-outline-variant/20 rounded-lg text-on-surface-variant font-body-md flex items-center justify-between cursor-not-allowed">
-                  <span id="profil-ro-pangkat">—</span>
-                  <span class="material-symbols-outlined text-[16px] text-outline flex-shrink-0">lock</span>
-                </div>
-              </div>
-              <!-- Jabatan (Full width) -->
+              
+              <!-- Nama Lengkap (Read-only) -->
               <div class="flex flex-col md:col-span-2">
-                <label class="font-label-sm text-on-surface-variant mb-1.5">Jabatan</label>
-                <div class="px-4 py-2.5 bg-surface-container/50 border border-outline-variant/20 rounded-lg text-on-surface-variant font-body-md flex items-center justify-between cursor-not-allowed">
-                  <span id="profil-ro-jabatan">—</span>
-                  <span class="material-symbols-outlined text-[16px] text-outline flex-shrink-0">lock</span>
-                </div>
+                <label class="font-label-sm text-on-surface-variant mb-1.5 text-xs font-semibold uppercase tracking-wider">Nama Lengkap</label>
+                <div class="px-4 py-2.5 bg-surface-container/40 border border-outline-variant/20 rounded-lg text-on-surface font-body-md font-medium" id="profil-ro-nama">—</div>
               </div>
-            </div>
-          </div>
 
-          <div class="w-full h-px bg-outline-variant/20 mb-8"></div>
-
-          <!-- Section: Informasi Kontak (Editable) -->
-          <div>
-            <div class="flex items-center justify-between mb-6">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-xl">contact_mail</span>
-                <h3 class="font-h3 text-on-surface">Informasi Kontak</h3>
-              </div>
-              <span class="font-label-sm text-on-surface-variant bg-surface-container px-2 py-1 rounded">Dapat Diubah</span>
-            </div>
-
-            <!-- Success Banner (inline, transient) -->
-            <div class="hidden mb-5 flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 font-body-md" id="profil-save-success">
-              <span class="material-symbols-outlined text-emerald-600">check_circle</span>
-              <span>Profil berhasil diperbarui.</span>
-            </div>
-
-            <form class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5" id="profil-edit-form"
-                  onsubmit="SIKAP.ProfilPegawai.handleSave(event)">
-
-              <!-- Nomor Handphone -->
+              <!-- NIP (Read-only) -->
               <div class="flex flex-col">
-                <label class="font-label-sm text-on-surface mb-1.5" for="profil-hp">Nomor Handphone</label>
+                <label class="font-label-sm text-on-surface-variant mb-1.5 text-xs font-semibold uppercase tracking-wider">NIP (Nomor Induk Pegawai)</label>
+                <div class="px-4 py-2.5 bg-surface-container/40 border border-outline-variant/20 rounded-lg text-on-surface font-body-md font-mono" id="profil-ro-nip">—</div>
+              </div>
+
+              <!-- NIK (Read-only) -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface-variant mb-1.5 text-xs font-semibold uppercase tracking-wider">NIK (Nomor Induk Kependudukan)</label>
+                <div class="px-4 py-2.5 bg-surface-container/40 border border-outline-variant/20 rounded-lg text-on-surface font-body-md font-mono" id="profil-ro-nik">—</div>
+              </div>
+
+              <!-- Tempat Lahir -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface mb-1.5 text-xs font-semibold uppercase tracking-wider" for="profil-tempat-lahir">Tempat Lahir</label>
                 <input class="px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface font-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                       id="profil-hp" type="tel" placeholder="cth. 081234567890"
+                       id="profil-tempat-lahir" type="text" placeholder="cth. Kupang"
                        oninput="SIKAP.ProfilPegawai.markDirty()">
               </div>
 
-              <!-- Alamat Email -->
+              <!-- Tanggal Lahir -->
               <div class="flex flex-col">
-                <label class="font-label-sm text-on-surface mb-1.5" for="profil-email">Alamat Email</label>
+                <label class="font-label-sm text-on-surface mb-1.5 text-xs font-semibold uppercase tracking-wider" for="profil-tanggal-lahir">Tanggal Lahir</label>
                 <input class="px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface font-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                       id="profil-email" type="email" placeholder="cth. nama@ntt.go.id"
-                       oninput="SIKAP.ProfilPegawai.markDirty()">
+                       id="profil-tanggal-lahir" type="date"
+                       onchange="SIKAP.ProfilPegawai.markDirty()">
               </div>
 
-              <!-- Alamat Domisili (Full Width) -->
-              <div class="flex flex-col md:col-span-2">
-                <label class="font-label-sm text-on-surface mb-1.5" for="profil-alamat">Alamat Domisili</label>
-                <textarea class="px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface font-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
-                          id="profil-alamat" rows="3" placeholder="Alamat tempat tinggal saat ini"
-                          oninput="SIKAP.ProfilPegawai.markDirty()"></textarea>
+              <!-- Jenis Kelamin (Read-only) -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface-variant mb-1.5 text-xs font-semibold uppercase tracking-wider">Jenis Kelamin</label>
+                <div class="px-4 py-2.5 bg-surface-container/40 border border-outline-variant/20 rounded-lg text-on-surface font-body-md" id="profil-ro-jenis-kelamin">—</div>
+              </div>
+
+              <!-- Agama -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface mb-1.5 text-xs font-semibold uppercase tracking-wider" for="profil-agama">Agama</label>
+                <div class="relative">
+                  <select class="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface font-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+                          id="profil-agama" onchange="SIKAP.ProfilPegawai.markDirty()">
+                    <option value="">— Pilih Agama —</option>
+                    <option value="Kristen Protestan">Kristen Protestan</option>
+                    <option value="Kristen Katholik">Kristen Katholik</option>
+                    <option value="Islam">Islam</option>
+                    <option value="Hindu">Hindu</option>
+                    <option value="Buddha">Buddha</option>
+                    <option value="Konghucu">Konghucu</option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+                </div>
+              </div>
+
+              <!-- Pendidikan Terakhir -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface mb-1.5 text-xs font-semibold uppercase tracking-wider" for="profil-pendidikan">Pendidikan Terakhir</label>
+                <div class="relative">
+                  <select class="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface font-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+                          id="profil-pendidikan" onchange="SIKAP.ProfilPegawai.markDirty()">
+                    <option value="">— Pilih Pendidikan Terakhir —</option>
+                    <option value="SMA / SMK / Sederajat">SMA / SMK / Sederajat</option>
+                    <option value="D-I / Diploma Satu">D-I / Diploma Satu</option>
+                    <option value="D-II / Diploma Dua">D-II / Diploma Dua</option>
+                    <option value="D-III / Diploma Tiga">D-III / Diploma Tiga</option>
+                    <option value="D-IV / Sarjana Terapan">D-IV / Sarjana Terapan</option>
+                    <option value="S-1 / Sarjana">S-1 / Sarjana</option>
+                    <option value="S-2 / Magister">S-2 / Magister</option>
+                    <option value="S-3 / Doktoral">S-3 / Doktoral</option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+                </div>
+              </div>
+
+              <!-- Status Pernikahan -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface mb-1.5 text-xs font-semibold uppercase tracking-wider" for="profil-status-pernikahan">Status Pernikahan</label>
+                <div class="relative">
+                  <select class="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface font-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+                          id="profil-status-pernikahan" onchange="SIKAP.ProfilPegawai.markDirty()">
+                    <option value="">— Pilih Status Pernikahan —</option>
+                    <option value="Belum Menikah">Belum Menikah</option>
+                    <option value="Menikah">Menikah</option>
+                    <option value="Cerai">Cerai</option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+                </div>
               </div>
 
               <!-- Golongan Darah -->
-              <div class="flex flex-col">
-                <label class="font-label-sm text-on-surface mb-1.5" for="profil-goldar">Golongan Darah</label>
-                <div class="relative">
-                  <select class="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface font-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all appearance-none"
+              <div class="flex flex-col md:col-span-2">
+                <label class="font-label-sm text-on-surface mb-1.5 text-xs font-semibold uppercase tracking-wider" for="profil-goldar">Golongan Darah</label>
+                <div class="relative max-w-md">
+                  <select class="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface font-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
                           id="profil-goldar" onchange="SIKAP.ProfilPegawai.markDirty()">
                     <option value="">— Pilih Golongan Darah —</option>
+                    <option value="O">O</option>
+                    <option value="AB">AB</option>
                     <option value="A">A</option>
                     <option value="B">B</option>
-                    <option value="AB">AB</option>
-                    <option value="O">O</option>
                     <option value="Tidak Tahu">Tidak Tahu</option>
                   </select>
-                  <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">arrow_drop_down</span>
+                  <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
                 </div>
               </div>
 
-              <!-- Submit Action -->
-              <div class="md:col-span-2 mt-6 flex items-center justify-end gap-3">
+            </div>
+          </div>
+
+          <!-- ============================================================ -->
+          <!-- 2. KEPEGAWAIAN                                               -->
+          <!-- ============================================================ -->
+          <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 p-6 lg:p-8 flex flex-col gap-6 mb-8">
+            <div class="flex items-center justify-between border-b border-outline-variant/20 pb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xl">work</span>
+                </div>
+                <div>
+                  <h3 class="font-h3 text-on-surface text-lg font-semibold">Data Kepegawaian</h3>
+                  <p class="font-body-sm text-on-surface-variant text-xs">Informasi jabatan, kepangkatan, dan unit kerja (Dikelola Administrator TU)</p>
+                </div>
+              </div>
+              <span class="font-label-sm text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-md text-xs flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px]">lock</span> Read-Only
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              
+              <!-- Status Kepegawaian -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface-variant mb-1.5 text-xs font-semibold uppercase tracking-wider">Status Kepegawaian</label>
+                <div class="px-4 py-2.5 bg-surface-container/40 border border-outline-variant/20 rounded-lg text-on-surface font-body-md font-medium" id="profil-ro-status">—</div>
+              </div>
+
+              <!-- Pangkat / Golongan -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface-variant mb-1.5 text-xs font-semibold uppercase tracking-wider">Pangkat / Golongan</label>
+                <div class="px-4 py-2.5 bg-surface-container/40 border border-outline-variant/20 rounded-lg text-on-surface font-body-md font-medium" id="profil-ro-pangkat">—</div>
+              </div>
+
+              <!-- TMT Pangkat -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface-variant mb-1.5 text-xs font-semibold uppercase tracking-wider">TMT Pangkat</label>
+                <div class="px-4 py-2.5 bg-surface-container/40 border border-outline-variant/20 rounded-lg text-on-surface font-body-md" id="profil-ro-tmt-pangkat">—</div>
+              </div>
+
+              <!-- Jenis Jabatan -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface-variant mb-1.5 text-xs font-semibold uppercase tracking-wider">Jenis Jabatan</label>
+                <div class="px-4 py-2.5 bg-surface-container/40 border border-outline-variant/20 rounded-lg text-on-surface font-body-md font-medium" id="profil-ro-jenis-jabatan">—</div>
+              </div>
+
+              <!-- Jabatan -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface-variant mb-1.5 text-xs font-semibold uppercase tracking-wider">Jabatan</label>
+                <div class="px-4 py-2.5 bg-surface-container/40 border border-outline-variant/20 rounded-lg text-on-surface font-body-md font-medium" id="profil-ro-jabatan">—</div>
+              </div>
+
+              <!-- TMT Jabatan -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface-variant mb-1.5 text-xs font-semibold uppercase tracking-wider">TMT Jabatan</label>
+                <div class="px-4 py-2.5 bg-surface-container/40 border border-outline-variant/20 rounded-lg text-on-surface font-body-md" id="profil-ro-tmt-jabatan">—</div>
+              </div>
+
+              <!-- Unit Organisasi (Full Width) -->
+              <div class="flex flex-col md:col-span-2">
+                <label class="font-label-sm text-on-surface-variant mb-1.5 text-xs font-semibold uppercase tracking-wider">Unit Organisasi</label>
+                <div class="px-4 py-2.5 bg-surface-container/40 border border-outline-variant/20 rounded-lg text-on-surface font-body-md font-medium" id="profil-ro-unit">—</div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ============================================================ -->
+          <!-- 3. KONTAK                                                    -->
+          <!-- ============================================================ -->
+          <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 p-6 lg:p-8 flex flex-col gap-6 mb-8">
+            <div class="flex items-center justify-between border-b border-outline-variant/20 pb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xl">contacts</span>
+                </div>
+                <div>
+                  <h3 class="font-h3 text-on-surface text-lg font-semibold">Kontak Pegawai</h3>
+                  <p class="font-body-sm text-on-surface-variant text-xs">Informasi komunikasi aktif dan alamat domisili pegawai</p>
+                </div>
+              </div>
+              <span class="font-label-sm text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-md text-xs">Dapat Diubah</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              
+              <!-- Nomor HP -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface mb-1.5 text-xs font-semibold uppercase tracking-wider" for="profil-hp">Nomor HP</label>
+                <input class="px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface font-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                       id="profil-hp" type="tel" placeholder="cth. 082247254006"
+                       oninput="SIKAP.ProfilPegawai.markDirty()">
+              </div>
+
+              <!-- Email -->
+              <div class="flex flex-col">
+                <label class="font-label-sm text-on-surface mb-1.5 text-xs font-semibold uppercase tracking-wider" for="profil-email">Email</label>
+                <input class="px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface font-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                       id="profil-email" type="email" placeholder="cth. elwinmusadi@gmail.com"
+                       oninput="SIKAP.ProfilPegawai.markDirty()">
+              </div>
+
+              <!-- Alamat (Full Width) -->
+              <div class="flex flex-col md:col-span-2">
+                <label class="font-label-sm text-on-surface mb-1.5 text-xs font-semibold uppercase tracking-wider" for="profil-alamat">Alamat</label>
+                <textarea class="px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface font-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+                          id="profil-alamat" rows="3" placeholder="Alamat lengkap tempat tinggal..."
+                          oninput="SIKAP.ProfilPegawai.markDirty()"></textarea>
+              </div>
+
+              <!-- Submit & Cancel Actions -->
+              <div class="md:col-span-2 pt-4 flex items-center justify-end gap-3 border-t border-outline-variant/20">
                 <button type="button"
                         class="hidden px-5 py-2.5 bg-surface-container text-on-surface font-label-md rounded-lg hover:bg-surface-container-high transition-colors"
                         id="profil-cancel-btn" onclick="SIKAP.ProfilPegawai.cancelEdit()">
                   Batalkan
                 </button>
                 <button type="submit"
-                        class="px-6 py-2.5 bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary/90 hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="px-6 py-2.5 bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary/90 hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                         id="profil-save-btn" disabled>
                   <span class="material-symbols-outlined text-[18px]" id="profil-save-icon">save</span>
                   <span id="profil-save-text">Simpan Perubahan</span>
                 </button>
               </div>
-            </form>
 
+            </div>
           </div>
+
+        </form>
+
+        <!-- ============================================================ -->
+        <!-- 4. ARSIP DOKUMEN                                             -->
+        <!-- ============================================================ -->
+        <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 p-6 lg:p-8 flex flex-col gap-6">
+          
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/20 pb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-xl">folder_shared</span>
+              </div>
+              <div>
+                <h3 class="font-h3 text-on-surface text-lg font-semibold">Arsip Dokumen Kepegawaian</h3>
+                <p class="font-body-sm text-on-surface-variant text-xs">Katalog 11 dokumen administrasi pegawai (9 Wajib &amp; 2 Opsional)</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="font-label-sm px-3 py-1 bg-primary/10 text-primary rounded-full font-semibold text-xs" id="profil-doc-summary-badge">
+                Memuat berkas...
+              </span>
+              <button onclick="SIKAP.Router.navigate('view-arsip-dokumen')" class="px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-label-md hover:bg-primary/90 transition-colors flex items-center gap-1 shadow-xs">
+                <span>Buka Pengelola Arsip</span>
+                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dokumen Wajib Sub-Section -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-[18px]">verified_user</span>
+                <h4 class="font-label-md text-on-surface font-semibold text-sm">Dokumen Wajib (9 Dokumen)</h4>
+              </div>
+              <span class="text-[11px] text-on-surface-variant italic">KTP, KK, NPWP, SK CPNS, SPMT CPNS, SK PNS, DRH, Ijazah Terakhir, SKP</span>
+            </div>
+            <div id="profil-wajib-doc-list" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div class="p-6 bg-surface-container-low rounded-xl text-center text-on-surface-variant text-xs col-span-2">
+                Memuat daftar dokumen wajib...
+              </div>
+            </div>
+          </div>
+
+          <!-- Dokumen Opsional Sub-Section -->
+          <div class="pt-4 border-t border-outline-variant/20">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-outline text-[18px]">folder_special</span>
+                <h4 class="font-label-md text-on-surface font-semibold text-sm">Dokumen Opsional (2 Dokumen)</h4>
+              </div>
+              <span class="text-[11px] text-on-surface-variant italic">KARPEG, Kartu Taspen</span>
+            </div>
+            <div id="profil-opsional-doc-list" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div class="p-6 bg-surface-container-low rounded-xl text-center text-on-surface-variant text-xs col-span-2">
+                Memuat daftar dokumen opsional...
+              </div>
+            </div>
+          </div>
+
         </div>
+
       </div>
     </div>
 
@@ -250,7 +462,7 @@
 
 <script>
 // ============================================================
-// Employee Profile Logic
+// Employee Profile Logic (PHASE 06 — EMPLOYEE DETAIL PAGE)
 // ============================================================
 SIKAP.ProfilPegawai = {};
 SIKAP.ProfilPegawai._original = {}; // Stores original values for cancel
@@ -269,38 +481,112 @@ SIKAP.ProfilPegawai.getInitials = function(nama) {
  * Populates all view fields from loaded profile data.
  */
 SIKAP.ProfilPegawai.populate = function(d) {
-  // Summary card
-  document.getElementById('profil-avatar-initials').textContent = SIKAP.ProfilPegawai.getInitials(d.nama);
+  // Left Column Summary Card
+  var avatarImg = document.getElementById('profil-avatar-img');
+  var avatarInitials = document.getElementById('profil-avatar-initials');
+  if (d.fotoUrl) {
+    avatarImg.src = d.fotoUrl;
+    avatarImg.classList.remove('hidden');
+    avatarInitials.classList.add('hidden');
+  } else {
+    avatarImg.src = '';
+    avatarImg.classList.add('hidden');
+    avatarInitials.classList.remove('hidden');
+    avatarInitials.textContent = SIKAP.ProfilPegawai.getInitials(d.nama);
+  }
+
   document.getElementById('profil-card-nama').textContent = d.nama || '—';
   document.getElementById('profil-card-nip').textContent = d.nip || '—';
   document.getElementById('profil-card-status').textContent = d.statusKepegawaian || '—';
-  document.getElementById('profil-card-role-badge').textContent = d.role === 'Admin' ? 'Administrator' : 'Aktif';
+  document.getElementById('profil-card-role-badge').textContent = d.role === 'Admin' ? 'Administrator TU' : 'Pegawai';
   document.getElementById('profil-card-pangkat').textContent = d.pangkatGolongan || '—';
   document.getElementById('profil-card-jabatan').textContent = d.jabatan || '—';
+  document.getElementById('profil-card-unit').textContent = d.unitOrganisasi || 'Subbagian Tata Usaha';
 
-  // Read-only fields
+  // Section 1: IDENTITAS (Read-only + Editable)
   document.getElementById('profil-ro-nama').textContent = d.nama || '—';
   document.getElementById('profil-ro-nip').textContent = d.nip || '—';
+  document.getElementById('profil-ro-nik').textContent = d.nik || '—';
+  document.getElementById('profil-ro-jenis-kelamin').textContent = d.jenisKelamin || '—';
+
+  document.getElementById('profil-tempat-lahir').value = d.tempatLahir || '';
+  document.getElementById('profil-tanggal-lahir').value = d.tanggalLahir || '';
+  document.getElementById('profil-agama').value = d.agama || '';
+  document.getElementById('profil-pendidikan').value = d.pendidikanTerakhir || '';
+  document.getElementById('profil-status-pernikahan').value = d.statusPernikahan || '';
+  document.getElementById('profil-goldar').value = d.golonganDarah || '';
+
+  // Section 2: KEPEGAWAIAN (Read-only)
   document.getElementById('profil-ro-status').textContent = d.statusKepegawaian || '—';
   document.getElementById('profil-ro-pangkat').textContent = d.pangkatGolongan || '—';
+  document.getElementById('profil-ro-tmt-pangkat').textContent = d.tmtPangkat || '—';
+  document.getElementById('profil-ro-jenis-jabatan').textContent = d.jenisJabatan || '—';
   document.getElementById('profil-ro-jabatan').textContent = d.jabatan || '—';
+  document.getElementById('profil-ro-tmt-jabatan').textContent = d.tmtJabatan || '—';
+  document.getElementById('profil-ro-unit').textContent = d.unitOrganisasi || '—';
 
-  // Editable fields
+  // Section 3: KONTAK (Editable)
   document.getElementById('profil-hp').value = d.noHp || '';
   document.getElementById('profil-email').value = d.email || '';
   document.getElementById('profil-alamat').value = d.alamat || '';
-  document.getElementById('profil-goldar').value = d.golonganDarah || '';
 
-  // Store original for cancel
+  // Store originals for cancel action
   SIKAP.ProfilPegawai._original = {
+    tempatLahir: d.tempatLahir || '',
+    tanggalLahir: d.tanggalLahir || '',
+    agama: d.agama || '',
+    pendidikanTerakhir: d.pendidikanTerakhir || '',
+    statusPernikahan: d.statusPernikahan || '',
+    golonganDarah: d.golonganDarah || '',
     noHp: d.noHp || '',
     email: d.email || '',
-    alamat: d.alamat || '',
-    golonganDarah: d.golonganDarah || ''
+    alamat: d.alamat || ''
   };
 
-  // Reset form state
+  // Reset form dirty state
   SIKAP.ProfilPegawai.resetDirty();
+};
+
+/**
+ * Handles employee photo upload.
+ */
+SIKAP.ProfilPegawai.handleFotoUpload = function(inputEl) {
+  var file = inputEl.files && inputEl.files[0];
+  if (!file) return;
+
+  if (file.size > 5 * 1024 * 1024) {
+    SIKAP.Toast.show('Ukuran file foto melebihi batas 5 MB.', 'error');
+    inputEl.value = '';
+    return;
+  }
+
+  var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+  if (allowedTypes.indexOf(file.type.toLowerCase()) === -1) {
+    SIKAP.Toast.show('Format foto tidak valid. Gunakan JPG atau PNG.', 'error');
+    inputEl.value = '';
+    return;
+  }
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var base64Part = e.target.result.split(',')[1];
+    SIKAP.Toast.show('Mengunggah foto profil...', 'info');
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res.success) {
+          SIKAP.Toast.show('Foto profil berhasil diperbarui!', 'success');
+          SIKAP.ProfilPegawai.load(); // Reload
+        } else {
+          SIKAP.Toast.show(res.message, 'error');
+        }
+      })
+      .withFailureHandler(function() {
+        SIKAP.Toast.show('Gagal mengunggah foto profil.', 'error');
+      })
+      .uploadFotoProfil(SIKAP.state.token, base64Part, file.type);
+  };
+  reader.readAsDataURL(file);
 };
 
 /**
@@ -324,10 +610,15 @@ SIKAP.ProfilPegawai.resetDirty = function() {
  */
 SIKAP.ProfilPegawai.cancelEdit = function() {
   var o = SIKAP.ProfilPegawai._original;
+  document.getElementById('profil-tempat-lahir').value = o.tempatLahir;
+  document.getElementById('profil-tanggal-lahir').value = o.tanggalLahir;
+  document.getElementById('profil-agama').value = o.agama;
+  document.getElementById('profil-pendidikan').value = o.pendidikanTerakhir;
+  document.getElementById('profil-status-pernikahan').value = o.statusPernikahan;
+  document.getElementById('profil-goldar').value = o.golonganDarah;
   document.getElementById('profil-hp').value = o.noHp;
   document.getElementById('profil-email').value = o.email;
   document.getElementById('profil-alamat').value = o.alamat;
-  document.getElementById('profil-goldar').value = o.golonganDarah;
   SIKAP.ProfilPegawai.resetDirty();
 };
 
@@ -341,11 +632,33 @@ SIKAP.ProfilPegawai.handleSave = function(event) {
   var saveIcon = document.getElementById('profil-save-icon');
   var saveText = document.getElementById('profil-save-text');
 
+  var noHpVal = document.getElementById('profil-hp').value.trim();
+  var emailVal = document.getElementById('profil-email').value.trim();
+
+  // Contact validations
+  if (noHpVal) {
+    var cleanPhone = noHpVal.replace(/[\s\-]/g, '');
+    if (!/^(\+62|62|0)8[1-9][0-9]{6,11}$/.test(cleanPhone) && !/^(0[2-9][0-9]{1,3})[0-9]{5,8}$/.test(cleanPhone)) {
+      SIKAP.Toast.show('Format nomor HP tidak valid (cth. 082247254006).', 'error');
+      return;
+    }
+  }
+
+  if (emailVal && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(emailVal)) {
+    SIKAP.Toast.show('Format email tidak valid (cth. nama@domain.com).', 'error');
+    return;
+  }
+
   var updates = {
-    noHp: document.getElementById('profil-hp').value.trim(),
-    email: document.getElementById('profil-email').value.trim(),
-    alamat: document.getElementById('profil-alamat').value.trim(),
-    golonganDarah: document.getElementById('profil-goldar').value
+    tempatLahir: document.getElementById('profil-tempat-lahir').value.trim(),
+    tanggalLahir: document.getElementById('profil-tanggal-lahir').value,
+    agama: document.getElementById('profil-agama').value,
+    pendidikanTerakhir: document.getElementById('profil-pendidikan').value,
+    statusPernikahan: document.getElementById('profil-status-pernikahan').value,
+    golonganDarah: document.getElementById('profil-goldar').value,
+    noHp: noHpVal,
+    email: emailVal,
+    alamat: document.getElementById('profil-alamat').value.trim()
   };
 
   // Loading state
@@ -361,12 +674,18 @@ SIKAP.ProfilPegawai.handleSave = function(event) {
       if (result.success) {
         // Update stored originals
         SIKAP.ProfilPegawai._original = {
+          tempatLahir: updates.tempatLahir,
+          tanggalLahir: updates.tanggalLahir,
+          agama: updates.agama,
+          pendidikanTerakhir: updates.pendidikanTerakhir,
+          statusPernikahan: updates.statusPernikahan,
+          golonganDarah: updates.golonganDarah,
           noHp: updates.noHp,
           email: updates.email,
-          alamat: updates.alamat,
-          golonganDarah: updates.golonganDarah
+          alamat: updates.alamat
         };
         SIKAP.ProfilPegawai.resetDirty();
+        
         // Show inline success banner
         var banner = document.getElementById('profil-save-success');
         banner.classList.remove('hidden');
@@ -390,7 +709,7 @@ SIKAP.ProfilPegawai.handleSave = function(event) {
 };
 
 /**
- * Loads the profile from backend.
+ * Loads profile and document archive.
  */
 SIKAP.ProfilPegawai.load = function() {
   document.getElementById('profil-loading').classList.remove('hidden');
@@ -403,6 +722,7 @@ SIKAP.ProfilPegawai.load = function() {
       if (result.success) {
         SIKAP.ProfilPegawai.populate(result.data);
         document.getElementById('profil-data').classList.remove('hidden');
+        SIKAP.ProfilPegawai.loadDocs();
       } else {
         document.getElementById('profil-error-msg').textContent = result.message || 'Terjadi kesalahan.';
         document.getElementById('profil-error').classList.remove('hidden');
@@ -417,5 +737,73 @@ SIKAP.ProfilPegawai.load = function() {
       document.getElementById('profil-error').classList.remove('hidden');
     })
     .getMyProfile(SIKAP.state.token);
+};
+
+/**
+ * Loads and renders categorized documents (Wajib & Opsional).
+ */
+SIKAP.ProfilPegawai.loadDocs = function() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (res.success) {
+        var d = res.data;
+        var summaryBadge = document.getElementById('profil-doc-summary-badge');
+        if (summaryBadge) {
+          summaryBadge.textContent = (d.availableCount || 0) + ' dari ' + (d.totalDocs || 11) + ' dokumen tersedia';
+        }
+
+        var countSub = document.getElementById('profil-card-doc-count');
+        if (countSub) {
+          countSub.textContent = (d.wajibAvailable || 0) + ' dari ' + (d.wajibTotal || 9) + ' Dokumen Wajib Lengkap';
+        }
+
+        // Render Wajib (9 docs)
+        var wajibContainer = document.getElementById('profil-wajib-doc-list');
+        if (wajibContainer && d.wajibRows) {
+          wajibContainer.innerHTML = d.wajibRows.map(function(item) {
+            return SIKAP.ProfilPegawai.renderDocCard(item, true);
+          }).join('');
+        }
+
+        // Render Opsional (2 docs)
+        var opsContainer = document.getElementById('profil-opsional-doc-list');
+        if (opsContainer && d.opsionalRows) {
+          opsContainer.innerHTML = d.opsionalRows.map(function(item) {
+            return SIKAP.ProfilPegawai.renderDocCard(item, false);
+          }).join('');
+        }
+      }
+    })
+    .getArsipDokumenPegawai(SIKAP.state.token);
+};
+
+/**
+ * Renders individual document card for the profile view.
+ */
+SIKAP.ProfilPegawai.renderDocCard = function(item, isWajib) {
+  var isAvail = item.isAvailable;
+  var safeName = SIKAP.escapeHtml(item.nama);
+  var badge = isAvail
+    ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-label-sm text-[11px] font-semibold"><span class="material-symbols-outlined text-[13px]">check_circle</span> Tersedia</span>'
+    : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-variant text-on-surface-variant font-label-sm text-[11px]"><span class="material-symbols-outlined text-[13px]">remove</span> Belum diunggah</span>';
+
+  var actionBtn = isAvail
+    ? '<button onclick="SIKAP.Router.navigate(\'view-arsip-dokumen\')" class="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-sm rounded-lg text-xs transition-colors flex items-center gap-1 shadow-2xs"><span class="material-symbols-outlined text-[15px]">visibility</span> Lihat</button>'
+    : '<button onclick="SIKAP.Router.navigate(\'view-arsip-dokumen\')" class="px-3 py-1.5 bg-primary text-on-primary font-label-sm rounded-lg text-xs hover:bg-primary/90 transition-colors flex items-center gap-1 shadow-2xs"><span class="material-symbols-outlined text-[15px]">upload</span> Upload</button>';
+
+  var borderClass = isAvail ? 'border-outline-variant/30 bg-surface-container-lowest' : 'border-dashed border-outline-variant/40 bg-surface-container-low/40';
+
+  return '<div class="p-3.5 rounded-xl border ' + borderClass + ' flex items-center justify-between gap-3 shadow-xs hover:shadow-sm transition-shadow">' +
+    '<div class="flex items-center gap-3 min-w-0">' +
+      '<div class="w-9 h-9 rounded-lg ' + (isAvail ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-surface-container text-on-surface-variant') + ' flex items-center justify-center shrink-0">' +
+        '<span class="material-symbols-outlined text-[19px]">' + (isAvail ? 'description' : 'hourglass_empty') + '</span>' +
+      '</div>' +
+      '<div class="flex flex-col min-w-0">' +
+        '<span class="font-label-md text-on-surface truncate text-xs font-semibold">' + safeName + '</span>' +
+        '<div class="mt-0.5">' + badge + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="shrink-0">' + actionBtn + '</div>' +
+  '</div>';
 };
 </script>

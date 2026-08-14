@@ -43,21 +43,9 @@ function getMyProfile(token) {
     var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, auth.session.nip);
     if (!user) return { success: false, message: 'Data pengguna tidak ditemukan.' };
 
-    var d = user.data;
     return {
       success: true,
-      data: {
-        nip: d[COL_PEGAWAI.NIP],
-        nama: d[COL_PEGAWAI.NAMA_LENGKAP],
-        role: d[COL_PEGAWAI.ROLE],
-        statusKepegawaian: d[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
-        pangkatGolongan: d[COL_PEGAWAI.PANGKAT_GOLONGAN],
-        jabatan: d[COL_PEGAWAI.JABATAN],
-        noHp: formatPhoneForDisplay(d[COL_PEGAWAI.NO_HP]),
-        alamat: d[COL_PEGAWAI.ALAMAT] || '',
-        email: d[COL_PEGAWAI.EMAIL] || '',
-        golonganDarah: d[COL_PEGAWAI.GOLONGAN_DARAH] || ''
-      }
+      data: _mapPegawaiRowToObject(user.data)
     };
   } catch (e) {
     Logger.log('getMyProfile error: ' + e.toString());
@@ -69,7 +57,7 @@ function getMyProfile(token) {
  * Updates editable profile fields for the logged-in employee.
  * Ownership enforced: only own profile can be updated.
  * @param {string} token - Session token.
- * @param {Object} updates - { noHp, alamat, email, golonganDarah }
+ * @param {Object} updates - { noHp, alamat, email, golonganDarah, tempatLahir, tanggalLahir, agama, pendidikanTerakhir, statusPernikahan }
  * @returns {Object} Result object.
  */
 function updateMyProfile(token, updates) {
@@ -77,28 +65,49 @@ function updateMyProfile(token, updates) {
     var auth = authorize(token, null, false);
     if (!auth.authorized) return { success: false, message: auth.error };
 
-    // Input validation
-    if (updates.noHp && !/^[0-9+\-\s]{6,20}$/.test(updates.noHp)) {
-      return { success: false, message: 'Nomor HP tidak valid.' };
+    if (!updates || typeof updates !== 'object') {
+      return { success: false, message: 'Data pembaruan tidak valid.' };
     }
-    if (updates.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(updates.email)) {
+
+    // Input validation
+    if (updates.noHp && !isValidPhoneNumber(updates.noHp)) {
+      return { success: false, message: 'Format nomor HP tidak valid.' };
+    }
+    if (updates.email && !isValidEmail(updates.email)) {
       return { success: false, message: 'Format email tidak valid.' };
     }
     var allowedBloodTypes = ['A', 'B', 'AB', 'O', 'Tidak Tahu', ''];
     if (updates.golonganDarah !== undefined && allowedBloodTypes.indexOf(updates.golonganDarah) === -1) {
       return { success: false, message: 'Golongan darah tidak valid.' };
     }
+    var allowedAgama = ['Kristen Protestan', 'Kristen Katholik', 'Islam', 'Hindu', 'Buddha', 'Konghucu', ''];
+    if (updates.agama !== undefined && allowedAgama.indexOf(updates.agama) === -1) {
+      return { success: false, message: 'Pilihan agama tidak valid.' };
+    }
+    var allowedMarital = ['Belum Menikah', 'Menikah', 'Cerai', ''];
+    if (updates.statusPernikahan !== undefined && allowedMarital.indexOf(updates.statusPernikahan) === -1) {
+      return { success: false, message: 'Pilihan status pernikahan tidak valid.' };
+    }
 
     // OWNERSHIP CHECK: only update own record
     var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, auth.session.nip);
     if (!user) return { success: false, message: 'Data pengguna tidak ditemukan.' };
 
-    // Build update map — only editable fields
+    // Build update map — only employee self-editable fields
     var fields = {};
     if (updates.noHp !== undefined) fields[COL_PEGAWAI.NO_HP] = formatPhoneForStorage(updates.noHp);
-    if (updates.alamat !== undefined) fields[COL_PEGAWAI.ALAMAT] = updates.alamat;
-    if (updates.email !== undefined) fields[COL_PEGAWAI.EMAIL] = updates.email;
-    if (updates.golonganDarah !== undefined) fields[COL_PEGAWAI.GOLONGAN_DARAH] = updates.golonganDarah;
+    if (updates.alamat !== undefined) fields[COL_PEGAWAI.ALAMAT] = escapeFormula(updates.alamat);
+    if (updates.email !== undefined) fields[COL_PEGAWAI.EMAIL] = escapeFormula(updates.email);
+    if (updates.golonganDarah !== undefined) fields[COL_PEGAWAI.GOLONGAN_DARAH] = escapeFormula(updates.golonganDarah);
+    if (updates.tempatLahir !== undefined) fields[COL_PEGAWAI.TEMPAT_LAHIR] = escapeFormula(updates.tempatLahir);
+    if (updates.tanggalLahir !== undefined) fields[COL_PEGAWAI.TANGGAL_LAHIR] = formatDateOnly(updates.tanggalLahir);
+    if (updates.agama !== undefined) fields[COL_PEGAWAI.AGAMA] = escapeFormula(updates.agama);
+    if (updates.pendidikanTerakhir !== undefined) fields[COL_PEGAWAI.PENDIDIKAN_TERAKHIR] = escapeFormula(updates.pendidikanTerakhir);
+    if (updates.statusPernikahan !== undefined) fields[COL_PEGAWAI.STATUS_PERNIKAHAN] = escapeFormula(updates.statusPernikahan);
+
+    if (Object.keys(fields).length === 0) {
+      return { success: false, message: 'Tidak ada perubahan untuk disimpan.' };
+    }
 
     // Batch update
     updateRowFields(SHEET_NAMES.DATA_PEGAWAI, user.rowIndex, fields);
@@ -110,6 +119,102 @@ function updateMyProfile(token, updates) {
   } catch (e) {
     Logger.log('updateMyProfile error: ' + e.toString());
     return { success: false, message: 'Terjadi kesalahan sistem.' };
+  }
+}
+
+/**
+ * Uploads a profile photo for the logged-in employee.
+ * Saved to employee's Drive folder as [NIP]_FOTO.[ext].
+ * Overwrites/trashes old profile photo if exists.
+ * @param {string} token - Session token.
+ * @param {string} base64Data - Base64 encoded image data.
+ * @param {string} mimeType - Image mime type (JPEG, JPG, PNG).
+ * @returns {Object} Result with new photo drive ID and URL.
+ */
+function uploadFotoProfil(token, base64Data, mimeType) {
+  try {
+    var auth = authorize(token, null, false);
+    if (!auth.authorized) return { success: false, message: auth.error };
+
+    var nip = auth.session.nip;
+    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, nip);
+    if (!user) return { success: false, message: 'Data pengguna tidak ditemukan.' };
+
+    // Validate Base64 data
+    if (!base64Data || typeof base64Data !== 'string') {
+      return { success: false, message: 'Data file foto tidak valid atau kosong.' };
+    }
+
+    var cleanBase64 = base64Data.trim();
+    if (cleanBase64.indexOf(',') !== -1) {
+      cleanBase64 = cleanBase64.split(',')[1];
+    }
+    cleanBase64 = cleanBase64.replace(/\s/g, '');
+
+    // Validate MIME type (JPEG, JPG, PNG allowed)
+    var cleanMime = String(mimeType || '').toLowerCase().trim();
+    var ext = '';
+    if (cleanMime === 'image/jpeg' || cleanMime === 'image/jpg' || cleanMime === 'image/pjpeg' || cleanMime === 'image/jfif') {
+      ext = 'jpg';
+      cleanMime = 'image/jpeg';
+    } else if (cleanMime === 'image/png') {
+      ext = 'png';
+      cleanMime = 'image/png';
+    } else {
+      return { success: false, message: 'Format foto tidak valid. Hanya JPG dan PNG yang didukung.' };
+    }
+
+    // Validate size (max 5 MB)
+    var approxBytes = Math.ceil(cleanBase64.length * 0.75);
+    if (approxBytes > 5 * 1024 * 1024) {
+      return { success: false, message: 'Ukuran foto melebihi batas maksimal 5 MB.' };
+    }
+
+    // Trash old photo from Drive if exists
+    var oldFotoDriveId = String(user.data[COL_PEGAWAI.FOTO_DRIVE_ID] || '').replace(/^'+/, '').trim();
+    if (oldFotoDriveId) {
+      try {
+        DriveApp.getFileById(oldFotoDriveId).setTrashed(true);
+        Logger.log('Old profile photo trashed: ' + oldFotoDriveId);
+      } catch (e) {
+        Logger.log('Could not trash old photo ' + oldFotoDriveId + ': ' + e.toString());
+      }
+    }
+
+    // Get employee folder
+    var empFolder = getOrCreateEmployeeFolder(nip);
+    var fileName = nip + '_FOTO.' + ext;
+
+    var decodedBytes = Utilities.newBlob(
+      Utilities.base64Decode(cleanBase64),
+      cleanMime,
+      fileName
+    );
+
+    var newFile = empFolder.createFile(decodedBytes);
+    var newFileId = newFile.getId();
+
+    // Update Data_Pegawai sheet
+    updateRowFields(SHEET_NAMES.DATA_PEGAWAI, user.rowIndex, {
+      [COL_PEGAWAI.FOTO_DRIVE_ID]: newFileId
+    });
+
+    logActivity(nip, auth.session.role, 'FOTO_PROFIL_UPLOAD', 'USER',
+      nip, 'Foto profil berhasil diunggah: ' + fileName, 'SUCCESS');
+
+    var fotoUrl = 'https://drive.google.com/thumbnail?id=' + newFileId + '&sz=w500';
+
+    return {
+      success: true,
+      message: 'Foto profil berhasil diperbarui.',
+      data: {
+        fotoDriveId: newFileId,
+        fotoUrl: fotoUrl
+      }
+    };
+  } catch (e) {
+    Logger.log('uploadFotoProfil error: ' + e.toString());
+    return { success: false, message: 'Gagal mengunggah foto profil: ' + (e.message || e.toString()) };
   }
 }
 
@@ -302,6 +407,12 @@ function test_updateMyProfile_validation() {
 
   var r4 = updateMyProfile(token, { golonganDarah: 'AB' });
   Logger.log('Test goldar valid AB: ' + (r4.success === true ? 'PASS ✓' : 'FAIL ✗') + ' — ' + r4.message);
+
+  var r5 = updateMyProfile(token, { agama: 'AgamaTidakDikenal' });
+  Logger.log('Test agama invalid: ' + (r5.success === false ? 'PASS ✓' : 'FAIL ✗') + ' — ' + r5.message);
+
+  var r6 = updateMyProfile(token, { statusPernikahan: 'InvalidStatus' });
+  Logger.log('Test status pernikahan invalid: ' + (r6.success === false ? 'PASS ✓' : 'FAIL ✗') + ' — ' + r6.message);
 
   Logger.log('=== TESTS COMPLETE ===');
 }
