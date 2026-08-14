@@ -36,17 +36,17 @@ function doGet(e) {
         break;
         
       // --- Admin ---
-      case 'getDashboardAdmin':
-        result = getDashboardAdmin(e.parameter.token);
+      case 'adminGetDashboardStats':
+        result = adminGetDashboardStats(e.parameter.token);
         break;
-      case 'getMasterDataPegawai':
-        result = getMasterDataPegawai(e.parameter.token);
+      case 'adminGetAllPegawai':
+        result = adminGetAllPegawai(e.parameter.token);
         break;
-      case 'getPegawaiById':
-        result = getPegawaiById(e.parameter.token, e.parameter.targetNip);
+      case 'adminGetPegawaiDetail':
+        result = adminGetPegawaiDetail(e.parameter.token, e.parameter.targetNip);
         break;
-      case 'getDaftarAntreanVerifikasi':
-        result = getDaftarAntreanVerifikasi(e.parameter.token);
+      case 'adminGetVerificationQueue':
+        result = adminGetVerificationQueue(e.parameter.token);
         break;
         
       // --- Pegawai ---
@@ -116,20 +116,26 @@ function doPost(e) {
         break;
         
       // --- Admin ---
-      case 'createPegawai':
-        result = createPegawai(payload.token, payload.pegawaiData);
+      case 'adminTambahPegawai':
+        result = adminTambahPegawai(payload.token, payload.data);
         break;
-      case 'updatePegawai':
-        result = updatePegawai(payload.token, payload.targetNip, payload.updates);
+      case 'adminUpdatePegawai':
+        result = adminUpdatePegawai(payload.token, payload.targetNip, payload.updates);
         break;
-      case 'resetPasswordPegawai':
-        result = resetPasswordPegawai(payload.token, payload.targetNip);
+      case 'adminUploadFotoPegawai':
+        result = adminUploadFotoPegawai(payload.token, payload.targetNip, payload.base64Data, payload.mimeType);
         break;
-      case 'nonaktifkanPegawai':
-        result = nonaktifkanPegawai(payload.token, payload.targetNip);
+      case 'adminSetStatusAkun':
+        result = adminSetStatusAkun(payload.token, payload.targetNip, payload.newStatus);
         break;
-      case 'aktifkanPegawai':
-        result = aktifkanPegawai(payload.token, payload.targetNip);
+      case 'adminResetPassword':
+        result = adminResetPassword(payload.token, payload.targetNip);
+        break;
+      case 'adminApproveDokumen':
+        result = adminApproveDokumen(payload.token, payload.idArsip);
+        break;
+      case 'adminRejectDokumen':
+        result = adminRejectDokumen(payload.token, payload.idArsip, payload.alasanPenolakan);
         break;
         
       // --- Pegawai ---
@@ -146,9 +152,6 @@ function doPost(e) {
         break;
       case 'hapusDokumen':
         result = hapusDokumen(payload.token, payload.idArsip);
-        break;
-      case 'verifikasiDokumen':
-        result = verifikasiDokumen(payload.token, payload.idArsip, payload.status, payload.catatan);
         break;
         
       default:
