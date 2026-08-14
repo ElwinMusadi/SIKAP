@@ -29,7 +29,7 @@
     <div class="text-center px-6">
       <h3 class="font-h3 text-on-surface mb-1">Gagal Memuat Profil</h3>
       <p class="font-body-md text-on-surface-variant mb-4" id="profil-error-msg">Terjadi kesalahan saat mengambil data.</p>
-      <button class="px-5 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary/90 transition-colors"
+      <button class="px-5 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary-hover transition-colors"
               onclick="SIKAP.ProfilPegawai.load()">Coba Lagi</button>
     </div>
   </div>
@@ -175,8 +175,8 @@
             </div>
 
             <!-- Success Banner (inline, transient) -->
-            <div class="hidden mb-5 flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 font-body-md" id="profil-save-success">
-              <span class="material-symbols-outlined text-emerald-600">check_circle</span>
+            <div class="hidden mb-5 flex items-center gap-3 p-4 bg-success-container border border-success-border rounded-lg text-success font-body-md" id="profil-save-success">
+              <span class="material-symbols-outlined text-success">check_circle</span>
               <span>Profil berhasil diperbarui.</span>
             </div>
 
@@ -232,7 +232,7 @@
                   Batalkan
                 </button>
                 <button type="submit"
-                        class="px-6 py-2.5 bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary/90 hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="px-6 py-2.5 bg-primary text-on-primary font-label-md rounded-lg hover:bg-primary-hover hover:shadow-md transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         id="profil-save-btn" disabled>
                   <span class="material-symbols-outlined text-[18px]" id="profil-save-icon">save</span>
                   <span id="profil-save-text">Simpan Perubahan</span>

@@ -138,11 +138,8 @@ SIKAP.Arsip.renderTable = function(rows) {
       html += '<span class="material-symbols-outlined text-[16px]">upload</span> Revisi</button>';
     } else if (r.status === 'Belum Unggah' || r.status === 'Belum_Unggah' || (r.status && r.status.indexOf('Belum') !== -1)) {
       // Action button always visible
-      var btnClass = r.wajib === 'Ya' 
-        ? 'border border-primary text-primary hover:bg-primary/5' 
-        : 'text-on-surface-variant hover:text-primary hover:bg-primary/5';
-      html += '<button onclick="SIKAP.Arsip.openUploadModal(\'' + r.idDokumen + '\')" class="px-3 py-1.5 ' + btnClass + ' rounded-lg font-label-sm transition-colors flex items-center gap-1">';
-      if (r.wajib === 'Ya') html += '<span class="material-symbols-outlined text-[16px]">upload</span>';
+      html += '<button onclick="SIKAP.Arsip.openUploadModal(\'' + r.idDokumen + '\')" class="px-3 py-1.5 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-label-sm transition-all shadow-sm flex items-center gap-1.5 active:scale-95">';
+      html += '<span class="material-symbols-outlined text-[16px]">upload</span>';
       html += 'Unggah</button>';
     }
     
@@ -161,11 +158,11 @@ SIKAP.Arsip.getStatusInfo = function(status, catatan) {
   
   if (status === 'Terverifikasi') {
     iconHtml = '<div class="w-10 h-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined">description</span></div>';
-    badgeHtml = '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#e6f4ea] text-[#137333] font-label-sm"><span class="material-symbols-outlined text-[14px]">check_circle</span> Terverifikasi</div>';
+    badgeHtml = '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success-container text-success font-label-sm"><span class="material-symbols-outlined text-[14px]">check_circle</span> Terverifikasi</div>';
   } 
   else if (status === 'Menunggu') {
-    iconHtml = '<div class="w-10 h-10 rounded-lg bg-[#fef7e0] text-[#b06000] flex items-center justify-center shrink-0"><span class="material-symbols-outlined">pending</span></div>';
-    badgeHtml = '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#fef7e0] text-[#b06000] font-label-sm"><span class="material-symbols-outlined text-[14px]">pending</span> Menunggu Verifikasi</div>';
+    iconHtml = '<div class="w-10 h-10 rounded-lg bg-warning-container text-warning flex items-center justify-center shrink-0"><span class="material-symbols-outlined">pending</span></div>';
+    badgeHtml = '<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-warning-container text-warning font-label-sm"><span class="material-symbols-outlined text-[14px]">pending</span> Menunggu Verifikasi</div>';
   } 
   else if (status === 'Ditolak') {
     iconHtml = '<div class="w-10 h-10 rounded-lg bg-error-container text-on-error-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined">account_balance_wallet</span></div>';
@@ -442,13 +439,13 @@ SIKAP.Arsip.openPreviewModal = function(idArsip) {
         text.textContent = d.statusVerifikasi.toUpperCase();
         
         if (d.statusVerifikasi === 'Terverifikasi') {
-          badge.classList.add('bg-[#dcfce7]', 'text-[#166534]');
+          badge.classList.add('bg-success-container', 'text-success');
           icon.textContent = 'check_circle';
         } else if (d.statusVerifikasi === 'Menunggu') {
-          badge.classList.add('bg-[#fef7e0]', 'text-[#b06000]');
+          badge.classList.add('bg-warning-container', 'text-warning');
           icon.textContent = 'pending';
         } else if (d.statusVerifikasi === 'Ditolak') {
-          badge.classList.add('bg-error-container', 'text-on-error-container');
+          badge.classList.add('bg-danger-container', 'text-danger');
           icon.textContent = 'error';
         }
         

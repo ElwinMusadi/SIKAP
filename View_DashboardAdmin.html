@@ -12,7 +12,7 @@
       <p class="font-body-lg text-body-lg text-on-surface-variant">Ringkasan data kepegawaian dan aktivitas terbaru.</p>
     </div>
     <div class="flex gap-3">
-      <button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-primary-container transition-colors shadow-sm"
+      <button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-primary-hover transition-colors shadow-sm"
               onclick="SIKAP.Router.navigate('view-master-data-pegawai')">
         <span class="material-symbols-outlined text-[20px]">person_add</span>
         Tambah Pegawai
@@ -59,16 +59,16 @@
     </div>
 
     <!-- Verification Alert -->
-    <div class="bg-[#fff8e1] p-5 rounded-xl shadow-sm border border-[#f0e0b0] flex flex-col justify-between h-28 relative overflow-hidden group">
+    <div class="bg-warning-container p-5 rounded-xl shadow-sm border border-warning-border flex flex-col justify-between h-28 relative overflow-hidden group">
       <div class="flex justify-between items-start z-10 relative">
-        <span class="font-label-md text-label-md text-[#8f6d00] uppercase tracking-wider">Menunggu Verifikasi</span>
-        <span class="material-symbols-outlined text-[#ffc107] opacity-90 group-hover:opacity-100 transition-opacity" style="font-variation-settings: 'FILL' 1;">warning</span>
+        <span class="font-label-md text-label-md text-warning uppercase tracking-wider">Menunggu Verifikasi</span>
+        <span class="material-symbols-outlined text-warning opacity-90 group-hover:opacity-100 transition-opacity" style="font-variation-settings: 'FILL' 1;">warning</span>
       </div>
       <div class="z-10 relative flex items-end gap-2">
-        <span class="font-h1-mobile text-[32px] leading-tight font-bold text-[#8f6d00]" id="admin-stat-pending">—</span>
-        <span class="font-body-sm text-body-sm text-[#8f6d00] mb-2">Dokumen</span>
+        <span class="font-h1-mobile text-[32px] leading-tight font-bold text-warning" id="admin-stat-pending">—</span>
+        <span class="font-body-sm text-body-sm text-warning mb-2">Dokumen</span>
       </div>
-      <div class="absolute top-0 right-0 w-32 h-32 bg-[#ffe082]/20 rounded-full blur-2xl -mr-8 -mt-8"></div>
+      <div class="absolute top-0 right-0 w-32 h-32 bg-warning-container/40 rounded-full blur-2xl -mr-8 -mt-8"></div>
     </div>
   </div>
 
@@ -87,27 +87,27 @@
           </div>
           <!-- Breakdown Bar -->
           <div class="w-full h-4 rounded-full overflow-hidden flex shadow-inner bg-surface-container-highest mb-4">
-            <div class="h-full bg-primary transition-all duration-500" id="admin-bar-verified" style="width: 0%;"></div>
-            <div class="h-full bg-[#ffc107] transition-all duration-500" id="admin-bar-pending" style="width: 0%;"></div>
-            <div class="h-full bg-[#ff9800] transition-all duration-500" id="admin-bar-rejected" style="width: 0%;"></div>
-            <div class="h-full bg-error transition-all duration-500" id="admin-bar-empty" style="width: 0%;"></div>
+            <div class="h-full bg-success transition-all duration-500" id="admin-bar-verified" style="width: 0%;"></div>
+            <div class="h-full bg-warning transition-all duration-500" id="admin-bar-pending" style="width: 0%;"></div>
+            <div class="h-full bg-danger transition-all duration-500" id="admin-bar-rejected" style="width: 0%;"></div>
+            <div class="h-full bg-surface-container-high transition-all duration-500" id="admin-bar-empty" style="width: 0%;"></div>
           </div>
           <!-- Legend -->
           <div class="flex flex-wrap gap-4 mt-6">
             <div class="flex items-center gap-2">
-              <div class="w-3 h-3 rounded-full bg-primary"></div>
+              <div class="w-3 h-3 rounded-full bg-success"></div>
               <span class="font-body-sm text-body-sm text-on-surface-variant" id="admin-legend-verified">Lengkap (—)</span>
             </div>
             <div class="flex items-center gap-2">
-              <div class="w-3 h-3 rounded-full bg-[#ffc107]"></div>
+              <div class="w-3 h-3 rounded-full bg-warning"></div>
               <span class="font-body-sm text-body-sm text-on-surface-variant" id="admin-legend-pending">Menunggu (—)</span>
             </div>
             <div class="flex items-center gap-2">
-              <div class="w-3 h-3 rounded-full bg-[#ff9800]"></div>
+              <div class="w-3 h-3 rounded-full bg-danger"></div>
               <span class="font-body-sm text-body-sm text-on-surface-variant" id="admin-legend-rejected">Perlu Revisi (—)</span>
             </div>
             <div class="flex items-center gap-2">
-              <div class="w-3 h-3 rounded-full bg-error"></div>
+              <div class="w-3 h-3 rounded-full bg-surface-container-high"></div>
               <span class="font-body-sm text-body-sm text-on-surface-variant" id="admin-legend-empty">Belum Lengkap (—)</span>
             </div>
           </div>

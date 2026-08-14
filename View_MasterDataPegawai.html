@@ -17,7 +17,7 @@
       <h1 class="font-h1 text-on-surface">Master Data Pegawai</h1>
       <p class="font-body-sm text-on-surface-variant mt-0.5" id="mdp-summary-text">Memuat data...</p>
     </div>
-    <button class="bg-primary hover:bg-primary/90 text-on-primary font-label-md px-lg py-sm rounded-lg flex items-center gap-xs shadow-md transition-all active:scale-95"
+    <button class="bg-primary hover:bg-primary-hover text-on-primary font-label-md px-lg py-sm rounded-lg flex items-center gap-xs shadow-md transition-all active:scale-95"
             id="mdp-btn-tambah" onclick="SIKAP.MasterDataPegawai.openTambah()">
       <span class="material-symbols-outlined text-[18px]">add</span>
       Tambah Pegawai
@@ -96,7 +96,7 @@
     <div class="text-center">
       <h3 class="font-h3 text-on-surface mb-1">Gagal Memuat Data</h3>
       <p class="font-body-md text-on-surface-variant mb-4" id="mdp-error-msg">Terjadi kesalahan.</p>
-      <button class="px-5 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary/90 transition-colors"
+      <button class="px-5 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary-hover transition-colors"
               onclick="SIKAP.MasterDataPegawai.load()">Coba Lagi</button>
     </div>
   </div>
@@ -334,7 +334,7 @@
       <div class="mt-auto pt-xl flex items-center justify-end gap-md">
         <button type="button" class="px-lg py-sm rounded-lg bg-surface-container text-on-surface font-label-md hover:bg-outline-variant/20 transition-colors"
                 onclick="SIKAP.MasterDataPegawai.closeTambah()">Batal</button>
-        <button type="submit" class="px-lg py-sm rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-xs disabled:opacity-50"
+        <button type="submit" class="px-lg py-sm rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary-hover transition-colors shadow-sm flex items-center gap-xs disabled:opacity-50"
                 id="tambah-save-btn">
           <span class="material-symbols-outlined text-[18px]" id="tambah-save-icon">save</span>
           <span id="tambah-save-text">Simpan Pegawai</span>
@@ -503,7 +503,7 @@
       <!-- Action Buttons -->
       <div class="flex flex-col gap-3 mt-auto">
         <button type="submit"
-                class="w-full py-3 px-4 bg-primary text-on-primary rounded-lg font-label-md shadow-md hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                class="w-full py-3 px-4 bg-primary text-on-primary rounded-lg font-label-md shadow-md hover:bg-primary-hover transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 id="edit-save-btn">
           <span class="material-symbols-outlined text-[18px]" id="edit-save-icon">save</span>
           <span id="edit-save-text">Simpan Perubahan</span>

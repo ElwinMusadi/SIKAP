@@ -27,7 +27,7 @@
     <div class="text-center">
       <h3 class="font-h3 text-on-surface mb-1">Gagal Memuat Data</h3>
       <p class="font-body-md text-on-surface-variant mb-4" id="dp-error-msg">Terjadi kesalahan saat mengambil data.</p>
-      <button class="px-5 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary/90 transition-colors"
+      <button class="px-5 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary-hover transition-colors"
               onclick="SIKAP.DashboardPegawai.load()">
         Coba Lagi
       </button>
@@ -48,7 +48,7 @@
       <div class="flex items-center gap-3">
         <button class="px-4 py-2 rounded-lg bg-surface-container-high text-on-surface font-label-md hover:bg-surface-container transition-colors shadow-sm"
                 onclick="SIKAP.Router.navigate('view-profil-pegawai')">Lihat Profil</button>
-        <button class="px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
+        <button class="px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary-hover transition-colors shadow-sm flex items-center gap-2"
                 onclick="SIKAP.Router.navigate('view-arsip-dokumen')">
           <span class="material-symbols-outlined text-[18px]">upload_file</span>
           Lengkapi Dokumen
@@ -87,32 +87,32 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <!-- Terverifikasi -->
           <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-4 hover:shadow-md transition-shadow">
-            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
-              <span class="material-symbols-outlined text-emerald-700 text-[18px]">verified</span>
+            <div class="w-8 h-8 rounded-full bg-success-container flex items-center justify-center mb-3">
+              <span class="material-symbols-outlined text-success text-[18px]">verified</span>
             </div>
             <div class="font-h2 text-on-surface" id="dp-stat-verified">—</div>
             <div class="font-label-sm text-on-surface-variant mt-1">Dokumen Terverifikasi</div>
           </div>
           <!-- Menunggu -->
           <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-4 hover:shadow-md transition-shadow">
-            <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center mb-3">
-              <span class="material-symbols-outlined text-amber-700 text-[18px]">pending</span>
+            <div class="w-8 h-8 rounded-full bg-warning-container flex items-center justify-center mb-3">
+              <span class="material-symbols-outlined text-warning text-[18px]">pending</span>
             </div>
             <div class="font-h2 text-on-surface" id="dp-stat-pending">—</div>
             <div class="font-label-sm text-on-surface-variant mt-1">Menunggu Verifikasi</div>
           </div>
           <!-- Perlu Revisi -->
           <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-4 hover:shadow-md transition-shadow">
-            <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center mb-3">
-              <span class="material-symbols-outlined text-orange-700 text-[18px]">edit_note</span>
+            <div class="w-8 h-8 rounded-full bg-danger-container flex items-center justify-center mb-3">
+              <span class="material-symbols-outlined text-danger text-[18px]">edit_note</span>
             </div>
             <div class="font-h2 text-on-surface" id="dp-stat-rejected">—</div>
             <div class="font-label-sm text-on-surface-variant mt-1">Perlu Revisi</div>
           </div>
           <!-- Belum Diunggah -->
           <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-4 hover:shadow-md transition-shadow">
-            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mb-3">
-              <span class="material-symbols-outlined text-red-700 text-[18px]">warning</span>
+            <div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center mb-3">
+              <span class="material-symbols-outlined text-on-surface-variant text-[18px]">warning</span>
             </div>
             <div class="font-h2 text-on-surface" id="dp-stat-empty">—</div>
             <div class="font-label-sm text-on-surface-variant mt-1">Belum Diunggah</div>
@@ -133,11 +133,11 @@
         </div>
 
         <!-- If no alerts, show success banner -->
-        <div class="rounded-xl bg-emerald-50 p-5 flex items-start gap-4 hidden border border-emerald-200" id="dp-success-card">
-          <span class="material-symbols-outlined text-emerald-700 mt-0.5 flex-shrink-0">check_circle</span>
+        <div class="rounded-xl bg-success-container p-5 flex items-start gap-4 hidden border border-success-border" id="dp-success-card">
+          <span class="material-symbols-outlined text-success mt-0.5 flex-shrink-0">check_circle</span>
           <div>
-            <h3 class="font-label-md text-emerald-800">Semua Dokumen Wajib Lengkap</h3>
-            <p class="font-body-md text-emerald-700/80 mt-1">Tidak ada dokumen yang perlu direvisi atau diunggah ulang saat ini.</p>
+            <h3 class="font-label-md text-success">Semua Dokumen Wajib Lengkap</h3>
+            <p class="font-body-md text-success/80 mt-1">Tidak ada dokumen yang perlu direvisi atau diunggah ulang saat ini.</p>
           </div>
         </div>
 
@@ -185,16 +185,16 @@ SIKAP.DashboardPegawai = {};
 SIKAP.DashboardPegawai.statusBadge = function(status) {
   switch (status) {
     case 'Terverifikasi':
-      return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-label-sm">' +
+      return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success-container text-success font-label-sm">' +
              '<span class="material-symbols-outlined text-[13px]">verified</span>Terverifikasi</span>';
     case 'Menunggu':
-      return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-label-sm">' +
+      return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning-container text-warning font-label-sm">' +
              '<span class="material-symbols-outlined text-[13px]">pending</span>Menunggu</span>';
     case 'Ditolak':
-      return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-label-sm">' +
+      return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-danger-container text-danger font-label-sm">' +
              '<span class="material-symbols-outlined text-[13px]">edit_note</span>Perlu Revisi</span>';
     default:
-      return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-label-sm">' +
+      return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm">' +
              '<span class="material-symbols-outlined text-[13px]">warning</span>Belum Diunggah</span>';
   }
 };

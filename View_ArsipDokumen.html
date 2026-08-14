@@ -10,7 +10,7 @@
         Kelola dan pantau status seluruh dokumen administratif kepegawaian Anda.
       </p>
     </div>
-    <button onclick="SIKAP.Arsip.openUploadModal()" class="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-xl font-label-md hover:bg-primary-container hover:shadow-md transition-all self-start md:self-auto w-full md:w-auto shrink-0">
+    <button onclick="SIKAP.Arsip.openUploadModal()" class="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-xl font-label-md hover:bg-primary-hover hover:shadow-md transition-all self-start md:self-auto w-full md:w-auto shrink-0">
       <span class="material-symbols-outlined text-[18px]">cloud_upload</span>
       Unggah Dokumen Baru
     </button>
@@ -46,11 +46,11 @@
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 flex flex-col gap-1">
       <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Terverifikasi</span>
-      <span class="font-h2 text-h2 text-[#137333]" id="arsip-count-verified">0</span>
+      <span class="font-h2 text-h2 text-success" id="arsip-count-verified">0</span>
     </div>
     <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 flex flex-col gap-1">
       <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Menunggu</span>
-      <span class="font-h2 text-h2 text-[#b06000]" id="arsip-count-waiting">0</span>
+      <span class="font-h2 text-h2 text-warning" id="arsip-count-waiting">0</span>
     </div>
     <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 flex flex-col gap-1">
       <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Ditolak</span>
@@ -160,7 +160,7 @@
       <button id="btn-cancel-upload" onclick="SIKAP.Arsip.closeUploadModal()" class="px-4 py-2 font-label-md text-label-md text-on-surface bg-surface-container-high hover:bg-surface-container-highest rounded-lg transition-colors">
         Batal
       </button>
-      <button id="arsip-btn-upload" onclick="SIKAP.Arsip.submitUpload()" class="px-4 py-2 font-label-md text-label-md text-on-primary bg-primary hover:bg-primary-container shadow-sm hover:shadow-md rounded-lg transition-all flex items-center gap-2 disabled:opacity-50" disabled>
+      <button id="arsip-btn-upload" onclick="SIKAP.Arsip.submitUpload()" class="px-4 py-2 font-label-md text-label-md text-on-primary bg-primary hover:bg-primary-hover shadow-sm hover:shadow-md rounded-lg transition-all flex items-center gap-2 disabled:opacity-50" disabled>
         <span id="upload-btn-icon" class="material-symbols-outlined text-[18px]">upload</span>
         <span id="upload-btn-text">Upload Dokumen</span>
       </button>
@@ -238,9 +238,9 @@
           </div>
           
           <div id="preview-catatan-container" class="hidden">
-            <div class="bg-[#fff3e0] border border-[#ffe0b2] rounded-lg p-4">
-              <span class="font-label-md text-label-md text-[#e65100]">Catatan Admin:</span>
-              <p id="preview-catatan-admin" class="font-body-md text-body-md text-[#e65100]/80 mt-1"></p>
+            <div class="bg-warning-container border border-warning-border rounded-lg p-4">
+              <span class="font-label-md text-label-md text-warning">Catatan Admin:</span>
+              <p id="preview-catatan-admin" class="font-body-md text-body-md text-warning/80 mt-1"></p>
             </div>
           </div>
         </div>
@@ -275,20 +275,20 @@
             <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Nama Dokumen</span>
             <span id="penolakan-nama-dokumen" class="font-h2 text-h2 text-on-surface">-</span>
           </div>
-          <div class="bg-[#fff3e0] text-[#e65100] px-3 py-1 rounded-full flex items-center gap-1.5">
+          <div class="bg-warning-container text-warning px-3 py-1 rounded-full flex items-center gap-1.5">
             <span class="material-symbols-outlined text-[16px]">warning</span>
             <span class="font-label-sm text-label-sm">Perlu Revisi</span>
           </div>
         </div>
       </div>
 
-      <div class="bg-[#fff3e0] border border-[#ffe0b2] rounded-lg p-4 flex gap-4">
+      <div class="bg-warning-container border border-warning-border rounded-lg p-4 flex gap-4">
         <div class="mt-0.5">
-          <span class="material-symbols-outlined text-[#e65100]">info</span>
+          <span class="material-symbols-outlined text-warning">info</span>
         </div>
         <div class="flex flex-col gap-1">
-          <span class="font-label-md text-label-md text-[#e65100]">Alasan Penolakan</span>
-          <p id="penolakan-catatan-admin" class="font-body-md text-body-md text-[#e65100]/80"></p>
+          <span class="font-label-md text-label-md text-warning">Alasan Penolakan</span>
+          <p id="penolakan-catatan-admin" class="font-body-md text-body-md text-warning/80"></p>
         </div>
       </div>
     </div>
@@ -297,7 +297,7 @@
       <button class="px-5 py-2.5 rounded-lg bg-surface-container-high text-on-surface font-label-md text-label-md hover:bg-surface-variant transition-colors" onclick="SIKAP.Arsip.closePenolakanModal()">
         Tutup
       </button>
-      <button id="penolakan-btn-reupload" onclick="SIKAP.Arsip.reuploadFromPenolakan()" class="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container transition-colors flex items-center gap-2 shadow-sm">
+      <button id="penolakan-btn-reupload" onclick="SIKAP.Arsip.reuploadFromPenolakan()" class="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-hover transition-colors flex items-center gap-2 shadow-sm">
         <span class="material-symbols-outlined text-[20px]">upload</span>
         Upload Ulang
       </button>

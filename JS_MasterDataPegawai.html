@@ -42,8 +42,8 @@ SIKAP.MasterDataPegawai.statusAkunBadge = function(status) {
 };
 
 SIKAP.MasterDataPegawai.completenessBar = function(pct, label) {
-  var color = label === 'Lengkap' ? 'bg-primary' : (label === 'Perlu Revisi' ? 'bg-error' : 'bg-tertiary');
-  var textColor = label === 'Lengkap' ? '' : (label === 'Perlu Revisi' ? 'text-error' : 'text-tertiary');
+  var color = label === 'Lengkap' ? 'bg-success' : (label === 'Perlu Revisi' ? 'bg-danger' : 'bg-warning');
+  var textColor = label === 'Lengkap' ? 'text-success' : (label === 'Perlu Revisi' ? 'text-danger' : 'text-warning');
   return '<div class="flex flex-col gap-xs w-full max-w-[150px]">' +
     '<div class="flex justify-between font-label-sm text-on-surface-variant text-[10px]">' +
       '<span>' + pct + '%</span>' +
@@ -426,7 +426,7 @@ SIKAP.MasterDataPegawai.openConfirm = function(nip, nama, currentStatus) {
     icon.className = 'material-symbols-outlined text-[32px] text-on-primary-container';
     document.getElementById('mdp-confirm-title').textContent = 'Aktifkan Kembali Akun?';
     document.getElementById('mdp-confirm-desc').textContent = 'Pegawai dapat login kembali setelah akun diaktifkan.';
-    actionBtn.className = 'flex-1 px-lg py-md rounded-lg font-label-md text-center focus:outline-none focus:ring-2 flex items-center justify-center gap-sm transition-colors bg-primary text-on-primary hover:bg-primary/90 focus:ring-primary';
+    actionBtn.className = 'flex-1 px-lg py-md rounded-lg font-label-md text-center focus:outline-none focus:ring-2 flex items-center justify-center gap-sm transition-colors bg-primary text-on-primary hover:bg-primary-hover focus:ring-primary';
     actionIcon.textContent = 'check_circle';
     actionText.textContent = 'Ya, Aktifkan';
   }

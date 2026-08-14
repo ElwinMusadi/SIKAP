@@ -82,8 +82,8 @@ SIKAP.DashboardAdmin.renderStats = function(d) {
   
   d.recentActivities.forEach(function(act) {
     var dotClass = 'bg-primary';
-    if (act.action.indexOf('CREATE') !== -1) dotClass = 'bg-[#137333]';
-    else if (act.action.indexOf('UPDATE') !== -1) dotClass = 'bg-[#ff9800]';
+    if (act.action.indexOf('CREATE') !== -1) dotClass = 'bg-success';
+    else if (act.action.indexOf('UPDATE') !== -1) dotClass = 'bg-warning';
     else if (act.action.indexOf('DEACTIVATE') !== -1) dotClass = 'bg-error';
 
     html += '<div class="relative flex gap-4">';

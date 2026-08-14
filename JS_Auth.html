@@ -58,12 +58,12 @@ SIKAP.Auth.handleLogin = function(event) {
         localStorage.setItem(SIKAP.STORAGE_KEY, result.data.token);
 
         // Success animation
-        button.classList.add('!bg-emerald-600');
+        button.classList.add('!bg-success');
         buttonText.textContent = 'Berhasil';
         buttonIcon.textContent = 'check';
 
         setTimeout(function() {
-          button.classList.remove('!bg-emerald-600');
+          button.classList.remove('!bg-success');
           buttonText.textContent = 'Masuk';
           buttonIcon.textContent = 'arrow_forward';
 
@@ -202,7 +202,7 @@ SIKAP.Auth.handleForceChangePassword = function(event) {
           
           submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span> Berhasil!';
           submitBtn.classList.remove('bg-primary');
-          submitBtn.classList.add('bg-emerald-600');
+          submitBtn.classList.add('bg-success');
 
           setTimeout(function() {
             // Clear form
@@ -212,7 +212,7 @@ SIKAP.Auth.handleForceChangePassword = function(event) {
             if (confirmPwInput) confirmPwInput.value = '';
             
             submitBtn.disabled = false;
-            submitBtn.classList.remove('bg-emerald-600');
+            submitBtn.classList.remove('bg-success');
             submitBtn.classList.add('bg-primary');
             submitBtn.innerHTML = 'Simpan Password & Lanjutkan <span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
 

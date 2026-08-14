@@ -9,7 +9,7 @@
   <!-- LEFT PANEL: Branding   -->
   <!-- ====================== -->
   <div class="hidden md:flex md:w-1/2 lg:w-[55%] relative flex-col justify-between overflow-hidden"
-       style="background-color: #001650;">
+       style="background-color: #0B2E82;">
 
     <!-- Background Image -->
     <div class="absolute inset-0 z-0">
@@ -20,14 +20,14 @@
         onerror="this.style.display='none'">
       <!-- Dark overlay gradient -->
       <div class="absolute inset-0"
-           style="background: linear-gradient(135deg, rgba(0,22,78,0.82) 0%, rgba(0,35,111,0.70) 50%, rgba(0,22,78,0.88) 100%);"></div>
+           style="background: linear-gradient(135deg, rgba(9,37,103,0.82) 0%, rgba(11,46,130,0.70) 50%, rgba(9,37,103,0.88) 100%);"></div>
     </div>
 
     <!-- Decorative subtle circles -->
     <div class="absolute top-[-80px] right-[-80px] w-[320px] h-[320px] rounded-full opacity-10 z-10"
-         style="background: radial-gradient(circle, #b6c4ff 0%, transparent 70%);"></div>
+         style="background: radial-gradient(circle, #C9D7F7 0%, transparent 70%);"></div>
     <div class="absolute bottom-[-100px] left-[-60px] w-[400px] h-[400px] rounded-full opacity-10 z-10"
-         style="background: radial-gradient(circle, #d5e3fd 0%, transparent 70%);"></div>
+         style="background: radial-gradient(circle, #E8F0FF 0%, transparent 70%);"></div>
 
     <!-- Top: Logo + App Name -->
     <div class="relative z-20 p-8 lg:p-10 flex items-center gap-4">
@@ -67,24 +67,25 @@
   <style>
     /* SIKAP Login Form — palette CSS variables (backing for var(--color-*) utilities) */
     :root {
-      --color-primary: #00236f;
-      --color-primary-container: #1e3a8a;
-      --color-primary-fixed: #dce1ff;
-      --color-primary-fixed-dim: #b6c4ff;
-      --color-surface: #f8f9ff;
-      --color-surface-container-lowest: #ffffff;
-      --color-surface-container-low: #eff4ff;
-      --color-surface-container-high: #dce9ff;
-      --color-surface-variant: #d3e4fe;
-      --color-background: #f8f9ff;
-      --color-on-surface: #0b1c30;
-      --color-on-surface-variant: #444651;
-      --color-outline: #757682;
-      --color-outline-variant: #c5c5d3;
-      --color-error: #ba1a1a;
-      --color-error-container: #ffdad6;
-      --color-on-error-container: #93000a;
-      --color-on-primary: #ffffff;
+      --color-primary: #0B2E82;
+      --color-primary-hover: #092567;
+      --color-primary-container: #E8F0FF;
+      --color-primary-fixed: #E8F0FF;
+      --color-primary-fixed-dim: #C9D7F7;
+      --color-surface: #FFFFFF;
+      --color-surface-container-lowest: #FFFFFF;
+      --color-surface-container-low: #F1F4F9;
+      --color-surface-container-high: #E5EAF3;
+      --color-surface-variant: #E4E9F2;
+      --color-background: #F6F8FC;
+      --color-on-surface: #172033;
+      --color-on-surface-variant: #667085;
+      --color-outline: #98A2B3;
+      --color-outline-variant: #D9E1EF;
+      --color-error: #B91C1C;
+      --color-error-container: #FEE2E2;
+      --color-on-error-container: #B91C1C;
+      --color-on-primary: #FFFFFF;
     }
 
     /* Login form card */
@@ -94,19 +95,19 @@
       backdrop-filter: blur(8px);
       border: 1px solid rgba(197, 197, 211, 0.5);
       border-radius: 16px;
-      box-shadow: 0 24px 48px -20px rgba(0, 35, 111, 0.18);
+      box-shadow: 0 24px 48px -20px rgba(11, 46, 130, 0.18);
     }
   </style>
 
   <div class="relative w-full md:w-1/2 lg:w-[45%] flex flex-col h-screen min-h-0 overflow-y-auto"
-       style="background: linear-gradient(180deg, #ffffff 0%, #eef2fb 100%);">
+       style="background: linear-gradient(180deg, #ffffff 0%, #f1f4f9 100%);">
 
     <!-- Decorative background blobs (clipped so they don't extend scroll area) -->
     <div class="pointer-events-none absolute inset-0 overflow-hidden z-0">
       <div class="absolute top-[-70px] right-[-70px] w-[280px] h-[280px] rounded-full opacity-50"
-           style="background: radial-gradient(circle, #dce1ff 0%, transparent 70%);"></div>
+           style="background: radial-gradient(circle, #E8F0FF 0%, transparent 70%);"></div>
       <div class="absolute bottom-[-90px] left-[-70px] w-[320px] h-[320px] rounded-full opacity-40"
-           style="background: radial-gradient(circle, #b6c4ff 0%, transparent 70%);"></div>
+           style="background: radial-gradient(circle, #C9D7F7 0%, transparent 70%);"></div>
     </div>
 
     <!-- Mobile-only top bar (logo) -->
@@ -189,7 +190,7 @@
 
           <!-- Submit Button -->
           <div class="mt-sm relative">
-            <button class="w-full h-12 bg-primary text-on-primary font-label-md rounded-lg flex items-center justify-center gap-2 transition-all duration-300 hover:bg-primary-container active:scale-[0.98] shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-fixed focus:ring-offset-2 focus:ring-offset-surface-container-lowest disabled:opacity-70 disabled:cursor-not-allowed group/btn relative overflow-hidden"
+            <button class="w-full h-12 bg-primary text-on-primary font-label-md rounded-lg flex items-center justify-center gap-2 transition-all duration-300 hover:bg-primary-hover active:scale-[0.98] shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-fixed focus:ring-offset-2 focus:ring-offset-surface-container-lowest disabled:opacity-70 disabled:cursor-not-allowed group/btn relative overflow-hidden"
                     id="login-btn" type="submit">
               <span class="relative z-10 transition-transform duration-300 group-hover/btn:-translate-y-[1px]" id="login-btn-text">Masuk</span>
               <span class="material-symbols-outlined relative z-10 text-[18px] transition-transform duration-300 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-[1px]" id="login-btn-icon">arrow_forward</span>
