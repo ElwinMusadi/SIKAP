@@ -1,0 +1,6 @@
+name = "sikap"
+compatibility_date = "2026-08-16"
+pages_build_output_dir = "dist"
+
+[vars]
+# GAS_WEB_APP_URL is injected via Cloudflare Dashboard for security, not committed to git.
