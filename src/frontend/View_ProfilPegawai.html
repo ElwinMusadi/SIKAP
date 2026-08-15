@@ -572,8 +572,8 @@ SIKAP.ProfilPegawai.handleFotoUpload = function(inputEl) {
     var base64Part = e.target.result.split(',')[1];
     SIKAP.Toast.show('Mengunggah foto profil...', 'info');
 
-    google.script.run
-      .withSuccessHandler(function(res) {
+    SIKAP.Api.call('uploadFotoProfil', { token: SIKAP.state.token, base64Data: base64Part, mimeType: file.type })
+      .then(function(res) {
         if (res.success) {
           SIKAP.Toast.show('Foto profil berhasil diperbarui!', 'success');
           SIKAP.ProfilPegawai.load(); // Reload
@@ -581,10 +581,9 @@ SIKAP.ProfilPegawai.handleFotoUpload = function(inputEl) {
           SIKAP.Toast.show(res.message, 'error');
         }
       })
-      .withFailureHandler(function() {
+      .catch(function() {
         SIKAP.Toast.show('Gagal mengunggah foto profil.', 'error');
-      })
-      .uploadFotoProfil(SIKAP.state.token, base64Part, file.type);
+      });
   };
   reader.readAsDataURL(file);
 };
@@ -666,8 +665,8 @@ SIKAP.ProfilPegawai.handleSave = function(event) {
   saveIcon.textContent = 'hourglass_empty';
   saveText.textContent = 'Menyimpan...';
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('updateMyProfile', { token: SIKAP.state.token, updates: updates })
+    .then(function(result) {
       saveIcon.textContent = 'save';
       saveText.textContent = 'Simpan Perubahan';
 
@@ -699,13 +698,12 @@ SIKAP.ProfilPegawai.handleSave = function(event) {
         }
       }
     })
-    .withFailureHandler(function(err) {
+    .catch(function(err) {
       saveIcon.textContent = 'save';
       saveText.textContent = 'Simpan Perubahan';
       saveBtn.disabled = false;
       SIKAP.Toast.show('Gagal menyimpan. Coba lagi.', 'error');
-    })
-    .updateMyProfile(SIKAP.state.token, updates);
+    });
 };
 
 /**
@@ -716,8 +714,8 @@ SIKAP.ProfilPegawai.load = function() {
   document.getElementById('profil-error').classList.add('hidden');
   document.getElementById('profil-data').classList.add('hidden');
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('getMyProfile', { token: SIKAP.state.token })
+    .then(function(result) {
       document.getElementById('profil-loading').classList.add('hidden');
       if (result.success) {
         SIKAP.ProfilPegawai.populate(result.data);
@@ -731,20 +729,19 @@ SIKAP.ProfilPegawai.load = function() {
         }
       }
     })
-    .withFailureHandler(function(err) {
+    .catch(function(err) {
       document.getElementById('profil-loading').classList.add('hidden');
       document.getElementById('profil-error-msg').textContent = 'Gagal terhubung ke server.';
       document.getElementById('profil-error').classList.remove('hidden');
-    })
-    .getMyProfile(SIKAP.state.token);
+    });
 };
 
 /**
  * Loads and renders categorized documents (Wajib & Opsional).
  */
 SIKAP.ProfilPegawai.loadDocs = function() {
-  google.script.run
-    .withSuccessHandler(function(res) {
+  SIKAP.Api.call('getArsipDokumenPegawai', { token: SIKAP.state.token })
+    .then(function(res) {
       if (res.success) {
         var d = res.data;
         var summaryBadge = document.getElementById('profil-doc-summary-badge');
@@ -773,8 +770,7 @@ SIKAP.ProfilPegawai.loadDocs = function() {
           }).join('');
         }
       }
-    })
-    .getArsipDokumenPegawai(SIKAP.state.token);
+    });
 };
 
 /**

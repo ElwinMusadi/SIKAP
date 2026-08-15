@@ -192,8 +192,8 @@ SIKAP.init = function() {
   
   if (storedToken) {
     // Validate session server-side
-    google.script.run
-      .withSuccessHandler(function(result) {
+    SIKAP.Api.call('checkSession', { token: storedToken })
+      .then(function(result) {
         try {
           if (result.success) {
             SIKAP.state.token = storedToken;
@@ -222,12 +222,11 @@ SIKAP.init = function() {
           SIKAP.UI.hideAppLoading();
         }
       })
-      .withFailureHandler(function(error) {
+      .catch(function(error) {
         localStorage.removeItem(SIKAP.STORAGE_KEY);
         SIKAP.UI.showView('view-login');
         SIKAP.UI.hideAppLoading();
-      })
-      .checkSession(storedToken);
+      });
   } else {
     // No stored session — show login
     SIKAP.UI.showView('view-login');

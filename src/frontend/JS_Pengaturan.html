@@ -10,8 +10,8 @@ SIKAP.Settings = SIKAP.Settings || {};
  * Called when the settings view is shown.
  */
 SIKAP.Settings.loadProfile = function() {
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('getUserProfile', { token: SIKAP.state.token })
+    .then(function(result) {
       if (result && result.success) {
         var d = result.data;
         document.getElementById('settings-nama').value = d.nama || '—';
@@ -26,10 +26,9 @@ SIKAP.Settings.loadProfile = function() {
         }
       }
     })
-    .withFailureHandler(function(error) {
+    .catch(function(error) {
       SIKAP.Toast.show('Gagal memuat profil.', 'error');
-    })
-    .getUserProfile(SIKAP.state.token);
+    });
 };
 
 /**
@@ -95,8 +94,8 @@ SIKAP.Settings.handleChangePassword = function(event) {
   submitBtn.disabled = true;
   textEl.innerHTML = '<svg class="animate-spin h-5 w-5 text-on-primary inline-block" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path></svg> Menyimpan...';
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('changePassword', { token: SIKAP.state.token, newPassword: newPw, currentPassword: currentPw })
+    .then(function(result) {
       if (result && result.success) {
         SIKAP.Toast.show('Password berhasil diubah!', 'success');
         // Clear form
@@ -115,12 +114,11 @@ SIKAP.Settings.handleChangePassword = function(event) {
       submitBtn.disabled = false;
       textEl.textContent = 'Simpan Password';
     })
-    .withFailureHandler(function(error) {
+    .catch(function(error) {
       SIKAP.Toast.show('Gagal menyimpan password. Coba lagi.', 'error');
       submitBtn.disabled = false;
       textEl.textContent = 'Simpan Password';
-    })
-    .changePassword(SIKAP.state.token, newPw, currentPw);
+    });
 };
 
 // ---- Logout Confirmation Modal (delegated to global SIKAP.Auth) ----

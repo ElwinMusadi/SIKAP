@@ -1,0 +1,88 @@
+<script>
+// ============================================================
+// JS_Api.html — Unified API Client Layer
+// ============================================================
+
+window.SIKAP = window.SIKAP || {};
+
+SIKAP.Api = (function() {
+  // Cloudflare API Gateway Route
+  const API_URL = '/api/gas';
+
+  const payloadMap = {
+    login: ['nip', 'password'],
+    logout: ['token'],
+    changePassword: ['token', 'newPassword', 'currentPassword'],
+    forceChangePassword: ['token', 'newPassword'],
+    checkSession: ['token'],
+    getUserProfile: ['token'],
+    adminGetDashboardStats: ['token'],
+    adminGetAllPegawai: ['token'],
+    adminGetPegawaiDetail: ['token', 'targetNip'],
+    adminGetVerificationQueue: ['token'],
+    getMyProfile: ['token'],
+    getMyDashboard: ['token'],
+    getArsipDokumenPegawai: ['token', 'targetNip'],
+    getDokumenPreview: ['token', 'idArsip'],
+    adminTambahPegawai: ['token', 'data'],
+    adminUpdatePegawai: ['token', 'targetNip', 'updates'],
+    adminResetPassword: ['token', 'targetNip'],
+    adminSetStatusAkun: ['token', 'targetNip', 'newStatus'],
+    updateMyProfile: ['token', 'updates'],
+    adminUploadFotoPegawai: ['token', 'targetNip', 'base64Data', 'mimeType'],
+    uploadFotoProfil: ['token', 'base64Data', 'mimeType'],
+    uploadDokumen: ['token', 'idDokumen', 'base64Data', 'mimeType'],
+    hapusDokumen: ['token', 'idArsip'],
+    adminApproveDokumen: ['token', 'idArsip'],
+    adminRejectDokumen: ['token', 'idArsip', 'alasanPenolakan']
+  };
+
+  /**
+   * Universal API Call Method
+   * @param {string} action - Nama fungsi backend yang dituju.
+   * @param {Object} payload - Data yang dikirimkan.
+   * @returns {Promise<any>}
+   */
+  async function call(action, payload = {}) {
+    // Auto-inject token from global state if not provided
+    if (!payload.token && SIKAP.state && SIKAP.state.token) {
+      payload.token = SIKAP.state.token;
+    }
+
+    return new Promise((resolve, reject) => {
+      // 1. GAS Native Mode
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        const runner = google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject);
+        
+        // Map payload object back to positional arguments expected by .gs files
+        const paramNames = payloadMap[action] || [];
+        const args = paramNames.map(key => payload[key]);
+        
+        if (typeof runner[action] === 'function') {
+          runner[action].apply(runner, args);
+        } else {
+          reject(new Error("Method tidak ditemukan di GAS backend: " + action));
+        }
+        return;
+      }
+      
+      // 2. Cloudflare Mode / Fetch API
+      fetch(API_URL + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Network response was not ok');
+        return res.json();
+      })
+      .then(resolve)
+      .catch(reject);
+    });
+  }
+
+  return { call };
+})();
+</script>

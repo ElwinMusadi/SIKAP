@@ -43,8 +43,8 @@ SIKAP.Auth.handleLogin = function(event) {
   spinner.style.opacity = '1';
 
   // Call backend
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('login', { nip: nip, password: password })
+    .then(function(result) {
       // Reset button
       button.disabled = false;
       buttonText.style.opacity = '1';
@@ -90,7 +90,7 @@ SIKAP.Auth.handleLogin = function(event) {
         setTimeout(function() { globalError.style.opacity = '1'; }, 10);
       }
     })
-    .withFailureHandler(function(error) {
+    .catch(function(error) {
       button.disabled = false;
       buttonText.style.opacity = '1';
       buttonIcon.style.opacity = '1';
@@ -99,8 +99,7 @@ SIKAP.Auth.handleLogin = function(event) {
       globalError.classList.remove('hidden');
       globalErrorMsg.textContent = 'Terjadi kesalahan koneksi. Silakan coba lagi.';
       setTimeout(function() { globalError.style.opacity = '1'; }, 10);
-    })
-    .login(nip, password);
+    });
 };
 
 /**
@@ -184,8 +183,8 @@ SIKAP.Auth.handleForceChangePassword = function(event) {
   var token = SIKAP.state.token || localStorage.getItem(SIKAP.STORAGE_KEY);
   if (token) SIKAP.state.token = token;
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('forceChangePassword', { token: token, newPassword: newPw })
+    .then(function(result) {
       try {
         if (result && result.success) {
           if (SIKAP.Toast && SIKAP.Toast.show) {
@@ -243,15 +242,14 @@ SIKAP.Auth.handleForceChangePassword = function(event) {
         window.location.reload();
       }
     })
-    .withFailureHandler(function(error) {
+    .catch(function(error) {
       console.error('changePassword backend error:', error);
       if (SIKAP.Toast && SIKAP.Toast.show) {
         SIKAP.Toast.show('Gagal menyimpan password. Coba lagi.', 'error');
       }
       submitBtn.disabled = false;
       submitBtn.innerHTML = 'Simpan Password & Lanjutkan <span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
-    })
-    .forceChangePassword(token, newPw);
+    });
 };
 
 /**
@@ -363,7 +361,7 @@ SIKAP.Auth.logout = function() {
   
   // Notify backend (fire-and-forget)
   if (token) {
-    google.script.run.logout(token);
+    SIKAP.Api.call('logout', { token: token }).catch(function(e) { console.error('Logout error', e); });
   }
   
   SIKAP.Toast.show('Berhasil keluar dari sistem.', 'success');

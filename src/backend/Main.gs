@@ -11,7 +11,7 @@
  * This is the single entry point for the web application.
  */
 function doGet(e) {
-  return HtmlService.createTemplateFromFile("Index")
+  return HtmlService.createTemplateFromFile("frontend/Index")
     .evaluate()
     .setTitle("SIKAP — Sistem Informasi Kepegawaian")
     .setFaviconUrl("https://raw.githubusercontent.com/ElwinMusadi/app-assets/main/logo-ntt.png")
@@ -26,5 +26,10 @@ function doGet(e) {
  * @returns {string} The evaluated HTML content of the file.
  */
 function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+  try {
+    return HtmlService.createHtmlOutputFromFile(filename).getContent();
+  } catch (e) {
+    // If file not found, try checking in frontend/ folder (clasp uploads subdirectories as prefixed filenames)
+    return HtmlService.createHtmlOutputFromFile("frontend/" + filename).getContent();
+  }
 }

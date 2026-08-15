@@ -24,8 +24,8 @@ SIKAP.Arsip.state = {
  */
 SIKAP.Arsip.load = function() {
   SIKAP.UI.showLoading();
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('getArsipDokumenPegawai', { token: SIKAP.state.token })
+    .then(function(result) {
       if (result.success) {
         SIKAP.Arsip.state.docs = result.data.tableRows || [];
         SIKAP.Arsip.state.wajibDocs = result.data.wajibRows || [];
@@ -39,11 +39,10 @@ SIKAP.Arsip.load = function() {
       }
       SIKAP.UI.hideLoading();
     })
-    .withFailureHandler(function(error) {
+    .catch(function(error) {
       SIKAP.Toast.show('Terjadi kesalahan jaringan saat memuat arsip.', 'error');
       SIKAP.UI.hideLoading();
-    })
-    .getArsipDokumenPegawai(SIKAP.state.token);
+    });
 };
 
 // ============================================================
@@ -424,8 +423,8 @@ SIKAP.Arsip.submitUpload = function() {
       else mimeType = 'image/jpeg';
     }
     
-    google.script.run
-      .withSuccessHandler(function(res) {
+    SIKAP.Api.call('uploadDokumen', { token: SIKAP.state.token, idDokumen: docId, base64Data: base64Data, mimeType: mimeType })
+      .then(function(res) {
         SIKAP.UI.hideLoading();
         if (res.success) {
           SIKAP.Toast.show(res.message, 'success');
@@ -436,12 +435,11 @@ SIKAP.Arsip.submitUpload = function() {
           SIKAP.Arsip.resetUploadUIState();
         }
       })
-      .withFailureHandler(function(err) {
+      .catch(function(err) {
         SIKAP.UI.hideLoading();
         SIKAP.Toast.show('Terjadi kesalahan jaringan saat mengunggah.', 'error');
         SIKAP.Arsip.resetUploadUIState();
-      })
-      .uploadDokumen(SIKAP.state.token, docId, base64Data, mimeType);
+      });
   };
   
   reader.onerror = function() {
@@ -489,8 +487,8 @@ SIKAP.Arsip.openPreviewModal = function(idArsip) {
   document.getElementById('preview-catatan-container').classList.add('hidden');
   document.getElementById('preview-iframe').src = 'about:blank';
   
-  google.script.run
-    .withSuccessHandler(function(res) {
+  SIKAP.Api.call('getDokumenPreview', { token: SIKAP.state.token, idArsip: idArsip })
+    .then(function(res) {
       if (res.success) {
         var d = res.data;
         document.getElementById('preview-nama-dokumen').textContent = d.namaDokumen;
@@ -537,11 +535,10 @@ SIKAP.Arsip.openPreviewModal = function(idArsip) {
         SIKAP.Arsip.load();
       }
     })
-    .withFailureHandler(function() {
+    .catch(function() {
       SIKAP.Toast.show('Terjadi kesalahan jaringan saat memuat preview.', 'error');
       SIKAP.Arsip.closePreviewModal();
-    })
-    .getDokumenPreview(SIKAP.state.token, idArsip);
+    });
 };
 
 SIKAP.Arsip.closePreviewModal = function() {
@@ -602,8 +599,8 @@ SIKAP.Arsip.confirmDelete = function() {
   
   SIKAP.UI.showLoading();
   
-  google.script.run
-    .withSuccessHandler(function(res) {
+  SIKAP.Api.call('hapusDokumen', { token: SIKAP.state.token, idArsip: idArsip })
+    .then(function(res) {
       SIKAP.UI.hideLoading();
       if (btn) {
         btn.disabled = false;
@@ -618,7 +615,7 @@ SIKAP.Arsip.confirmDelete = function() {
         SIKAP.Toast.show(res.message, 'error');
       }
     })
-    .withFailureHandler(function(err) {
+    .catch(function(err) {
       SIKAP.UI.hideLoading();
       if (btn) {
         btn.disabled = false;
@@ -626,8 +623,7 @@ SIKAP.Arsip.confirmDelete = function() {
       }
       SIKAP.Arsip.closeHapusModal();
       SIKAP.Toast.show('Terjadi kesalahan jaringan saat menghapus dokumen.', 'error');
-    })
-    .hapusDokumen(SIKAP.state.token, idArsip);
+    });
 };
 
 // ============================================================

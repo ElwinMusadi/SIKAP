@@ -65,16 +65,15 @@ SIKAP.Router.startHeartbeat = function() {
   setInterval(function() {
     if (!SIKAP.state.token) return;
     
-    google.script.run
-      .withSuccessHandler(function(result) {
+    SIKAP.Api.call('checkSession', { token: SIKAP.state.token })
+      .then(function(result) {
         if (!result.success) {
           SIKAP.Auth.handleSessionExpired();
         }
       })
-      .withFailureHandler(function() {
+      .catch(function() {
         // Network error — don't force logout, user might be offline temporarily
-      })
-      .checkSession(SIKAP.state.token);
+      });
   }, 5 * 60 * 1000); // 5 minutes
 };
 

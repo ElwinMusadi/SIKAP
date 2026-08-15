@@ -292,8 +292,8 @@ SIKAP.MasterDataPegawai.load = function() {
   document.getElementById('mdp-error').classList.add('hidden');
   document.getElementById('mdp-data').classList.add('hidden');
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('adminGetAllPegawai', { token: SIKAP.state.token })
+    .then(function(result) {
       document.getElementById('mdp-loading').classList.add('hidden');
       if (result.success) {
         SIKAP.MasterDataPegawai._allRows = result.data.rows;
@@ -311,12 +311,11 @@ SIKAP.MasterDataPegawai.load = function() {
         if (result.message && result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
       }
     })
-    .withFailureHandler(function(err) {
+    .catch(function(err) {
       document.getElementById('mdp-loading').classList.add('hidden');
       document.getElementById('mdp-error-msg').textContent = 'Gagal terhubung ke server.';
       document.getElementById('mdp-error').classList.remove('hidden');
-    })
-    .adminGetAllPegawai(SIKAP.state.token);
+    });
 };
 
 // ---- Tambah Panel ----
@@ -433,14 +432,19 @@ SIKAP.MasterDataPegawai.handleTambah = function(event) {
     alamat: document.getElementById('tambah-alamat').value.trim()
   };
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('adminTambahPegawai', { token: SIKAP.state.token, data: payload })
+    .then(function(result) {
       if (result.success) {
         // Upload photo if selected
         if (SIKAP.MasterDataPegawai._tambahFoto) {
           text.textContent = 'Mengunggah foto...';
-          google.script.run
-            .withSuccessHandler(function(photoRes) {
+          SIKAP.Api.call('adminUploadFotoPegawai', {
+            token: SIKAP.state.token,
+            targetNip: nipVal,
+            base64Data: SIKAP.MasterDataPegawai._tambahFoto.base64,
+            mimeType: SIKAP.MasterDataPegawai._tambahFoto.mimeType
+          })
+            .then(function(photoRes) {
               btn.disabled = false;
               icon.textContent = 'save';
               text.textContent = 'Simpan Pegawai';
@@ -448,20 +452,14 @@ SIKAP.MasterDataPegawai.handleTambah = function(event) {
               SIKAP.Toast.show(result.message, 'success');
               SIKAP.MasterDataPegawai.load(); // Refresh table
             })
-            .withFailureHandler(function() {
+            .catch(function() {
               btn.disabled = false;
               icon.textContent = 'save';
               text.textContent = 'Simpan Pegawai';
               SIKAP.MasterDataPegawai.closeTambah();
               SIKAP.Toast.show('Pegawai berhasil ditambahkan (gagal upload foto).', 'warning');
               SIKAP.MasterDataPegawai.load();
-            })
-            .adminUploadFotoPegawai(
-              SIKAP.state.token,
-              nipVal,
-              SIKAP.MasterDataPegawai._tambahFoto.base64,
-              SIKAP.MasterDataPegawai._tambahFoto.mimeType
-            );
+            });
         } else {
           btn.disabled = false;
           icon.textContent = 'save';
@@ -478,13 +476,12 @@ SIKAP.MasterDataPegawai.handleTambah = function(event) {
         if (result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
       }
     })
-    .withFailureHandler(function(err) {
+    .catch(function(err) {
       btn.disabled = false;
       icon.textContent = 'save';
       text.textContent = 'Simpan Pegawai';
       SIKAP.Toast.show('Gagal menyimpan. Coba lagi.', 'error');
-    })
-    .adminTambahPegawai(SIKAP.state.token, payload);
+    });
 };
 
 SIKAP.MasterDataPegawai.setSelectValue = function(selectEl, value) {
@@ -533,8 +530,8 @@ SIKAP.MasterDataPegawai.openEdit = function(nip) {
     document.getElementById('mdp-edit-slide').classList.remove('translate-x-full');
   }, 10);
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('adminGetPegawaiDetail', { token: SIKAP.state.token, targetNip: nip })
+    .then(function(result) {
       document.getElementById('edit-loading').classList.add('hidden');
       document.getElementById('mdp-edit-form').classList.remove('hidden');
       if (result.success) {
@@ -589,16 +586,15 @@ SIKAP.MasterDataPegawai.openEdit = function(nip) {
         SIKAP.Toast.show(result.message, 'error');
       }
     })
-    .withFailureHandler(function() {
+    .catch(function() {
       SIKAP.MasterDataPegawai.closeEdit();
       SIKAP.Toast.show('Gagal memuat data pegawai.', 'error');
-    })
-    .adminGetPegawaiDetail(SIKAP.state.token, nip);
+    });
 };
 
 SIKAP.MasterDataPegawai.loadEmployeeDocs = function(nip) {
-  google.script.run
-    .withSuccessHandler(function(res) {
+  SIKAP.Api.call('getArsipDokumenPegawai', { token: SIKAP.state.token, targetNip: nip })
+    .then(function(res) {
       if (res.success) {
         var d = res.data;
         var badge = document.getElementById('edit-doc-summary-badge');
@@ -636,8 +632,7 @@ SIKAP.MasterDataPegawai.loadEmployeeDocs = function(nip) {
           opsContainer.innerHTML = d.opsionalRows.map(renderItem).join('');
         }
       }
-    })
-    .getArsipDokumenPegawai(SIKAP.state.token, nip);
+    });
 };
 
 SIKAP.MasterDataPegawai.closeEdit = function() {
@@ -723,14 +718,19 @@ SIKAP.MasterDataPegawai.handleEdit = function(event) {
     alamat: document.getElementById('edit-alamat').value.trim()
   };
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('adminUpdatePegawai', { token: SIKAP.state.token, targetNip: SIKAP.MasterDataPegawai._editTarget, updates: updates })
+    .then(function(result) {
       if (result.success) {
         // Upload photo if changed
         if (SIKAP.MasterDataPegawai._editFoto) {
           text.textContent = 'Mengunggah foto...';
-          google.script.run
-            .withSuccessHandler(function(photoRes) {
+          SIKAP.Api.call('adminUploadFotoPegawai', {
+            token: SIKAP.state.token,
+            targetNip: SIKAP.MasterDataPegawai._editTarget,
+            base64Data: SIKAP.MasterDataPegawai._editFoto.base64,
+            mimeType: SIKAP.MasterDataPegawai._editFoto.mimeType
+          })
+            .then(function(photoRes) {
               btn.disabled = false;
               icon.textContent = 'save';
               text.textContent = 'Simpan Perubahan';
@@ -738,20 +738,14 @@ SIKAP.MasterDataPegawai.handleEdit = function(event) {
               SIKAP.Toast.show(result.message, 'success');
               SIKAP.MasterDataPegawai.load();
             })
-            .withFailureHandler(function() {
+            .catch(function() {
               btn.disabled = false;
               icon.textContent = 'save';
               text.textContent = 'Simpan Perubahan';
               SIKAP.MasterDataPegawai.closeEdit();
               SIKAP.Toast.show('Data berhasil diperbarui (gagal upload foto).', 'warning');
               SIKAP.MasterDataPegawai.load();
-            })
-            .adminUploadFotoPegawai(
-              SIKAP.state.token,
-              SIKAP.MasterDataPegawai._editTarget,
-              SIKAP.MasterDataPegawai._editFoto.base64,
-              SIKAP.MasterDataPegawai._editFoto.mimeType
-            );
+            });
         } else {
           btn.disabled = false;
           icon.textContent = 'save';
@@ -768,13 +762,12 @@ SIKAP.MasterDataPegawai.handleEdit = function(event) {
         if (result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
       }
     })
-    .withFailureHandler(function() {
+    .catch(function() {
       btn.disabled = false;
       icon.textContent = 'save';
       text.textContent = 'Simpan Perubahan';
       SIKAP.Toast.show('Gagal menyimpan. Coba lagi.', 'error');
-    })
-    .adminUpdatePegawai(SIKAP.state.token, SIKAP.MasterDataPegawai._editTarget, updates);
+    });
 };
 
 // ---- Confirm Modal (Nonaktif / Aktif toggle) ----
@@ -844,8 +837,8 @@ SIKAP.MasterDataPegawai.executeStatusToggle = function() {
   document.getElementById('mdp-confirm-action-icon').textContent = 'hourglass_empty';
   document.getElementById('mdp-confirm-action-text').textContent = 'Memproses...';
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('adminSetStatusAkun', { token: SIKAP.state.token, targetNip: target.nip, newStatus: newStatus })
+    .then(function(result) {
       SIKAP.MasterDataPegawai.closeConfirmModal();
       if (result.success) {
         SIKAP.Toast.show(result.message, 'success');
@@ -855,10 +848,9 @@ SIKAP.MasterDataPegawai.executeStatusToggle = function() {
         if (result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
       }
     })
-    .withFailureHandler(function() {
+    .catch(function() {
       actionBtn.disabled = false;
       SIKAP.Toast.show('Gagal mengubah status. Coba lagi.', 'error');
-    })
-    .adminSetStatusAkun(SIKAP.state.token, target.nip, newStatus);
+    });
 };
 </script>

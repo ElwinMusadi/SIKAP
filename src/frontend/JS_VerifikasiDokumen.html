@@ -24,8 +24,8 @@ SIKAP.VerifikasiDokumen.load = function() {
   document.getElementById('verifikasi-empty').classList.add('hidden');
   document.getElementById('verifikasi-content').classList.add('hidden');
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('adminGetVerificationQueue', { token: SIKAP.state.token })
+    .then(function(result) {
       document.getElementById('verifikasi-loading').classList.add('hidden');
       if (result && result.success) {
         SIKAP.VerifikasiDokumen._queue = result.data || [];
@@ -37,11 +37,10 @@ SIKAP.VerifikasiDokumen.load = function() {
         if (result && result.message && result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
       }
     })
-    .withFailureHandler(function(err) {
+    .catch(function(err) {
       document.getElementById('verifikasi-loading').classList.add('hidden');
       SIKAP.Toast.show('Gagal terhubung ke server.', 'error');
-    })
-    .adminGetVerificationQueue(SIKAP.state.token);
+    });
 };
 
 // ---- Render Active Queue Item ----
@@ -166,8 +165,8 @@ SIKAP.VerifikasiDokumen.approveCurrent = function() {
   icon.textContent = 'hourglass_empty';
   text.textContent = 'Memproses...';
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('adminApproveDokumen', { token: SIKAP.state.token, idArsip: item.idArsip })
+    .then(function(result) {
       btn.disabled = false;
       icon.textContent = 'check_circle';
       text.textContent = 'Setujui & Lanjutkan';
@@ -185,13 +184,12 @@ SIKAP.VerifikasiDokumen.approveCurrent = function() {
         if (result.message && result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
       }
     })
-    .withFailureHandler(function() {
+    .catch(function() {
       btn.disabled = false;
       icon.textContent = 'check_circle';
       text.textContent = 'Setujui & Lanjutkan';
       SIKAP.Toast.show('Gagal menyetujui dokumen. Coba lagi.', 'error');
-    })
-    .adminApproveDokumen(SIKAP.state.token, item.idArsip);
+    });
 };
 
 // ---- Reject Modal & Action ----
@@ -278,8 +276,8 @@ SIKAP.VerifikasiDokumen.executeReject = function() {
   submitIcon.textContent = 'hourglass_empty';
   submitText.textContent = 'Memproses...';
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('adminRejectDokumen', { token: SIKAP.state.token, idArsip: item.idArsip, reason: reason })
+    .then(function(result) {
       submitBtn.disabled = false;
       submitIcon.textContent = 'block';
       submitText.textContent = 'Tolak Dokumen';
@@ -299,12 +297,11 @@ SIKAP.VerifikasiDokumen.executeReject = function() {
         if (result.message && result.message.indexOf('Sesi') !== -1) SIKAP.Auth.handleSessionExpired();
       }
     })
-    .withFailureHandler(function() {
+    .catch(function() {
       submitBtn.disabled = false;
       submitIcon.textContent = 'block';
       submitText.textContent = 'Tolak Dokumen';
       SIKAP.Toast.show('Gagal menolak dokumen. Coba lagi.', 'error');
-    })
-    .adminRejectDokumen(SIKAP.state.token, item.idArsip, reason);
+    });
 };
 </script>

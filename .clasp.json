@@ -1,6 +1,6 @@
 {
   "scriptId": "1_yfstaDRyD-pTQAdWSNRx6J3Ax36_cXTIPVlqcuzTB4m8WZq5hpgIz_e",
-  "rootDir": "src",
+  "rootDir": "gas-dist",
   "scriptExtensions": [
     ".js",
     ".gs"

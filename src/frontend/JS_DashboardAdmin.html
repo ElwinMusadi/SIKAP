@@ -14,8 +14,8 @@ SIKAP.DashboardAdmin.load = function() {
 
   SIKAP.UI.showLoading();
 
-  google.script.run
-    .withSuccessHandler(function(res) {
+  SIKAP.Api.call('adminGetDashboardStats', { token: token })
+    .then(function(res) {
       SIKAP.UI.hideLoading();
       if (res.success) {
         SIKAP.DashboardAdmin.renderStats(res.data);
@@ -23,11 +23,10 @@ SIKAP.DashboardAdmin.load = function() {
         SIKAP.Toast.show(res.message, 'error');
       }
     })
-    .withFailureHandler(function(err) {
+    .catch(function(err) {
       SIKAP.UI.hideLoading();
       SIKAP.Toast.show('Gagal memuat statistik dashboard.', 'error');
-    })
-    .adminGetDashboardStats(token);
+    });
 };
 
 /**

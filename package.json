@@ -1,0 +1,28 @@
+{
+  "name": "sikap",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Kode.js",
+  "devDependencies": {
+    "shx": "^0.4.0",
+    "wrangler": "^4.123.0"
+  },
+  "scripts": {
+    "dev": "wrangler pages dev dist",
+    "build:gas": "shx rm -rf gas-dist && shx mkdir -p gas-dist && shx cp -r src/* gas-dist/",
+    "deploy:gas": "npm run build:gas && clasp push",
+    "build:cloudflare": "node scripts/build-cloudflare.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ElwinMusadi/SIKAP.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ElwinMusadi/SIKAP/issues"
+  },
+  "homepage": "https://github.com/ElwinMusadi/SIKAP#readme"
+}

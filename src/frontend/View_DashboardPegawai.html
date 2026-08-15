@@ -271,8 +271,8 @@ SIKAP.DashboardPegawai.load = function() {
   document.getElementById('dp-error').classList.add('hidden');
   document.getElementById('dp-data').classList.add('hidden');
 
-  google.script.run
-    .withSuccessHandler(function(result) {
+  SIKAP.Api.call('getMyDashboard', { token: SIKAP.state.token })
+    .then(function(result) {
       document.getElementById('dp-loading').classList.add('hidden');
       if (result.success) {
         SIKAP.DashboardPegawai.render(result.data);
@@ -285,11 +285,10 @@ SIKAP.DashboardPegawai.load = function() {
         }
       }
     })
-    .withFailureHandler(function(err) {
+    .catch(function(err) {
       document.getElementById('dp-loading').classList.add('hidden');
       document.getElementById('dp-error-msg').textContent = 'Gagal terhubung ke server.';
       document.getElementById('dp-error').classList.remove('hidden');
-    })
-    .getMyDashboard(SIKAP.state.token);
+    });
 };
 </script>
