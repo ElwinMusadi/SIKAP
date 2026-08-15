@@ -97,88 +97,88 @@
     <div class="w-full lg:w-[40%] flex flex-col h-[50vh] lg:h-full overflow-y-auto bg-surface pb-lg relative">
 
       <!-- Queue Sticky Header -->
-      <div class="sticky top-0 z-20 bg-surface/95 backdrop-blur-md px-lg py-md border-b border-outline-variant/20 flex items-center justify-between shadow-xs">
+      <div class="sticky top-0 z-20 bg-surface/95 backdrop-blur-md px-5 py-4 border-b border-outline-variant/20 flex items-center justify-between shadow-xs">
         <div class="flex flex-col">
-          <span class="font-h3 text-on-surface tracking-tight">Antrean Verifikasi</span>
-          <span class="font-body-sm text-on-surface-variant" id="verifikasi-queue-subtitle">Dokumen 1 dari 1</span>
+          <span class="text-[18px] font-semibold text-on-surface tracking-tight">Antrean Verifikasi</span>
+          <span class="text-[14px] text-on-surface-variant" id="verifikasi-queue-subtitle">Dokumen 1 dari 1</span>
         </div>
-        <div class="flex items-center gap-xs">
-          <button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors shadow-sm disabled:opacity-40 cursor-pointer"
+        <div class="flex items-center gap-2">
+          <button class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors shadow-sm disabled:opacity-40 cursor-pointer"
                   id="verifikasi-prev-btn" onclick="SIKAP.VerifikasiDokumen.prevItem()" title="Dokumen Sebelumnya">
-            <span class="material-symbols-outlined text-[20px]">arrow_upward</span>
+            <span class="material-symbols-outlined text-[18px]">arrow_upward</span>
           </button>
-          <button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors shadow-sm disabled:opacity-40 cursor-pointer"
+          <button class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors shadow-sm disabled:opacity-40 cursor-pointer"
                   id="verifikasi-next-btn" onclick="SIKAP.VerifikasiDokumen.nextItem()" title="Dokumen Berikutnya">
-            <span class="material-symbols-outlined text-[20px]">arrow_downward</span>
+            <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
           </button>
         </div>
       </div>
 
       <!-- Main Body Info -->
-      <div class="p-lg flex flex-col gap-xl flex-1">
+      <div class="p-5 flex flex-col gap-5 flex-1">
 
         <!-- Metadata Card -->
-        <div class="bg-surface-container-lowest rounded-xl shadow-sm p-lg relative overflow-hidden border border-outline-variant/20">
-          <div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full -mr-4 -mt-4 pointer-events-none"></div>
+        <div class="bg-surface-container-lowest rounded-xl shadow-sm p-5 relative overflow-hidden border border-outline-variant/20">
+          <div class="absolute top-0 right-0 w-20 h-20 bg-primary/5 rounded-bl-full -mr-2 -mt-2 pointer-events-none"></div>
 
-          <div class="flex items-start justify-between mb-lg relative z-10">
-            <div class="flex items-center gap-md">
-              <div class="w-12 h-12 rounded-full bg-primary-container text-on-primary-container font-h3 font-bold flex items-center justify-center shrink-0 shadow-inner"
+          <div class="flex items-start justify-between mb-4 relative z-10 gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container text-lg font-bold flex items-center justify-center shrink-0 shadow-inner"
                    id="verifikasi-emp-avatar">
                 ?
               </div>
               <div class="flex flex-col min-w-0">
-                <h2 class="font-h2 text-on-surface truncate" id="verifikasi-emp-nama">—</h2>
-                <span class="font-body-sm text-on-surface-variant font-mono mt-xs" id="verifikasi-emp-nip">NIP. —</span>
+                <h2 class="text-[16px] font-semibold text-on-surface truncate leading-snug" id="verifikasi-emp-nama">—</h2>
+                <span class="text-[13px] text-on-surface-variant font-mono" id="verifikasi-emp-nip">NIP. —</span>
               </div>
             </div>
-            <span class="inline-flex items-center px-3 py-1 rounded bg-secondary-container text-on-secondary-container font-label-sm whitespace-nowrap shrink-0"
+            <span class="inline-flex items-center px-2 py-1 rounded bg-secondary-container text-on-secondary-container text-[12px] font-medium whitespace-nowrap shrink-0 mt-0.5"
                   id="verifikasi-emp-golongan">
               —
             </span>
           </div>
 
-          <div class="grid grid-cols-2 gap-y-md gap-x-lg relative z-10 pt-md border-t border-outline-variant/20">
+          <div class="grid grid-cols-2 gap-y-3 gap-x-4 relative z-10 pt-4 border-t border-outline-variant/20">
             <div class="flex flex-col">
-              <span class="font-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Jenis Dokumen</span>
-              <span class="font-body-md text-on-surface font-medium" id="verifikasi-doc-nama">—</span>
+              <span class="text-[12px] text-on-surface-variant font-medium uppercase tracking-wider mb-1">Jenis Dokumen</span>
+              <span class="text-[14px] text-on-surface font-medium leading-tight" id="verifikasi-doc-nama">—</span>
             </div>
             <div class="flex flex-col">
-              <span class="font-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Kategori</span>
-              <span class="font-body-md text-on-surface font-medium" id="verifikasi-doc-kategori">—</span>
+              <span class="text-[12px] text-on-surface-variant font-medium uppercase tracking-wider mb-1">Kategori</span>
+              <span class="text-[14px] text-on-surface font-medium leading-tight" id="verifikasi-doc-kategori">—</span>
             </div>
             <div class="flex flex-col">
-              <span class="font-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Tanggal Unggah</span>
-              <span class="font-body-md text-on-surface" id="verifikasi-doc-waktu">—</span>
+              <span class="text-[12px] text-on-surface-variant font-medium uppercase tracking-wider mb-1">Tanggal Unggah</span>
+              <span class="text-[14px] text-on-surface leading-tight" id="verifikasi-doc-waktu">—</span>
             </div>
             <div class="flex flex-col">
-              <span class="font-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Status Wajib</span>
-              <span class="font-body-md text-on-surface font-medium text-error" id="verifikasi-doc-wajib">—</span>
+              <span class="text-[12px] text-on-surface-variant font-medium uppercase tracking-wider mb-1">Status Wajib</span>
+              <span class="text-[14px] text-on-surface font-medium text-error leading-tight" id="verifikasi-doc-wajib">—</span>
             </div>
           </div>
 
-          <div class="mt-lg pt-md border-t border-outline-variant/20 flex items-center justify-between">
-            <span class="font-label-sm text-on-surface-variant uppercase tracking-wider">Status Antrean</span>
-            <div class="flex items-center gap-sm px-3 py-1.5 rounded-full bg-surface-container-highest border border-outline-variant/30">
-              <span class="w-2.5 h-2.5 rounded-full bg-tertiary animate-pulse"></span>
-              <span class="font-label-sm text-on-surface font-semibold">Menunggu Verifikasi</span>
+          <div class="mt-4 pt-4 border-t border-outline-variant/20 flex items-center justify-between">
+            <span class="text-[12px] text-on-surface-variant font-medium uppercase tracking-wider">Status Antrean</span>
+            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-highest border border-outline-variant/30">
+              <span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+              <span class="text-[13px] text-on-surface font-semibold">Menunggu Verifikasi</span>
             </div>
           </div>
         </div>
 
         <!-- Action Buttons -->
-        <div class="mt-auto pt-lg flex flex-col gap-md">
-          <div class="grid grid-cols-2 gap-md">
+        <div class="mt-auto pt-4 flex flex-col gap-4">
+          <div class="grid grid-cols-2 gap-4">
             <!-- Button Tolak -->
-            <button class="group relative overflow-hidden h-14 rounded-xl bg-error-container text-on-error-container font-label-md flex items-center justify-center gap-sm hover:bg-error hover:text-on-error transition-all duration-300 shadow-sm active:scale-95 cursor-pointer"
+            <button class="group relative overflow-hidden h-12 rounded-xl bg-error-container text-on-error-container text-[14px] font-semibold flex items-center justify-center gap-1.5 hover:bg-error hover:text-on-error transition-all duration-300 shadow-sm active:scale-95 cursor-pointer"
                     onclick="SIKAP.VerifikasiDokumen.openRejectModal()">
-              <span class="material-symbols-outlined text-[20px] transition-transform group-hover:scale-110 group-hover:-rotate-12">cancel</span>
+              <span class="material-symbols-outlined text-[18px] transition-transform group-hover:scale-110 group-hover:-rotate-12">cancel</span>
               <span>Tolak Dokumen</span>
             </button>
             <!-- Button Setujui -->
-            <button class="group relative overflow-hidden h-14 rounded-xl bg-primary text-on-primary font-label-md flex items-center justify-center gap-sm hover:bg-primary/90 transition-all duration-300 shadow-md active:scale-95 cursor-pointer disabled:opacity-50"
+            <button class="group relative overflow-hidden h-12 rounded-xl bg-primary text-on-primary text-[14px] font-semibold flex items-center justify-center gap-1.5 hover:bg-primary/90 transition-all duration-300 shadow-md active:scale-95 cursor-pointer disabled:opacity-50"
                     id="verifikasi-approve-btn" onclick="SIKAP.VerifikasiDokumen.approveCurrent()">
-              <span class="material-symbols-outlined text-[20px] transition-transform group-hover:scale-110" id="verifikasi-approve-icon">check_circle</span>
+              <span class="material-symbols-outlined text-[18px] transition-transform group-hover:scale-110" id="verifikasi-approve-icon">check_circle</span>
               <span id="verifikasi-approve-text">Setujui &amp; Lanjutkan</span>
             </button>
           </div>
