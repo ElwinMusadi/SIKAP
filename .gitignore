@@ -3,3 +3,4 @@ gas-dist/
 dist/
 .dev.vars
 .wrangler/
+.clasprc.json
