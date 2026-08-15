@@ -68,12 +68,12 @@
               <img id="profil-avatar-img" src="" alt="Foto Profil" class="w-full h-full object-cover hidden">
               <span class="font-h1 text-on-primary-container text-3xl font-bold" id="profil-avatar-initials">—</span>
               
-              <!-- Hover Overlay for Upload -->
-              <label for="profil-foto-input" class="absolute inset-0 bg-on-surface/60 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
+              <!-- Hover Overlay for Photo Menu -->
+              <button type="button" onclick="SIKAP.ProfilPegawai.openFotoMenu()" class="absolute inset-0 bg-on-surface/60 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity w-full h-full border-none outline-none">
                 <span class="material-symbols-outlined text-[22px]">photo_camera</span>
                 <span class="text-[10px] font-bold mt-0.5 uppercase tracking-wider">Ubah Foto</span>
-              </label>
-              <input type="file" id="profil-foto-input" accept="image/jpeg,image/jpg,image/png" class="hidden" onchange="SIKAP.ProfilPegawai.handleFotoUpload(this)">
+              </button>
+              <input type="file" id="profil-foto-input" accept="image/jpeg,image/jpg,image/png" class="hidden" onchange="SIKAP.ProfilPegawai.handleFileSelect(this)">
             </div>
 
             <div class="flex flex-col">
@@ -458,6 +458,71 @@
     </div>
 
   </div><!-- /profil-data -->
+
+  <!-- ============================== -->
+  <!-- MODALS UNTUK FOTO PROFIL       -->
+  <!-- ============================== -->
+
+  <!-- Modal Menu Foto -->
+  <div id="profil-foto-menu-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center">
+    <div class="absolute inset-0 bg-on-surface/40 backdrop-blur-sm" onclick="SIKAP.ProfilPegawai.closeFotoMenu()"></div>
+    <div class="bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/30 w-[90%] max-w-sm relative z-10 overflow-hidden transform transition-all">
+      <div class="px-6 py-4 border-b border-outline-variant/20 flex justify-between items-center">
+        <h3 class="font-h3 text-on-surface text-lg">Opsi Foto Profil</h3>
+        <button type="button" onclick="SIKAP.ProfilPegawai.closeFotoMenu()" class="text-on-surface-variant hover:text-on-surface">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="flex flex-col p-2">
+        <button type="button" id="profil-btn-lihat-foto" onclick="SIKAP.ProfilPegawai.lihatFoto()" class="hidden flex items-center gap-3 px-4 py-3 hover:bg-surface-container rounded-xl text-on-surface text-left font-body-md transition-colors">
+          <span class="material-symbols-outlined text-primary">visibility</span>
+          <span>Lihat Foto</span>
+        </button>
+        <button type="button" onclick="document.getElementById('profil-foto-input').click(); SIKAP.ProfilPegawai.closeFotoMenu();" class="flex items-center gap-3 px-4 py-3 hover:bg-surface-container rounded-xl text-on-surface text-left font-body-md transition-colors">
+          <span class="material-symbols-outlined text-primary">upload</span>
+          <span id="profil-btn-upload-text">Ubah Foto</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Lihat Foto -->
+  <div id="profil-lihat-foto-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-on-surface/80 backdrop-blur-sm" onclick="SIKAP.ProfilPegawai.closeLihatFoto()"></div>
+    <div class="relative z-10 max-w-2xl w-full flex flex-col items-center gap-4">
+      <button type="button" onclick="SIKAP.ProfilPegawai.closeLihatFoto()" class="absolute -top-14 right-0 md:-right-10 text-white hover:text-primary-fixed transition-colors bg-on-surface/50 rounded-full p-2 backdrop-blur-md">
+        <span class="material-symbols-outlined text-2xl block">close</span>
+      </button>
+      <img id="profil-lihat-foto-img" src="" class="max-w-full max-h-[80vh] rounded-xl shadow-2xl object-contain border-4 border-surface-container-lowest" alt="Foto Profil">
+    </div>
+  </div>
+
+  <!-- Modal Crop Foto -->
+  <div id="profil-crop-modal" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-on-surface/60 backdrop-blur-sm"></div>
+    <div class="bg-surface-container-lowest rounded-2xl shadow-2xl border border-outline-variant/30 w-full max-w-2xl relative z-10 flex flex-col overflow-hidden h-[90vh] md:h-[600px]">
+      <div class="px-6 py-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface">
+        <h3 class="font-h3 text-on-surface text-lg">Sesuaikan Foto</h3>
+        <button type="button" onclick="SIKAP.ProfilPegawai.closeCropModal()" class="text-on-surface-variant hover:text-error transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="flex-1 bg-surface-container-highest p-4 relative overflow-hidden flex items-center justify-center">
+        <!-- Cropper container -->
+        <div class="w-full h-full max-h-full max-w-full flex items-center justify-center">
+          <img id="profil-crop-img" src="" class="max-w-full max-h-full block">
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-outline-variant/20 bg-surface flex justify-end gap-3">
+        <button type="button" onclick="SIKAP.ProfilPegawai.closeCropModal()" class="px-5 py-2 rounded-lg font-label-md text-on-surface hover:bg-surface-container transition-colors">Batal</button>
+        <button type="button" id="profil-crop-save-btn" onclick="SIKAP.ProfilPegawai.cropAndUpload()" class="px-5 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary/90 flex items-center gap-2 shadow-sm transition-all">
+          <span class="material-symbols-outlined text-[18px]">crop</span>
+          <span>Crop & Simpan</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -466,6 +531,9 @@
 // ============================================================
 SIKAP.ProfilPegawai = {};
 SIKAP.ProfilPegawai._original = {}; // Stores original values for cancel
+SIKAP.ProfilPegawai._currentFotoUrl = null;
+SIKAP.ProfilPegawai._cropper = null;
+SIKAP.ProfilPegawai._cropMimeType = null;
 
 /**
  * Computes avatar initials from a full name.
@@ -481,6 +549,7 @@ SIKAP.ProfilPegawai.getInitials = function(nama) {
  * Populates all view fields from loaded profile data.
  */
 SIKAP.ProfilPegawai.populate = function(d) {
+  SIKAP.ProfilPegawai._currentFotoUrl = d.fotoUrl || null;
   // Left Column Summary Card
   var avatarImg = document.getElementById('profil-avatar-img');
   var avatarInitials = document.getElementById('profil-avatar-initials');
@@ -548,9 +617,45 @@ SIKAP.ProfilPegawai.populate = function(d) {
 };
 
 /**
- * Handles employee photo upload.
+ * Modals and Photo Menu Logic
  */
-SIKAP.ProfilPegawai.handleFotoUpload = function(inputEl) {
+SIKAP.ProfilPegawai.openFotoMenu = function() {
+  var menuModal = document.getElementById('profil-foto-menu-modal');
+  var btnLihat = document.getElementById('profil-btn-lihat-foto');
+  var textUpload = document.getElementById('profil-btn-upload-text');
+  
+  if (SIKAP.ProfilPegawai._currentFotoUrl) {
+    btnLihat.classList.remove('hidden');
+    textUpload.textContent = 'Ubah Foto';
+  } else {
+    btnLihat.classList.add('hidden');
+    textUpload.textContent = 'Upload Foto';
+  }
+  
+  menuModal.classList.remove('hidden');
+};
+
+SIKAP.ProfilPegawai.closeFotoMenu = function() {
+  document.getElementById('profil-foto-menu-modal').classList.add('hidden');
+};
+
+SIKAP.ProfilPegawai.lihatFoto = function() {
+  SIKAP.ProfilPegawai.closeFotoMenu();
+  if (SIKAP.ProfilPegawai._currentFotoUrl) {
+    document.getElementById('profil-lihat-foto-img').src = SIKAP.ProfilPegawai._currentFotoUrl;
+    document.getElementById('profil-lihat-foto-modal').classList.remove('hidden');
+  }
+};
+
+SIKAP.ProfilPegawai.closeLihatFoto = function() {
+  document.getElementById('profil-lihat-foto-modal').classList.add('hidden');
+  document.getElementById('profil-lihat-foto-img').src = '';
+};
+
+/**
+ * Handles employee photo selection and initializes Cropper.
+ */
+SIKAP.ProfilPegawai.handleFileSelect = function(inputEl) {
   var file = inputEl.files && inputEl.files[0];
   if (!file) return;
 
@@ -567,13 +672,75 @@ SIKAP.ProfilPegawai.handleFotoUpload = function(inputEl) {
     return;
   }
 
+  SIKAP.ProfilPegawai._cropMimeType = file.type;
+
   var reader = new FileReader();
   reader.onload = function(e) {
-    var base64Part = e.target.result.split(',')[1];
-    SIKAP.Toast.show('Mengunggah foto profil...', 'info');
+    var cropImg = document.getElementById('profil-crop-img');
+    cropImg.src = e.target.result;
+    
+    // Show Modal
+    document.getElementById('profil-crop-modal').classList.remove('hidden');
+    
+    // Initialize Cropper
+    if (SIKAP.ProfilPegawai._cropper) {
+      SIKAP.ProfilPegawai._cropper.destroy();
+    }
+    
+    SIKAP.ProfilPegawai._cropper = new Cropper(cropImg, {
+      aspectRatio: 1,
+      viewMode: 1,
+      dragMode: 'move',
+      autoCropArea: 0.8,
+      restore: false,
+      guides: true,
+      center: true,
+      highlight: false,
+      cropBoxMovable: true,
+      cropBoxResizable: true,
+      toggleDragModeOnDblclick: false
+    });
+  };
+  reader.readAsDataURL(file);
+};
 
-    SIKAP.Api.call('uploadFotoProfil', { token: SIKAP.state.token, base64Data: base64Part, mimeType: file.type })
+SIKAP.ProfilPegawai.closeCropModal = function() {
+  document.getElementById('profil-crop-modal').classList.add('hidden');
+  if (SIKAP.ProfilPegawai._cropper) {
+    SIKAP.ProfilPegawai._cropper.destroy();
+    SIKAP.ProfilPegawai._cropper = null;
+  }
+  document.getElementById('profil-crop-img').src = '';
+  document.getElementById('profil-foto-input').value = '';
+};
+
+SIKAP.ProfilPegawai.cropAndUpload = function() {
+  if (!SIKAP.ProfilPegawai._cropper) return;
+  
+  var saveBtn = document.getElementById('profil-crop-save-btn');
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span><span>Mengunggah...</span>';
+  
+  // Get cropped canvas
+  var canvas = SIKAP.ProfilPegawai._cropper.getCroppedCanvas({
+    width: 500,
+    height: 500,
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: 'high'
+  });
+  
+  // Convert to base64
+  var dataUrl = canvas.toDataURL(SIKAP.ProfilPegawai._cropMimeType, 0.9);
+  var base64Part = dataUrl.split(',')[1];
+  
+  SIKAP.Toast.show('Mengunggah foto profil...', 'info');
+
+  SIKAP.Api.call('uploadFotoProfil', { token: SIKAP.state.token, base64Data: base64Part, mimeType: SIKAP.ProfilPegawai._cropMimeType })
       .then(function(res) {
+        SIKAP.ProfilPegawai.closeCropModal();
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">crop</span><span>Crop & Simpan</span>';
+
         if (res.success) {
           SIKAP.Toast.show('Foto profil berhasil diperbarui!', 'success');
           SIKAP.ProfilPegawai.load(); // Reload
@@ -582,10 +749,11 @@ SIKAP.ProfilPegawai.handleFotoUpload = function(inputEl) {
         }
       })
       .catch(function() {
+        SIKAP.ProfilPegawai.closeCropModal();
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">crop</span><span>Crop & Simpan</span>';
         SIKAP.Toast.show('Gagal mengunggah foto profil.', 'error');
       });
-  };
-  reader.readAsDataURL(file);
 };
 
 /**
