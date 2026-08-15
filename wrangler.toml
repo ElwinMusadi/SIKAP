@@ -3,4 +3,4 @@ compatibility_date = "2026-08-15"
 pages_build_output_dir = "dist"
 
 [vars]
-# GAS_WEB_APP_URL is injected via Cloudflare Dashboard for security, not committed to git.
+GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxgtqzd0pU96Z7MChma9GwfW-ESy-7PDPAlsUSPMl6-oh78m1aVJ5BRl5cdyWnhfgue/exec"
