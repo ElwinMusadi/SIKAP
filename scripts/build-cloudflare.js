@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const srcDir = path.join(__dirname, '../src/frontend');
 const distDir = path.join(__dirname, '../dist');
@@ -33,6 +34,15 @@ function resolveIncludes(content) {
 
 function build() {
   ensureDir(distDir);
+  
+  console.log('Running Tailwind CSS build...');
+  try {
+    execSync('npx tailwindcss -i ./src/frontend/input.css -o ./dist/style.css --minify', { stdio: 'inherit' });
+  } catch (error) {
+    console.error('Tailwind build failed:', error);
+    process.exit(1);
+  }
+
   const indexPath = path.join(srcDir, 'Index.html');
   
   if (fs.existsSync(indexPath)) {
@@ -40,7 +50,12 @@ function build() {
     let content = fs.readFileSync(indexPath, 'utf-8');
     
     // Resolve all includes
-    const resolvedContent = resolveIncludes(content);
+    let resolvedContent = resolveIncludes(content);
+    
+    // Strip Tailwind CDN and config, inject style.css
+    resolvedContent = resolvedContent.replace(/<script src="https:\/\/cdn\.tailwindcss\.com"><\/script>/, '');
+    resolvedContent = resolvedContent.replace(/<script>\s*tailwind\.config\s*=\s*\{[\s\S]*?\}?;\s*<\/script>/, '');
+    resolvedContent = resolvedContent.replace('</head>', '  <link rel="stylesheet" href="style.css">\n</head>');
     
     // Write final output to dist/index.html
     const outPath = path.join(distDir, 'index.html');
