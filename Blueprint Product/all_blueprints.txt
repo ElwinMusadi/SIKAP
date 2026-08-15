@@ -3,7 +3,7 @@
 === STEP 00 — Project Brief.docx ===
 STEP 00 — Project Brief
 1. Informasi Umum
-Nama Proyek: Sistem Informasi Data dan Dokumen Kepegawaian UPTD Pendapatan Daerah Wilayah Kota Kupang (SAMSAT).
+Nama Proyek: Sistem Informasi Kepegawaian dan Arsip Pegawai UPTD Pendapatan Daerah Wilayah Kota Kupang (SAMSAT).
 Jenis Sistem: Internal Web Application / Employee Information System.
 Platform: Google Apps Script (Backend & Hosting), Google Spreadsheet (Database), Google Drive (File Storage), Tailwind CSS v4 (Frontend Styling).
 2. Latar Belakang & Tujuan
@@ -47,7 +47,7 @@ Mohon jawab/konfirmasi hal berikut sebelum kita lanjut:
 Hak Akses: Apakah aplikasi ini HANYA dipakai oleh staf Tata Usaha (Admin), atau setiap Pegawai akan login dengan akun mereka sendiri untuk mengunggah dokumennya masing-masing?
 Autentikasi (Login): Apakah kita akan menggunakan sistem Login dengan username/password, atau hanya whitelist email berbasis Google Account yang bisa mengakses link Web App ini?
 Ringkasan & Next Step
-Ringkasan: Proyek "Sistem Informasi Data dan Dokumen Kepegawaian" telah didefinisikan secara umum. Platform GAS, Sheet, Drive, dan Tailwind v4 adalah pilihan yang ringan dan tanpa biaya server (serverless). Tujuan utamanya adalah memudahkan Sub-bagian TU mengatur dan mencari dokumen seluruh pegawai (CPNS, PNS, P3K).
+Ringkasan: Proyek "Sistem Informasi Kepegawaian dan Arsip Pegawai" telah didefinisikan secara umum. Platform GAS, Sheet, Drive, dan Tailwind v4 adalah pilihan yang ringan dan tanpa biaya server (serverless). Tujuan utamanya adalah memudahkan Sub-bagian TU mengatur dan mencari dokumen seluruh pegawai (CPNS, PNS, P3K).
 STEP berikutnya: STEP 01 — Product Discovery
 Perintah untuk melanjutkan:
 Harap jawab pertanyaan pada bagian Required Decisions di atas, lalu ketik:
@@ -205,7 +205,7 @@ Ketik persetujuan/keputusan Anda terhadap bagian Required Decisions, lalu ketik:
 
 === STEP 03 — Product Requirements Document (PRD).docx ===
 STEP 03 — Product Requirements Document (PRD)
-Dokumen ini merupakan panduan utama yang mendefinisikan secara rinci fungsionalitas, alur, dan batasan teknis dari Sistem Informasi Data dan Dokumen Kepegawaian UPTD Pendapatan Daerah Wilayah Kota Kupang.
+Dokumen ini merupakan panduan utama yang mendefinisikan secara rinci fungsionalitas, alur, dan batasan teknis dari Sistem Informasi Kepegawaian dan Arsip Pegawai UPTD Pendapatan Daerah Wilayah Kota Kupang.
 1. Ikhtisar Proyek (Project Overview)
 Membangun aplikasi web internal berbasis serverless menggunakan ekosistem Google (Apps Script, Spreadsheet, Drive) dan Tailwind CSS v4. Sistem ini bertujuan untuk mendigitalisasi, memusatkan, dan mengotomatisasi pengarsipan dokumen serta data pegawai (PNS, CPNS, P3K) agar mudah dicari, divalidasi, dan dikelola oleh Sub-bagian Tata Usaha (TU).
 2. Peran Pengguna (User Roles)
@@ -269,7 +269,7 @@ Ketik:
 
 === STEP 04 — Information Architecture.docx ===
 STEP 04 — Information Architecture
-Dokumen ini memetakan struktur navigasi, hierarki halaman, dan alur perpindahan antarmuka dalam Sistem Informasi Data dan Dokumen Kepegawaian UPTD Pendapatan Daerah Wilayah Kota Kupang. Arsitektur ini dirancang untuk mendukung pendekatan Single Page Application (SPA) guna memberikan pengalaman pengguna yang cepat dan mulus di atas Google Apps Script.
+Dokumen ini memetakan struktur navigasi, hierarki halaman, dan alur perpindahan antarmuka dalam Sistem Informasi Kepegawaian dan Arsip Pegawai UPTD Pendapatan Daerah Wilayah Kota Kupang. Arsitektur ini dirancang untuk mendukung pendekatan Single Page Application (SPA) guna memberikan pengalaman pengguna yang cepat dan mulus di atas Google Apps Script.
 1. Peta Situs (Sitemap) Utama
 Sistem dibagi menjadi tiga area utama berdasarkan status autentikasi dan peran (Role) pengguna.
 Area Publik (Unauthenticated)
@@ -361,7 +361,7 @@ Perintah untuk melanjutkan:
 
 === STEP 05 — Database Concept.docx ===
 STEP 05 — Database Concept
-Dokumen ini menjelaskan struktur penyimpanan data untuk Sistem Informasi Data dan Dokumen Kepegawaian. Karena kita menggunakan Google Spreadsheet sebagai database (berkonsep serverless), setiap Sheet (tab) akan bertindak sebagai sebuah Tabel, setiap Baris sebagai Record, dan setiap Kolom sebagai Field.
+Dokumen ini menjelaskan struktur penyimpanan data untuk Sistem Informasi Kepegawaian dan Arsip Pegawai. Karena kita menggunakan Google Spreadsheet sebagai database (berkonsep serverless), setiap Sheet (tab) akan bertindak sebagai sebuah Tabel, setiap Baris sebagai Record, dan setiap Kolom sebagai Field.
 1. Arsitektur Database (Spreadsheet-Based)
 Google Spreadsheet memiliki karakteristik khusus. Untuk menjaga performa Google Apps Script (GAS) agar tidak terkena timeout, struktur tabel harus dibuat pipih (flat) dan direlasikan menggunakan Primary Key sederhana seperti NIP (Nomor Induk Pegawai).
 Berikut adalah daftar Sheet (Tabel) yang dibutuhkan:
@@ -442,7 +442,7 @@ Jawab konfirmasi di atas, lalu ketik:
 
 === Step 06 - UI_UX Requirement.docx ===
 STEP 06 — UI/UX Requirement
-Berdasarkan struktur informasi dan konsep database dari langkah sebelumnya (termasuk penambahan Log Aktivitas), dokumen ini merumuskan panduan antarmuka dan pengalaman pengguna (UI/UX) untuk Sistem Informasi Data dan Dokumen Kepegawaian UPTD Pendapatan Daerah Wilayah Kota Kupang. Desain akan menggunakan Tailwind CSS v4 untuk menghasilkan Single Page Application (SPA) yang ringan, modern, dan responsif.
+Berdasarkan struktur informasi dan konsep database dari langkah sebelumnya (termasuk penambahan Log Aktivitas), dokumen ini merumuskan panduan antarmuka dan pengalaman pengguna (UI/UX) untuk Sistem Informasi Kepegawaian dan Arsip Pegawai UPTD Pendapatan Daerah Wilayah Kota Kupang. Desain akan menggunakan Tailwind CSS v4 untuk menghasilkan Single Page Application (SPA) yang ringan, modern, dan responsif.
 1. Prinsip Desain (Design Principles)
 Formal namun Modern: Sebagai aplikasi instansi pemerintah (SAMSAT / UPTD), UI harus terlihat bersih, profesional, dan mudah dibaca, menghindari elemen dekoratif yang tidak perlu.
 Responsive First: Tata letak harus beradaptasi dengan sempurna baik saat diakses melalui desktop PC di kantor TU maupun melalui smartphone oleh pegawai yang sedang berada di luar kantor.
