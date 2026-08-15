@@ -80,10 +80,10 @@ SIKAP.VerifikasiDokumen.renderCurrentItem = function() {
   document.getElementById('verifikasi-doc-kategori').textContent = doc.kategori || 'Utama';
   document.getElementById('verifikasi-doc-waktu').textContent = item.waktuUpload || '—';
   
-  var isWajib = doc.wajib === true || String(doc.wajib).toUpperCase() === 'WAJIB';
+  var isWajib = doc.wajib === true || String(doc.wajib).toUpperCase() === 'WAJIB' || String(doc.wajib).toUpperCase() === 'YA';
   var wajibEl = document.getElementById('verifikasi-doc-wajib');
   wajibEl.textContent = isWajib ? 'WAJIB' : 'OPSIONAL';
-  wajibEl.className = isWajib ? 'font-body-md text-error font-bold' : 'font-body-md text-on-surface-variant font-medium';
+  wajibEl.className = isWajib ? 'text-[14px] text-on-surface font-medium text-error leading-tight' : 'text-[14px] text-on-surface font-medium leading-tight';
 
   // Preview Iframe & Download
   var iframe = document.getElementById('verifikasi-iframe');
