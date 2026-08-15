@@ -26,8 +26,9 @@
     <div class="h-8 w-px bg-outline-variant/50 hidden sm:block"></div>
     <!-- User Dropdown -->
     <div class="relative" id="header-profile-dropdown">
-      <button class="w-9 h-9 rounded-full bg-primary hover:bg-primary/90 text-on-primary font-label-md flex items-center justify-center shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 active:scale-95 cursor-pointer" onclick="SIKAP.UI.toggleProfileDropdown()" aria-label="Profil Pengguna" title="Menu Profil">
-        <span class="user-initials font-bold text-[14px]">U</span>
+      <button class="w-9 h-9 rounded-full bg-primary hover:bg-primary/90 text-on-primary font-label-md flex items-center justify-center shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 active:scale-95 cursor-pointer overflow-hidden ring-1 ring-outline-variant/30" onclick="SIKAP.UI.toggleProfileDropdown()" aria-label="Profil Pengguna" title="Menu Profil">
+        <img id="header-avatar-img" class="w-full h-full object-cover hidden" alt="Foto Profil" src="" />
+        <span id="header-avatar-initials" class="user-initials font-bold text-[14px]">U</span>
       </button>
       <!-- Dropdown Menu -->
       <div id="profile-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-56 bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant/30 overflow-hidden z-50">

@@ -79,12 +79,23 @@ SIKAP.UI.updateSidebarActive = function(activeViewId) {
   var links = document.querySelectorAll('#app-sidebar nav a[data-view]');
   links.forEach(function(link) {
     var viewId = link.getAttribute('data-view');
-    if (viewId === activeViewId) {
-      link.classList.add('bg-secondary-container', 'text-on-secondary-container');
+    var isActive = (viewId === activeViewId);
+    var indicator = link.querySelector('.active-indicator');
+    
+    if (isActive) {
+      link.classList.add('bg-primary/10', 'text-primary', 'font-semibold');
       link.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-high', 'hover:text-on-surface');
+      if (indicator) {
+        indicator.classList.remove('opacity-0');
+        indicator.classList.add('opacity-100');
+      }
     } else {
-      link.classList.remove('bg-secondary-container', 'text-on-secondary-container');
+      link.classList.remove('bg-primary/10', 'text-primary', 'font-semibold');
       link.classList.add('text-on-surface-variant', 'hover:bg-surface-container-high', 'hover:text-on-surface');
+      if (indicator) {
+        indicator.classList.remove('opacity-100');
+        indicator.classList.add('opacity-0');
+      }
     }
   });
 };
@@ -108,36 +119,71 @@ SIKAP.UI.toggleSidebar = function() {
 };
 
 /**
- * Updates the header user info display.
+ * Updates the header and sidebar user info and avatar display.
  */
 SIKAP.UI.updateUserDisplay = function() {
   var user = SIKAP.state.user;
   if (!user) return;
   
-  // Update header username
+  // Calculate initials
+  var parts = (user.nama || 'U').trim().split(/\s+/);
+  var initials = parts.length > 1 
+    ? (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase() 
+    : parts[0].charAt(0).toUpperCase();
+
+  // 1. Update header username & role
   var headerName = document.getElementById('header-user-name');
   if (headerName) {
     headerName.textContent = user.nama || '';
   }
-
-  // Update header role text
   var headerRoleText = document.getElementById('header-user-role-text');
   if (headerRoleText) {
     headerRoleText.textContent = user.role === 'Admin' ? 'Administrator TU' : 'Pegawai';
   }
   
-  // Update header initials
-  var headerInitials = document.querySelectorAll('.user-initials');
-  headerInitials.forEach(function(el) {
-    var parts = (user.nama || 'U').split(' ');
-    el.textContent = parts[0].charAt(0).toUpperCase();
+  // 2. Update header avatar (image or initials)
+  var headerAvatarImg = document.getElementById('header-avatar-img');
+  var headerAvatarInitials = document.getElementById('header-avatar-initials');
+  if (headerAvatarImg && headerAvatarInitials) {
+    if (user.fotoUrl) {
+      headerAvatarImg.src = user.fotoUrl;
+      headerAvatarImg.classList.remove('hidden');
+      headerAvatarInitials.classList.add('hidden');
+    } else {
+      headerAvatarImg.src = '';
+      headerAvatarImg.classList.add('hidden');
+      headerAvatarInitials.classList.remove('hidden');
+      headerAvatarInitials.textContent = initials;
+    }
+  }
+
+  // Generic fallback for any other .user-initials elements
+  var allInitials = document.querySelectorAll('.user-initials');
+  allInitials.forEach(function(el) {
+    el.textContent = initials;
   });
   
-  // Update sidebar user info
+  // 3. Update sidebar user info & avatar
   var sidebarName = document.getElementById('sidebar-user-name');
   var sidebarRole = document.getElementById('sidebar-user-role');
-  if (sidebarName) sidebarName.textContent = user.nama || '';
+  var sidebarAvatarImg = document.getElementById('sidebar-avatar-img');
+  var sidebarAvatarInitials = document.getElementById('sidebar-avatar-initials');
+
+  if (sidebarName) sidebarName.textContent = user.nama || 'Pengguna';
   if (sidebarRole) sidebarRole.textContent = user.role === 'Admin' ? 'Administrator TU' : 'Pegawai';
+
+  if (sidebarAvatarImg && sidebarAvatarInitials) {
+    if (user.fotoUrl) {
+      sidebarAvatarImg.src = user.fotoUrl;
+      sidebarAvatarImg.classList.remove('hidden');
+      sidebarAvatarInitials.classList.add('hidden');
+    } else {
+      sidebarAvatarImg.src = '';
+      sidebarAvatarImg.classList.add('hidden');
+      sidebarAvatarInitials.classList.remove('hidden');
+      sidebarAvatarInitials.textContent = initials;
+    }
+  }
   
   // Show/hide menu items based on role
   SIKAP.UI.applyRoleVisibility(user.role);

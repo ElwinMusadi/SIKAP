@@ -1,86 +1,163 @@
 <!-- ============================================================ -->
 <!-- Component_Sidebar.html — Role-based Sidebar Navigation      -->
-<!-- Faithfully reproduces the Stitch sidebar design              -->
+<!-- Modern, Clean & Polished SaaS Sidebar                         -->
 <!-- ============================================================ -->
 
-<aside id="app-sidebar" class="fixed left-0 top-0 h-full w-72 bg-surface-container-low border-r border-outline-variant/30 z-50 flex flex-col pt-20 sidebar-enter lg:!transform-none -translate-x-full lg:translate-x-0 transition-transform duration-300">
+<aside id="app-sidebar" class="fixed left-0 top-0 h-full w-72 bg-surface-container-low/95 backdrop-blur-md border-r border-outline-variant/30 z-50 flex flex-col pt-20 sidebar-enter lg:!transform-none -translate-x-full lg:translate-x-0 transition-transform duration-300 shadow-sm">
 
-  <nav class="flex-1 px-4 space-y-1 overflow-y-auto">
+  <nav class="flex-1 px-3.5 py-2 space-y-4 overflow-y-auto">
 
-    <!-- ---- SHARED: Beranda ---- -->
-    <!-- Admin Dashboard -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
-       data-view="view-dashboard-admin" data-role="admin">
-      <span class="material-symbols-outlined mr-3">dashboard</span>
-      <span class="font-label-md">Beranda</span>
-    </a>
-    <!-- Pegawai Dashboard -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
-       data-view="view-dashboard-pegawai" data-role="pegawai">
-      <span class="material-symbols-outlined mr-3">dashboard</span>
-      <span class="font-label-md">Beranda</span>
-    </a>
+    <!-- ============================================ -->
+    <!-- SECTION 1: MENU UTAMA                         -->
+    <!-- ============================================ -->
+    <div class="space-y-1">
+      <div class="px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/60">
+        Menu Utama
+      </div>
 
-    <!-- ---- SHARED: Profil Pegawai ---- -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
-       data-view="view-profil-pegawai">
-      <span class="material-symbols-outlined mr-3">person</span>
-      <span class="font-label-md">Profil Pegawai</span>
-    </a>
+      <!-- Admin Dashboard -->
+      <a href="#" class="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 group"
+         data-view="view-dashboard-admin" data-role="admin">
+        <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-105 sidebar-icon-box">
+          <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+        </div>
+        <span class="truncate">Beranda</span>
+        <span class="active-indicator absolute right-2.5 w-1.5 h-5 bg-primary rounded-full opacity-0 transition-opacity duration-200"></span>
+      </a>
 
-    <!-- ---- SHARED: Arsip Dokumen ---- -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
-       data-view="view-arsip-dokumen">
-      <span class="material-symbols-outlined mr-3">folder_open</span>
-      <span class="font-label-md">Arsip Dokumen</span>
-    </a>
+      <!-- Pegawai Dashboard -->
+      <a href="#" class="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 group"
+         data-view="view-dashboard-pegawai" data-role="pegawai">
+        <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-105 sidebar-icon-box">
+          <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+        </div>
+        <span class="truncate">Beranda</span>
+        <span class="active-indicator absolute right-2.5 w-1.5 h-5 bg-primary rounded-full opacity-0 transition-opacity duration-200"></span>
+      </a>
 
-    <!-- ---- DIVIDER (Admin section) ---- -->
-    <div class="my-4 border-t border-outline-variant/20 mx-4" data-role="admin"></div>
+      <!-- Profil Pegawai -->
+      <a href="#" class="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 group"
+         data-view="view-profil-pegawai">
+        <div class="w-8 h-8 rounded-lg bg-violet-500/10 text-violet-600 flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-105 sidebar-icon-box">
+          <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        </div>
+        <span class="truncate">Profil Pegawai</span>
+        <span class="active-indicator absolute right-2.5 w-1.5 h-5 bg-primary rounded-full opacity-0 transition-opacity duration-200"></span>
+      </a>
 
-    <!-- ---- ADMIN ONLY: Master Data Pegawai ---- -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
-       data-view="view-master-data-pegawai" data-role="admin">
-      <span class="material-symbols-outlined mr-3">database</span>
-      <span class="font-label-md">Master Data Pegawai</span>
-    </a>
+      <!-- Arsip Dokumen -->
+      <a href="#" class="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 group"
+         data-view="view-arsip-dokumen">
+        <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-105 sidebar-icon-box">
+          <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+        </div>
+        <span class="truncate">Arsip Dokumen</span>
+        <span class="active-indicator absolute right-2.5 w-1.5 h-5 bg-primary rounded-full opacity-0 transition-opacity duration-200"></span>
+      </a>
+    </div>
 
-    <!-- ---- ADMIN ONLY: Verifikasi Dokumen ---- -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
-       data-view="view-verifikasi-dokumen" data-role="admin">
-      <span class="material-symbols-outlined mr-3">verified</span>
-      <span class="font-label-md">Verifikasi Dokumen</span>
-    </a>
+    <!-- ============================================ -->
+    <!-- SECTION 2: ADMINISTRASI (ADMIN ONLY)          -->
+    <!-- ============================================ -->
+    <div class="space-y-1" data-role="admin">
+      <div class="px-3 pb-1 pt-1 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/60">
+        Administrasi
+      </div>
 
-    <!-- ---- DIVIDER ---- -->
-    <div class="my-4 border-t border-outline-variant/20 mx-4"></div>
+      <!-- Master Data Pegawai -->
+      <a href="#" class="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 group"
+         data-view="view-master-data-pegawai" data-role="admin">
+        <div class="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-600 flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-105 sidebar-icon-box">
+          <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        </div>
+        <span class="truncate">Master Data Pegawai</span>
+        <span class="active-indicator absolute right-2.5 w-1.5 h-5 bg-primary rounded-full opacity-0 transition-opacity duration-200"></span>
+      </a>
 
-    <!-- ---- SHARED: Keamanan Akun / Pengaturan ---- -->
-    <a href="#" class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group"
-       data-view="view-pengaturan">
-      <span class="material-symbols-outlined mr-3">security</span>
-      <span class="font-label-md">Keamanan Akun</span>
-    </a>
+      <!-- Verifikasi Dokumen -->
+      <a href="#" class="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 group"
+         data-view="view-verifikasi-dokumen" data-role="admin">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-105 sidebar-icon-box">
+          <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <span class="truncate">Verifikasi Dokumen</span>
+        <span class="active-indicator absolute right-2.5 w-1.5 h-5 bg-primary rounded-full opacity-0 transition-opacity duration-200"></span>
+      </a>
+    </div>
 
-    <!-- ---- Logout ---- -->
-    <button class="flex items-center px-4 py-3 rounded-xl text-on-surface-variant hover:bg-error-container hover:text-error transition-all group w-full text-left cursor-pointer"
-            onclick="SIKAP.Auth.openLogoutModal()">
-      <span class="material-symbols-outlined mr-3">logout</span>
-      <span class="font-label-md">Keluar</span>
-    </button>
+    <!-- ============================================ -->
+    <!-- SECTION 3: PENGATURAN & LAINNYA               -->
+    <!-- ============================================ -->
+    <div class="space-y-1">
+      <div class="px-3 pb-1 pt-1 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/60">
+        Sistem & Akun
+      </div>
+
+      <!-- Keamanan Akun / Pengaturan -->
+      <a href="#" class="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 group"
+         data-view="view-pengaturan">
+        <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-105 sidebar-icon-box">
+          <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <span class="truncate">Keamanan Akun</span>
+        <span class="active-indicator absolute right-2.5 w-1.5 h-5 bg-primary rounded-full opacity-0 transition-opacity duration-200"></span>
+      </a>
+
+      <!-- Logout Button -->
+      <button class="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium text-on-surface-variant hover:bg-rose-50 hover:text-rose-600 transition-all duration-200 group w-full text-left cursor-pointer"
+              onclick="SIKAP.Auth.openLogoutModal()">
+        <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-600 group-hover:bg-rose-500 group-hover:text-white flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-105">
+          <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </div>
+        <span class="truncate">Keluar</span>
+      </button>
+    </div>
 
   </nav>
 
-  <!-- Bottom: User Info -->
-  <div class="px-6 py-5 border-t border-outline-variant/20">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-        <span class="material-symbols-outlined text-on-primary text-[18px] user-initials">U</span>
+  <!-- ============================================ -->
+  <!-- BOTTOM: USER PROFILE CARD                   -->
+  <!-- ============================================ -->
+  <div class="p-3 border-t border-outline-variant/20 bg-surface-container-lowest/40">
+    <div class="flex items-center gap-3 p-2.5 rounded-xl bg-surface/90 hover:bg-surface-container transition-all duration-200 border border-outline-variant/25 shadow-xs cursor-pointer group"
+         onclick="SIKAP.Router.navigate('view-profil-pegawai')" title="Lihat Profil Saya">
+      <!-- Avatar -->
+      <div class="relative shrink-0">
+        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-primary-container text-on-primary flex items-center justify-center font-bold text-sm shadow-xs ring-2 ring-primary/10 overflow-hidden" id="sidebar-avatar-container">
+          <img id="sidebar-avatar-img" class="w-full h-full object-cover hidden" alt="Foto Profil" src="" />
+          <span id="sidebar-avatar-initials" class="user-initials font-semibold text-xs tracking-wider">U</span>
+        </div>
+        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-surface rounded-full"></span>
       </div>
-      <div class="flex flex-col min-w-0">
-        <span class="font-label-sm text-on-surface truncate" id="sidebar-user-name">—</span>
-        <span class="text-[10px] text-on-surface-variant uppercase tracking-wider" id="sidebar-user-role">SAMSAT Kupang</span>
+      <!-- User Info -->
+      <div class="flex flex-col min-w-0 flex-1">
+        <span class="text-[13px] font-semibold text-on-surface truncate leading-tight group-hover:text-primary transition-colors" id="sidebar-user-name">—</span>
+        <div class="flex items-center gap-1.5 mt-1">
+          <span class="inline-flex items-center text-[10.5px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-md leading-none" id="sidebar-user-role">Pegawai</span>
+        </div>
+      </div>
+      <div class="text-on-surface-variant/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
       </div>
     </div>
   </div>
+
 </aside>

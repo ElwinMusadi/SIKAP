@@ -68,6 +68,9 @@ function login(nip, password) {
     // Log the login action
     logActivity(nip, userData[COL_PEGAWAI.ROLE], 'LOGIN', 'USER', nip, 'Login berhasil', 'SUCCESS');
 
+    var fotoDriveId = String(userData[COL_PEGAWAI.FOTO_DRIVE_ID] || '').replace(/^'+/, '').trim();
+    var fotoUrl = fotoDriveId ? 'https://drive.google.com/thumbnail?id=' + fotoDriveId + '&sz=w500' : '';
+
     return {
       success: true,
       data: {
@@ -78,6 +81,8 @@ function login(nip, password) {
         statusKepegawaian: userData[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
         pangkatGolongan: userData[COL_PEGAWAI.PANGKAT_GOLONGAN],
         jabatan: userData[COL_PEGAWAI.JABATAN],
+        fotoDriveId: fotoDriveId,
+        fotoUrl: fotoUrl,
         forceChangePassword: shouldForceChange
       },
       message: 'Login berhasil.'
@@ -115,6 +120,9 @@ function validateSession(token) {
           var isDefaultPassword = (user.data[COL_PEGAWAI.PASSWORD_HASH] === defaultPwHash);
           var shouldForceChange = ENABLE_FORCE_CHANGE_PASSWORD && isDefaultPassword;
 
+          var fotoDriveId = String(user.data[COL_PEGAWAI.FOTO_DRIVE_ID] || '').replace(/^'+/, '').trim();
+          var fotoUrl = fotoDriveId ? 'https://drive.google.com/thumbnail?id=' + fotoDriveId + '&sz=w500' : '';
+
           return {
             nip: nip,
             nama: user.data[COL_PEGAWAI.NAMA_LENGKAP],
@@ -122,6 +130,8 @@ function validateSession(token) {
             statusKepegawaian: user.data[COL_PEGAWAI.STATUS_KEPEGAWAIAN],
             pangkatGolongan: user.data[COL_PEGAWAI.PANGKAT_GOLONGAN],
             jabatan: user.data[COL_PEGAWAI.JABATAN],
+            fotoDriveId: fotoDriveId,
+            fotoUrl: fotoUrl,
             forceChangePassword: shouldForceChange
           };
         }
@@ -304,6 +314,9 @@ function changePassword(token, newPassword, currentPassword) {
     // Log the action
     logActivity(session.nip, session.role, 'PASSWORD_CHANGE', 'USER', session.nip, 'Password berhasil diubah', 'SUCCESS');
 
+    var fotoDriveId = session.fotoDriveId || '';
+    var fotoUrl = session.fotoUrl || '';
+
     return {
       success: true,
       data: {
@@ -313,6 +326,8 @@ function changePassword(token, newPassword, currentPassword) {
         statusKepegawaian: session.statusKepegawaian,
         pangkatGolongan: session.pangkatGolongan,
         jabatan: session.jabatan,
+        fotoDriveId: fotoDriveId,
+        fotoUrl: fotoUrl,
         forceChangePassword: false
       },
       message: 'Password berhasil diubah.'
@@ -380,6 +395,9 @@ function forceChangePassword(token, newPassword) {
 
     logActivity(session.nip, session.role, 'FORCE_PASSWORD_CHANGE', 'USER', session.nip, 'Password default berhasil diubah', 'SUCCESS');
 
+    var fotoDriveId = String(user.data[COL_PEGAWAI.FOTO_DRIVE_ID] || '').replace(/^'+/, '').trim();
+    var fotoUrl = fotoDriveId ? 'https://drive.google.com/thumbnail?id=' + fotoDriveId + '&sz=w500' : '';
+
     return {
       success: true,
       data: {
@@ -389,6 +407,8 @@ function forceChangePassword(token, newPassword) {
         statusKepegawaian: session.statusKepegawaian,
         pangkatGolongan: session.pangkatGolongan,
         jabatan: session.jabatan,
+        fotoDriveId: fotoDriveId,
+        fotoUrl: fotoUrl,
         forceChangePassword: false
       },
       message: 'Password berhasil diubah.'
