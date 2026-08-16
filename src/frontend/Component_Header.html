@@ -1,32 +1,35 @@
 <!-- ============================================================ -->
-<!-- Component_Header.html — Shared Header Bar                   -->
-<!-- Faithfully reproduces the Stitch Dashboard Admin header      -->
+<!-- Component_Header.html — Shared Header Bar (App Chrome)      -->
+<!-- Tinted surface + navy accent bar, distinct from page/sidebar -->
 <!-- ============================================================ -->
 
-<header class="fixed top-0 left-0 right-0 h-16 bg-surface/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-[60] px-4 lg:px-container-margin flex items-center justify-between">
+<header class="fixed top-0 left-0 right-0 h-16 bg-surface-container/95 backdrop-blur-md shadow-[0_1px_2px_rgba(11,28,48,0.04),0_4px_16px_-6px_rgba(11,28,48,0.08)] z-[60] px-4 lg:px-container-margin flex items-center justify-between">
+  <!-- Brand accent line (separates chrome from content) -->
+  <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary pointer-events-none" aria-hidden="true"></div>
+
   <!-- Left: Logo + Title -->
-  <div class="flex items-center gap-3">
+  <div class="flex items-center gap-3 min-w-0">
     <!-- Mobile Hamburger -->
-    <button class="lg:hidden p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors" onclick="SIKAP.UI.toggleSidebar()" aria-label="Toggle menu">
+    <button class="lg:hidden p-2 text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" onclick="SIKAP.UI.toggleSidebar()" aria-label="Toggle menu">
       <span class="material-symbols-outlined">menu</span>
     </button>
     <!-- Logo -->
     <img alt="Logo Pemprov NTT" class="h-8 w-auto object-contain hidden sm:block" src="https://raw.githubusercontent.com/ElwinMusadi/app-assets/main/logo-ntt.png">
-    <div class="flex flex-col">
-      <span class="font-label-md text-primary leading-tight tracking-tight text-[13px] sm:text-label-md" style="letter-spacing: -0.4px;">UPTD Pendapatan Daerah Wilayah Kota Kupang</span>
-      <span class="font-body-sm text-on-surface-variant hidden sm:block">Sistem Informasi Kepegawaian dan Arsip Pegawai</span>
+    <div class="flex flex-col min-w-0">
+      <span class="font-label-md text-primary leading-tight tracking-tight text-[13px] sm:text-label-md truncate">UPTD Pendapatan Daerah Wilayah Kota Kupang</span>
+      <span class="hidden sm:block text-[11px] font-semibold uppercase tracking-[0.07em] leading-[14px] text-on-surface-variant/85">Sistem Informasi Kepegawaian dan Arsip Pegawai</span>
     </div>
   </div>
 
   <!-- Right: Actions + Profile -->
-  <div class="flex items-center gap-2 sm:gap-4">
-    <button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors hidden sm:block" aria-label="Pengaturan" onclick="SIKAP.Router.navigate('view-pengaturan')">
+  <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+    <button class="p-2 text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 hidden sm:block" aria-label="Pengaturan" onclick="SIKAP.Router.navigate('view-pengaturan')">
       <span class="material-symbols-outlined">settings</span>
     </button>
-    <div class="h-8 w-px bg-outline-variant/50 hidden sm:block"></div>
+    <div class="h-8 w-px bg-outline-variant/60 hidden sm:block"></div>
     <!-- User Dropdown -->
     <div class="relative" id="header-profile-dropdown">
-      <button class="w-9 h-9 rounded-full bg-primary hover:bg-primary/90 text-on-primary font-label-md flex items-center justify-center shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 active:scale-95 cursor-pointer overflow-hidden ring-1 ring-outline-variant/30" onclick="SIKAP.UI.toggleProfileDropdown()" aria-label="Profil Pengguna" title="Menu Profil">
+      <button class="w-9 h-9 rounded-full bg-primary hover:bg-primary/90 text-on-primary font-label-md flex items-center justify-center shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 active:scale-95 cursor-pointer overflow-hidden ring-2 ring-white/80" onclick="SIKAP.UI.toggleProfileDropdown()" aria-label="Profil Pengguna" title="Menu Profil">
         <img id="header-avatar-img" class="w-full h-full object-cover hidden" alt="Foto Profil" src="" />
         <span id="header-avatar-initials" class="user-initials font-bold text-[14px]">U</span>
       </button>
