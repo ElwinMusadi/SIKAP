@@ -3,54 +3,67 @@
 <!-- Tinted surface + navy accent bar, distinct from page/sidebar -->
 <!-- ============================================================ -->
 
-<header class="fixed top-0 left-0 right-0 h-16 bg-surface-container/95 backdrop-blur-md shadow-[0_1px_2px_rgba(11,28,48,0.04),0_4px_16px_-6px_rgba(11,28,48,0.08)] z-[60] px-4 lg:px-container-margin flex items-center justify-between">
-  <!-- Brand accent line (separates chrome from content) -->
-  <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary pointer-events-none" aria-hidden="true"></div>
-
+<header class="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-surface-container-low via-surface-container-lowest/90 to-surface-container-low/95 backdrop-blur-md shadow-sm border-b border-primary/10 border-t-[3px] border-t-primary z-[60] px-4 lg:px-container-margin flex items-center justify-between">
   <!-- Left: Logo + Title -->
-  <div class="flex items-center gap-3 min-w-0">
+  <div class="flex items-center gap-3.5 min-w-0">
     <!-- Mobile Hamburger -->
-    <button class="lg:hidden p-2 text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" onclick="SIKAP.UI.toggleSidebar()" aria-label="Toggle menu">
-      <span class="material-symbols-outlined">menu</span>
+    <button class="lg:hidden w-9 h-9 flex items-center justify-center text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" onclick="SIKAP.UI.toggleSidebar()" aria-label="Toggle menu">
+      <span class="material-symbols-outlined text-[20px]">menu</span>
     </button>
+    
     <!-- Logo -->
-    <img alt="Logo Pemprov NTT" class="h-8 w-auto object-contain hidden sm:block" src="https://raw.githubusercontent.com/ElwinMusadi/app-assets/main/logo-ntt.png">
-    <div class="flex flex-col min-w-0">
-      <span class="font-label-md text-primary leading-tight tracking-tight text-[13px] sm:text-label-md truncate">UPTD Pendapatan Daerah Wilayah Kota Kupang</span>
-      <span class="hidden sm:block text-[11px] font-semibold uppercase tracking-[0.07em] leading-[14px] text-on-surface-variant/85">Sistem Informasi Kepegawaian dan Arsip Pegawai</span>
+    <img alt="Logo Pemprov NTT" class="h-9 w-auto object-contain hidden sm:block drop-shadow-sm" src="https://raw.githubusercontent.com/ElwinMusadi/app-assets/main/logo-ntt.png">
+    
+    <!-- Title Hierarchy -->
+    <div class="flex flex-col justify-center min-w-0">
+      <h1 class="flex items-center gap-2 mb-1">
+        <span class="font-h3 text-primary text-[15px] sm:text-[17px] font-extrabold tracking-tight leading-none">SIKAP</span>
+        <span class="hidden sm:block w-1 h-1 rounded-full bg-primary/30"></span>
+        <span class="font-label-sm text-on-surface-variant/90 text-[11px] sm:text-[12px] font-semibold leading-none hidden sm:block truncate">Sistem Informasi Kepegawaian dan Arsip Pegawai</span>
+      </h1>
+      <span class="font-body-sm text-on-surface-variant text-[10px] sm:text-[11px] uppercase tracking-[0.05em] leading-none truncate">
+        UPTD Pendapatan Daerah Wilayah Kota Kupang
+      </span>
     </div>
   </div>
 
   <!-- Right: Actions + Profile -->
-  <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-    <button class="p-2 text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 hidden sm:block" aria-label="Pengaturan" onclick="SIKAP.Router.navigate('view-pengaturan')">
-      <span class="material-symbols-outlined">settings</span>
+  <div class="flex items-center gap-3 sm:gap-4 shrink-0">
+    
+    <!-- Settings Icon -->
+    <button class="w-9 h-9 hidden sm:flex items-center justify-center text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" aria-label="Pengaturan" onclick="SIKAP.Router.navigate('view-pengaturan')">
+      <span class="material-symbols-outlined text-[20px]">settings</span>
     </button>
-    <div class="h-8 w-px bg-outline-variant/60 hidden sm:block"></div>
+    
+    <!-- Divider -->
+    <div class="h-6 w-px bg-primary/15 hidden sm:block"></div>
+    
     <!-- User Dropdown -->
-    <div class="relative" id="header-profile-dropdown">
+    <div class="relative flex items-center" id="header-profile-dropdown">
       <button class="w-9 h-9 rounded-full bg-primary hover:bg-primary/90 text-on-primary font-label-md flex items-center justify-center shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 active:scale-95 cursor-pointer overflow-hidden ring-2 ring-white/80" onclick="SIKAP.UI.toggleProfileDropdown()" aria-label="Profil Pengguna" title="Menu Profil">
         <img id="header-avatar-img" class="w-full h-full object-cover hidden" alt="Foto Profil" src="" />
         <span id="header-avatar-initials" class="user-initials font-bold text-[14px]">U</span>
       </button>
+      
       <!-- Dropdown Menu -->
       <div id="profile-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-56 bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant/30 overflow-hidden z-50">
-        <div class="px-4 py-3 border-b border-outline-variant/20">
+        <div class="px-4 py-3 border-b border-outline-variant/20 bg-surface-container-low/30">
           <p class="font-label-md text-on-surface truncate" id="header-user-name">—</p>
-          <p class="font-body-sm text-on-surface-variant" id="header-user-role-text">—</p>
+          <p class="font-body-sm text-on-surface-variant text-[11px]" id="header-user-role-text">—</p>
         </div>
         <div class="py-1">
           <button class="w-full px-4 py-2.5 text-left font-body-md text-on-surface hover:bg-surface-container-high transition-colors flex items-center gap-3" onclick="SIKAP.Router.navigate('view-pengaturan'); SIKAP.UI.toggleProfileDropdown();">
-            <span class="material-symbols-outlined text-[20px] text-on-surface-variant">settings</span>
-            Pengaturan
+            <span class="material-symbols-outlined text-[18px] text-on-surface-variant">settings</span>
+            <span class="text-sm">Pengaturan</span>
           </button>
           <button class="w-full px-4 py-2.5 text-left font-body-md text-error hover:bg-error-container transition-colors flex items-center gap-3 cursor-pointer" onclick="SIKAP.UI.toggleProfileDropdown(); SIKAP.Auth.openLogoutModal();">
-            <span class="material-symbols-outlined text-[20px]">logout</span>
-            Keluar
+            <span class="material-symbols-outlined text-[18px]">logout</span>
+            <span class="text-sm">Keluar</span>
           </button>
         </div>
       </div>
     </div>
+    
   </div>
 </header>
 
