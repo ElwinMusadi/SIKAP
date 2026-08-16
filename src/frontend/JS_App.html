@@ -83,15 +83,15 @@ SIKAP.UI.updateSidebarActive = function(activeViewId) {
     var indicator = link.querySelector('.active-indicator');
     
     if (isActive) {
-      link.classList.add('bg-primary/10', 'text-primary', 'font-semibold');
-      link.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-high', 'hover:text-on-surface');
+      link.classList.add('bg-white/10', 'text-white', 'font-semibold');
+      link.classList.remove('text-white/70', 'hover:bg-white/10', 'hover:text-white');
       if (indicator) {
         indicator.classList.remove('opacity-0');
         indicator.classList.add('opacity-100');
       }
     } else {
-      link.classList.remove('bg-primary/10', 'text-primary', 'font-semibold');
-      link.classList.add('text-on-surface-variant', 'hover:bg-surface-container-high', 'hover:text-on-surface');
+      link.classList.remove('bg-white/10', 'text-white', 'font-semibold');
+      link.classList.add('text-white/70', 'hover:bg-white/10', 'hover:text-white');
       if (indicator) {
         indicator.classList.remove('opacity-100');
         indicator.classList.add('opacity-0');
