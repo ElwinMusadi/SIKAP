@@ -36,63 +36,128 @@ SIKAP.DashboardAdmin.renderStats = function(d) {
   // Counters
   document.getElementById('admin-stat-total').textContent = d.totalPegawai || '0';
   document.getElementById('admin-stat-pns').textContent = d.pns || '0';
-  document.getElementById('admin-stat-cpns').textContent = d.cpns || '0';
-  document.getElementById('admin-stat-p3k').textContent = d.p3k || '0';
   document.getElementById('admin-stat-pending').textContent = d.pendingVerifikasi || '0';
+  
+  // Status Breakdown
+  document.getElementById('admin-status-pns').textContent = d.pns || '0';
+  document.getElementById('admin-status-cpns').textContent = d.cpns || '0';
+  document.getElementById('admin-status-p3k').textContent = d.p3k || '0';
 
   // Completeness %
   var pct = d.docPct || 0;
   document.getElementById('admin-completeness-pct').textContent = pct + '%';
   
-  // Progress Bar Breakdown
-  var verifiedBar = document.getElementById('admin-bar-verified');
-  var pendingBar = document.getElementById('admin-bar-pending');
-  if (verifiedBar) verifiedBar.style.width = pct + '%';
-  if (pendingBar) pendingBar.style.width = (100 - pct) + '%';
+  // Styling for Menunggu Verifikasi KPI
+  var pendingVal = parseInt(d.pendingVerifikasi) || 0;
+  var pendingCard = document.getElementById('admin-kpi-verifikasi-card');
+  var pendingLabel = document.getElementById('admin-kpi-verifikasi-label');
+  var pendingIconContainer = document.getElementById('admin-kpi-verifikasi-icon-container');
+  var attentionContainer = document.getElementById('admin-attention-container');
 
-  // Action card text
-  var pendingText = document.getElementById('admin-pending-text');
-  if (pendingText) {
-    if (d.pendingVerifikasi > 0) {
-      pendingText.textContent = 'Terdapat ' + d.pendingVerifikasi + ' dokumen yang membutuhkan pemeriksaan segera.';
-    } else {
-      pendingText.textContent = 'Tidak ada dokumen yang sedang menunggu verifikasi saat ini.';
+  if (pendingVal > 0) {
+    if (pendingCard) pendingCard.classList.add('bg-amber-50', 'border-amber-200');
+    if (pendingLabel) pendingLabel.classList.replace('text-on-surface-variant', 'text-amber-800');
+    if (pendingIconContainer) pendingIconContainer.classList.replace('bg-surface-container', 'bg-amber-500/20');
+    if (pendingIconContainer) pendingIconContainer.classList.replace('text-on-surface-variant', 'text-amber-700');
+    
+    // Fill Perlu Perhatian
+    if (attentionContainer) {
+      attentionContainer.innerHTML = 
+        '<div class="flex flex-col p-4 bg-amber-50 border border-amber-200 rounded-lg shadow-sm">' +
+          '<div class="flex items-start gap-3 mb-4">' +
+            '<span class="material-symbols-outlined text-[20px] text-amber-600 mt-0.5">pending_actions</span>' +
+            '<div>' +
+              '<span class="text-[14px] font-bold text-amber-900 block leading-tight mb-1">' + pendingVal + ' Dokumen menunggu verifikasi</span>' +
+              '<span class="text-[12px] text-amber-700 block leading-snug">Pemeriksaan diperlukan agar pegawai dapat melihat status dokumennya.</span>' +
+            '</div>' +
+          '</div>' +
+          '<button class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded text-[13px] font-semibold transition-colors flex items-center justify-center gap-2" onclick="SIKAP.Router.navigate(\'view-verifikasi-dokumen\')">' +
+            'Periksa Sekarang <span class="material-symbols-outlined text-[16px]">arrow_forward</span>' +
+          '</button>' +
+        '</div>';
+    }
+  } else {
+    // Fill Perlu Perhatian with positive state
+    if (attentionContainer) {
+      attentionContainer.innerHTML = 
+        '<div class="flex items-start gap-3 p-4 bg-emerald-50 text-emerald-800 rounded-lg border border-emerald-100">' +
+          '<span class="material-symbols-outlined text-[20px] text-emerald-600">check_circle</span>' +
+          '<span class="text-[13px] font-medium leading-tight pt-0.5">Tidak ada item yang membutuhkan perhatian saat ini.</span>' +
+        '</div>';
     }
   }
 
-  // Activity Timeline
-  var container = document.getElementById('admin-activity-timeline');
-  if (!container) return;
+  // Activity Timeline (Compact Feed)
+  var feedContainer = document.getElementById('admin-activity-feed');
+  if (!feedContainer) return;
 
   if (!d.recentActivities || d.recentActivities.length === 0) {
-    container.innerHTML = 
-      '<div class="absolute left-1 top-2 bottom-2 w-px bg-surface-container-highest"></div>' +
-      '<div class="relative flex gap-4">' +
-        '<div class="absolute -left-[22px] top-1 w-3 h-3 rounded-full bg-surface-container-highest ring-4 ring-surface-container-lowest z-10"></div>' +
-        '<div class="flex flex-col">' +
-          '<span class="font-label-sm text-label-sm text-on-surface-variant mb-1">—</span>' +
-          '<p class="font-body-sm text-body-sm text-on-surface-variant">Belum ada aktivitas terbaru.</p>' +
-        '</div>' +
-      '</div>';
+    feedContainer.innerHTML = 
+      '<div class="text-[13px] text-on-surface-variant p-4 bg-surface rounded-lg border border-outline-variant/20 text-center">Belum ada aktivitas terbaru.</div>';
     return;
   }
 
-  var html = '<div class="absolute left-1 top-2 bottom-2 w-px bg-surface-container-highest"></div>';
+  var html = '';
+  // Limit to max 7 items
+  var acts = d.recentActivities.slice(0, 7);
   
-  d.recentActivities.forEach(function(act) {
-    var dotClass = 'bg-primary';
-    if (act.action.indexOf('CREATE') !== -1) dotClass = 'bg-[#137333]';
-    else if (act.action.indexOf('UPDATE') !== -1) dotClass = 'bg-[#ff9800]';
-    else if (act.action.indexOf('DEACTIVATE') !== -1) dotClass = 'bg-error';
+  acts.forEach(function(act) {
+    var icon = '';
+    var iconClass = 'text-primary bg-primary/10';
+    var actionType = (act.action || '').toUpperCase();
+    var descLower = (act.description || '').toLowerCase();
+    
+    var title = "Aktivitas Sistem";
+    var context = act.description;
 
-    html += '<div class="relative flex gap-4">';
-    html += '<div class="absolute -left-[22px] top-1 w-3 h-3 rounded-full ' + dotClass + ' ring-4 ring-surface-container-lowest z-10"></div>';
-    html += '<div class="flex flex-col">';
-    html += '<span class="font-label-sm text-label-sm text-on-surface-variant mb-1">' + act.time + '</span>';
-    html += '<p class="font-body-sm text-body-sm text-on-surface">' + act.description + '</p>';
-    html += '</div></div>';
+    // Infer context and icon based on action text
+    if (actionType.indexOf('VERIFIKASI') !== -1 || descLower.indexOf('verifikasi') !== -1 || descLower.indexOf('disetujui') !== -1 || descLower.indexOf('ditolak') !== -1) {
+      title = "Verifikasi Dokumen";
+      icon = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+      iconClass = 'text-emerald-600 bg-emerald-500/10';
+      if (descLower.indexOf('ditolak') !== -1 || descLower.indexOf('revisi') !== -1) {
+        title = "Verifikasi Ditolak";
+        icon = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>';
+        iconClass = 'text-amber-600 bg-amber-500/10';
+      }
+    } else if (actionType.indexOf('UPLOAD') !== -1 || descLower.indexOf('unggah') !== -1) {
+      title = "Dokumen Diunggah";
+      icon = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>';
+      iconClass = 'text-blue-600 bg-blue-500/10';
+    } else if (actionType.indexOf('CREATE') !== -1 || descLower.indexOf('tambah') !== -1) {
+      title = "Pegawai Ditambahkan";
+      icon = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>';
+      iconClass = 'text-[#137333] bg-[#137333]/10';
+    } else if (actionType.indexOf('UPDATE') !== -1 || descLower.indexOf('ubah') !== -1) {
+      title = "Profil Diperbarui";
+      icon = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>';
+      iconClass = 'text-purple-600 bg-purple-500/10';
+    } else if (actionType.indexOf('LOGIN') !== -1 || actionType.indexOf('LOGOUT') !== -1) {
+      title = "Aktivitas Akun";
+      icon = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>';
+      iconClass = 'text-slate-600 bg-surface-container-highest'; 
+    } else {
+      icon = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+    }
+
+    // Truncate description context if very long
+    var ctx = context;
+    if (ctx.length > 70) ctx = ctx.substring(0, 70) + '...';
+
+    html += '<div class="flex items-start gap-3 p-3 bg-surface rounded-lg border border-outline-variant/20 hover:border-outline-variant/40 transition-colors">';
+    html +=   '<div class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center ' + iconClass + '">';
+    html +=     icon;
+    html +=   '</div>';
+    html +=   '<div class="flex flex-col flex-1 min-w-0">';
+    html +=     '<div class="flex items-center justify-between mb-0.5">';
+    html +=       '<span class="text-[13px] font-bold text-on-surface">' + title + '</span>';
+    html +=     '</div>';
+    html +=     '<span class="text-[13px] text-on-surface-variant leading-tight truncate" title="' + context + '">' + ctx + '</span>';
+    html +=     '<span class="text-[11px] text-on-surface-variant mt-1.5 flex items-center gap-1.5"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>' + act.time + '</span>';
+    html +=   '</div>';
+    html += '</div>';
   });
 
-  container.innerHTML = html;
+  feedContainer.innerHTML = html;
 };
 </script>
