@@ -57,12 +57,36 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         <!-- Kelengkapan Dokumen -->
-        <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col items-center text-center">
-          <h2 class="text-[16px] font-semibold text-on-surface w-full text-left mb-6">Kelengkapan Dokumen</h2>
-          <div class="relative w-32 h-32 flex items-center justify-center rounded-full bg-primary/5 border-[8px] border-surface-container-highest mb-4 shadow-inner">
-             <span class="text-[32px] font-bold text-primary tracking-tight" id="admin-completeness-pct">—</span>
+        <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <h2 class="text-[16px] font-semibold text-on-surface mb-2">Kelengkapan Dokumen</h2>
+            <p class="text-[13px] text-on-surface-variant leading-relaxed mb-6">Tingkat kelengkapan keseluruhan data dokumen wajib pegawai.</p>
           </div>
-          <p class="text-[13px] text-on-surface-variant leading-relaxed">Tingkat kelengkapan keseluruhan data dokumen wajib pegawai.</p>
+          
+          <div>
+            <div class="flex items-end gap-3 mb-3">
+              <span class="text-[32px] font-bold text-primary leading-none tracking-tight" id="admin-completeness-pct">—</span>
+              <span class="text-[13px] font-medium text-on-surface-variant pb-1">Terkumpul</span>
+            </div>
+            
+            <!-- Breakdown Bar -->
+            <div class="w-full h-3 rounded-full overflow-hidden flex shadow-inner bg-surface-container-highest mb-4">
+              <div class="h-full bg-primary transition-all duration-500" id="admin-bar-verified" style="width: 0%;"></div>
+              <div class="h-full bg-amber-400 transition-all duration-500" id="admin-bar-pending" style="width: 0%;"></div>
+            </div>
+            
+            <!-- Legend -->
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2">
+                <div class="w-2.5 h-2.5 rounded-full bg-primary"></div>
+                <span class="text-[12px] font-medium text-on-surface-variant">Lengkap</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+                <span class="text-[12px] font-medium text-on-surface-variant">Belum Lengkap</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Status Kepegawaian -->

@@ -47,6 +47,11 @@ SIKAP.DashboardAdmin.renderStats = function(d) {
   var pct = d.docPct || 0;
   document.getElementById('admin-completeness-pct').textContent = pct + '%';
   
+  var verifiedBar = document.getElementById('admin-bar-verified');
+  var pendingBar = document.getElementById('admin-bar-pending');
+  if (verifiedBar) verifiedBar.style.width = pct + '%';
+  if (pendingBar) pendingBar.style.width = (100 - pct) + '%';
+  
   // Styling for Menunggu Verifikasi KPI
   var pendingVal = parseInt(d.pendingVerifikasi) || 0;
   var pendingCard = document.getElementById('admin-kpi-verifikasi-card');
