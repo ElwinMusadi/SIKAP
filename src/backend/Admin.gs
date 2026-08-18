@@ -259,25 +259,27 @@ function adminTambahPegawai(token, data) {
       return { success: false, message: 'NIP harus terdiri dari 18 digit angka.' };
     }
 
-    if (!data.nik) {
-      return { success: false, message: 'NIK wajib diisi.' };
-    }
-    var nikStr = String(data.nik).replace(/^'+/, '').trim();
-    if (!/^\d{16}$/.test(nikStr)) {
-      return { success: false, message: 'NIK harus terdiri dari 16 digit angka.' };
-    }
-
     if (!data.nama || !String(data.nama).trim()) {
       return { success: false, message: 'Nama Lengkap wajib diisi.' };
     }
-
-    if (!data.statusKepegawaian) {
-      return { success: false, message: 'Status Kepegawaian wajib diisi.' };
+    
+    // Optional: NIK
+    var nikStr = '';
+    if (data.nik && String(data.nik).trim() !== '') {
+      nikStr = String(data.nik).replace(/^'+/, '').trim();
+      if (!/^\d{16}$/.test(nikStr)) {
+        return { success: false, message: 'NIK harus terdiri dari 16 digit angka jika diisi.' };
+      }
     }
-    var statusKepegawaianStr = String(data.statusKepegawaian).trim();
-    if (statusKepegawaianStr === 'P3K') statusKepegawaianStr = 'PPPK';
-    if (['PNS', 'CPNS', 'PPPK'].indexOf(statusKepegawaianStr) === -1) {
-      return { success: false, message: 'Status Kepegawaian harus salah satu dari: PNS, CPNS, atau PPPK.' };
+
+    // Optional: Status Kepegawaian
+    var statusKepegawaianStr = '';
+    if (data.statusKepegawaian && String(data.statusKepegawaian).trim() !== '') {
+      statusKepegawaianStr = String(data.statusKepegawaian).trim();
+      if (statusKepegawaianStr === 'P3K') statusKepegawaianStr = 'PPPK';
+      if (['PNS', 'CPNS', 'PPPK'].indexOf(statusKepegawaianStr) === -1) {
+        return { success: false, message: 'Status Kepegawaian harus salah satu dari: PNS, CPNS, atau PPPK.' };
+      }
     }
 
     var roleStr = data.role ? String(data.role).trim() : ROLES.PEGAWAI;

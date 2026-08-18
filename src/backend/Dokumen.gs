@@ -34,10 +34,22 @@ var MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
  */
 function _getSikapRootFolder() {
   var folders = DriveApp.getFoldersByName(DRIVE_ROOT_FOLDER_NAME);
+  var rootFolder;
   if (folders.hasNext()) {
-    return folders.next();
+    rootFolder = folders.next();
+  } else {
+    rootFolder = DriveApp.createFolder(DRIVE_ROOT_FOLDER_NAME);
   }
-  return DriveApp.createFolder(DRIVE_ROOT_FOLDER_NAME);
+  
+  // Pastikan folder root memiliki akses publik (view only) agar foto/dokumen bisa dimuat di iframe/img
+  // tanpa harus login ke akun Google pemilik file.
+  try {
+    rootFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch(e) {
+    Logger.log('Warning: Cannot set sharing on root folder: ' + e.toString());
+  }
+  
+  return rootFolder;
 }
 
 /**

@@ -361,7 +361,7 @@ SIKAP.MasterDataPegawai.handleTambah = function(event) {
     document.getElementById('tambah-nip-err').classList.add('hidden');
   }
 
-  if (!/^\d{16}$/.test(nikVal)) {
+  if (nikVal && !/^\d{16}$/.test(nikVal)) {
     document.getElementById('tambah-nik-err').classList.remove('hidden');
     if (!hasError) document.getElementById('tambah-nik').focus();
     hasError = true;
@@ -369,16 +369,13 @@ SIKAP.MasterDataPegawai.handleTambah = function(event) {
     document.getElementById('tambah-nik-err').classList.add('hidden');
   }
 
-  var noHpVal = (document.getElementById('tambah-hp').value || '').trim();
-  var emailVal = (document.getElementById('tambah-email').value || '').trim();
-
   if (!namaVal) {
     SIKAP.Toast.show('Nama lengkap wajib diisi.', 'error');
     hasError = true;
-  } else if (!statusKepVal) {
-    SIKAP.Toast.show('Status kepegawaian wajib dipilih.', 'error');
-    hasError = true;
   }
+
+  var noHpVal = (document.getElementById('tambah-hp').value || '').trim();
+  var emailVal = (document.getElementById('tambah-email').value || '').trim();
 
   // Contact validations
   if (noHpVal) {

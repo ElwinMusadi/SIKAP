@@ -93,7 +93,28 @@ function updateMyProfile(token, updates) {
     var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, auth.session.nip);
     if (!user) return { success: false, message: 'Data pengguna tidak ditemukan.' };
 
-    // Build update map — only employee self-editable fields
+    // NIK validation
+    if (updates.nik !== undefined) {
+      var cleanNik = String(updates.nik).replace(/^'+/, '').trim();
+      if (cleanNik && !/^\d{16}$/.test(cleanNik)) {
+        return { success: false, message: 'NIK harus terdiri dari 16 digit angka.' };
+      }
+      if (cleanNik && isNikDuplicate(cleanNik, auth.session.nip)) {
+        return { success: false, message: 'NIK ' + cleanNik + ' sudah terdaftar.' };
+      }
+    }
+    
+    // Status Kepegawaian validation
+    if (updates.statusKepegawaian !== undefined) {
+      var stNorm = String(updates.statusKepegawaian).trim();
+      if (stNorm === 'P3K') stNorm = 'PPPK';
+      if (stNorm && ['PNS', 'CPNS', 'PPPK'].indexOf(stNorm) === -1) {
+        return { success: false, message: 'Status Kepegawaian tidak valid.' };
+      }
+      updates.statusKepegawaian = stNorm;
+    }
+
+    // Build update map
     var fields = {};
     if (updates.noHp !== undefined) fields[COL_PEGAWAI.NO_HP] = formatPhoneForStorage(updates.noHp);
     if (updates.alamat !== undefined) fields[COL_PEGAWAI.ALAMAT] = escapeFormula(updates.alamat);
@@ -104,6 +125,16 @@ function updateMyProfile(token, updates) {
     if (updates.agama !== undefined) fields[COL_PEGAWAI.AGAMA] = escapeFormula(updates.agama);
     if (updates.pendidikanTerakhir !== undefined) fields[COL_PEGAWAI.PENDIDIKAN_TERAKHIR] = escapeFormula(updates.pendidikanTerakhir);
     if (updates.statusPernikahan !== undefined) fields[COL_PEGAWAI.STATUS_PERNIKAHAN] = escapeFormula(updates.statusPernikahan);
+    
+    // Administrative fields
+    if (updates.nik !== undefined) fields[COL_PEGAWAI.NIK] = escapeFormula(updates.nik);
+    if (updates.statusKepegawaian !== undefined) fields[COL_PEGAWAI.STATUS_KEPEGAWAIAN] = escapeFormula(updates.statusKepegawaian);
+    if (updates.pangkatGolongan !== undefined) fields[COL_PEGAWAI.PANGKAT_GOLONGAN] = escapeFormula(updates.pangkatGolongan);
+    if (updates.tmtPangkat !== undefined) fields[COL_PEGAWAI.TMT_PANGKAT] = formatDateOnly(updates.tmtPangkat);
+    if (updates.jabatan !== undefined) fields[COL_PEGAWAI.JABATAN] = escapeFormula(updates.jabatan);
+    if (updates.jenisJabatan !== undefined) fields[COL_PEGAWAI.JENIS_JABATAN] = escapeFormula(updates.jenisJabatan);
+    if (updates.tmtJabatan !== undefined) fields[COL_PEGAWAI.TMT_JABATAN] = formatDateOnly(updates.tmtJabatan);
+    if (updates.unitOrganisasi !== undefined) fields[COL_PEGAWAI.UNIT_ORGANISASI] = escapeFormula(updates.unitOrganisasi);
 
     if (Object.keys(fields).length === 0) {
       return { success: false, message: 'Tidak ada perubahan untuk disimpan.' };
