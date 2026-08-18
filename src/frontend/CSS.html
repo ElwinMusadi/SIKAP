@@ -88,11 +88,26 @@
     outline: 2px solid #00236f;
     outline-offset: 2px;
     border-radius: 4px;
+    box-shadow: 0 0 0 4px rgba(182, 196, 255, 0.55);
   }
 
   /* Input placeholder styling */
   input::placeholder {
     color: #757682;
     opacity: 0.7;
+  }
+
+  /* Respect the operating system's motion preference. */
+  @media (prefers-reduced-motion: reduce) {
+    html:focus-within {
+      scroll-behavior: auto;
+    }
+
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 </style>

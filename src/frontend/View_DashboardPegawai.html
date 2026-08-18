@@ -1,294 +1,512 @@
 <!-- ============================================================ -->
 <!-- View_DashboardPegawai.html — Employee Dashboard             -->
-<!-- Faithfully reproduces Halaman Beranda Pegawai.html           -->
-<!-- Connected to getMyDashboard() backend — loading/error/data  -->
+<!-- Action-oriented dashboard for profile and required docs.    -->
 <!-- ============================================================ -->
 
-<div class="px-6 py-8 lg:px-container-margin lg:py-10 max-w-[1440px] mx-auto w-full space-y-8" id="dashboard-pegawai-root">
+<div class="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-container-margin" id="dashboard-pegawai-root">
 
-  <!-- ============================== -->
-  <!-- LOADING STATE                  -->
-  <!-- ============================== -->
-  <div id="dp-loading" class="flex flex-col items-center justify-center py-24 gap-4">
-    <svg class="animate-spin h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24">
+  <div id="dp-loading" class="flex flex-col items-center justify-center gap-4 py-24" role="status" aria-live="polite" aria-label="Memuat dashboard pegawai">
+    <svg class="h-10 w-10 animate-spin text-primary" fill="none" viewBox="0 0 24 24" aria-hidden="true">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
     </svg>
-    <p class="font-body-md text-on-surface-variant">Memuat data kepegawaian...</p>
+    <p class="text-body-md text-on-surface-variant">Memuat data kepegawaian...</p>
   </div>
 
-  <!-- ============================== -->
-  <!-- ERROR STATE                    -->
-  <!-- ============================== -->
-  <div id="dp-error" class="hidden flex flex-col items-center justify-center py-24 gap-4">
-    <div class="w-16 h-16 rounded-full bg-error-container flex items-center justify-center">
-      <span class="material-symbols-outlined text-error text-3xl">cloud_off</span>
-    </div>
-    <div class="text-center">
-      <h3 class="font-h3 text-on-surface mb-1">Gagal Memuat Data</h3>
-      <p class="font-body-md text-on-surface-variant mb-4" id="dp-error-msg">Terjadi kesalahan saat mengambil data.</p>
-      <button class="px-5 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary/90 transition-colors"
-              onclick="SIKAP.DashboardPegawai.load()">
-        Coba Lagi
+  <div id="dp-error" class="hidden min-h-[420px] items-center justify-center" role="alert" aria-live="assertive">
+    <div class="w-full max-w-md rounded-2xl border border-error/15 bg-surface-container-lowest p-8 text-center shadow-sm">
+      <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-error-container">
+        <span class="material-symbols-outlined text-3xl text-error" aria-hidden="true">cloud_off</span>
+      </div>
+      <h2 class="text-h3 text-on-surface">Dashboard belum dapat dimuat</h2>
+      <p class="mt-2 text-body-md text-on-surface-variant" id="dp-error-msg">Terjadi kesalahan saat mengambil data.</p>
+      <button type="button" class="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-label-md text-on-primary shadow-sm transition-colors hover:bg-primary/90"
+              onclick="SIKAP.DashboardPegawai.load(true)">
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
+        Coba lagi
       </button>
     </div>
   </div>
 
-  <!-- ============================== -->
-  <!-- DATA STATE                     -->
-  <!-- ============================== -->
-  <div id="dp-data" class="hidden space-y-8">
-
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
-      <div class="space-y-1">
-        <h1 class="font-h1 text-on-surface">Selamat datang, <span id="dp-greeting-name">—</span></h1>
-        <p class="font-body-lg text-on-surface-variant">Berikut adalah ringkasan status kelengkapan data dan dokumen kepegawaian Anda.</p>
+  <div id="dp-data" class="hidden space-y-6">
+    <header class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div class="min-w-0">
+        <div class="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/10 bg-primary/5 px-3 py-1 text-label-sm text-primary">
+          <span class="material-symbols-outlined text-[15px]" aria-hidden="true">space_dashboard</span>
+          Beranda pegawai
+        </div>
+        <h1 class="text-h1-mobile text-on-surface lg:text-h1">Selamat datang, <span id="dp-greeting-name">—</span></h1>
+        <p class="mt-1 max-w-2xl text-body-md text-on-surface-variant sm:text-body-lg">Lihat progres Anda dan selesaikan data yang masih memerlukan perhatian.</p>
       </div>
-      <div class="flex items-center gap-3">
-        <button class="px-4 py-2 rounded-lg bg-surface-container-high text-on-surface font-label-md hover:bg-surface-container transition-colors shadow-sm"
-                onclick="SIKAP.Router.navigate('view-profil-pegawai')">Lihat Profil</button>
-        <button class="px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
-                onclick="SIKAP.Router.navigate('view-arsip-dokumen')">
-          <span class="material-symbols-outlined text-[18px]">upload_file</span>
-          Lengkapi Dokumen
+      <div class="grid w-full grid-cols-[1fr_auto] gap-2 sm:flex sm:w-auto">
+        <button type="button" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-outline-variant/50 bg-surface-container-lowest px-4 py-2.5 text-label-md text-on-surface shadow-sm transition-colors hover:bg-surface-container-low"
+                onclick="SIKAP.Router.navigate('view-profil-pegawai')">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">person</span>
+          Lihat profil
+        </button>
+        <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-on-surface-variant shadow-sm transition-colors hover:bg-surface-container-low hover:text-primary"
+                onclick="SIKAP.DashboardPegawai.load(true)" aria-label="Perbarui data dashboard" title="Perbarui data">
+          <span class="material-symbols-outlined text-[20px]" aria-hidden="true">refresh</span>
         </button>
       </div>
-    </div>
+    </header>
 
-    <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-      <!-- Progress Card (Left Column) -->
-      <div class="col-span-1 lg:col-span-4 rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-6 flex flex-col justify-between">
-        <div class="space-y-2 mb-6">
-          <h2 class="font-h3 text-on-surface">Kelengkapan Data &amp; Dokumen</h2>
-          <p class="font-body-md text-on-surface-variant">Status kelengkapan berkas wajib untuk pemutakhiran data mandiri.</p>
-        </div>
-        <div class="flex items-center justify-center flex-1 py-8 relative">
-          <!-- Circular Progress Ring -->
-          <svg class="w-48 h-48 transform -rotate-90" viewBox="0 0 100 100">
-            <circle class="stroke-surface-container-highest" cx="50" cy="50" fill="none" r="45" stroke-width="8"></circle>
-            <circle class="stroke-primary transition-all duration-700 ease-out" cx="50" cy="50" fill="none" r="45"
-                    id="dp-progress-ring"
-                    stroke-dasharray="282.74" stroke-dashoffset="282.74" stroke-linecap="round" stroke-width="8"></circle>
-          </svg>
-          <div class="absolute inset-0 flex flex-col items-center justify-center">
-            <span class="font-h1 text-primary" id="dp-progress-pct">0%</span>
-            <span class="font-label-sm text-on-surface-variant uppercase tracking-wider mt-1">Lengkap</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Summary & Alerts (Right Column) -->
-      <div class="col-span-1 lg:col-span-8 space-y-6">
-
-        <!-- Summary Cards Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <!-- Terverifikasi -->
-          <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-4 hover:shadow-md transition-shadow">
-            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
-              <span class="material-symbols-outlined text-emerald-700 text-[18px]">verified</span>
-            </div>
-            <div class="font-h2 text-on-surface" id="dp-stat-verified">—</div>
-            <div class="font-label-sm text-on-surface-variant mt-1">Dokumen Terverifikasi</div>
-          </div>
-          <!-- Menunggu -->
-          <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-4 hover:shadow-md transition-shadow">
-            <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center mb-3">
-              <span class="material-symbols-outlined text-amber-700 text-[18px]">pending</span>
-            </div>
-            <div class="font-h2 text-on-surface" id="dp-stat-pending">—</div>
-            <div class="font-label-sm text-on-surface-variant mt-1">Menunggu Verifikasi</div>
-          </div>
-          <!-- Perlu Revisi -->
-          <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-4 hover:shadow-md transition-shadow">
-            <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center mb-3">
-              <span class="material-symbols-outlined text-orange-700 text-[18px]">edit_note</span>
-            </div>
-            <div class="font-h2 text-on-surface" id="dp-stat-rejected">—</div>
-            <div class="font-label-sm text-on-surface-variant mt-1">Perlu Revisi</div>
-          </div>
-          <!-- Belum Diunggah -->
-          <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 p-4 hover:shadow-md transition-shadow">
-            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mb-3">
-              <span class="material-symbols-outlined text-red-700 text-[18px]">warning</span>
-            </div>
-            <div class="font-h2 text-on-surface" id="dp-stat-empty">—</div>
-            <div class="font-label-sm text-on-surface-variant mt-1">Belum Diunggah</div>
-          </div>
-        </div>
-
-        <!-- Alert: Perlu Perhatian (shown only when there are rejected docs) -->
-        <div class="rounded-xl bg-error-container p-5 flex items-start gap-4 hidden" id="dp-alert-card">
-          <span class="material-symbols-outlined text-on-error-container mt-0.5 flex-shrink-0">error</span>
-          <div class="flex-1 min-w-0">
-            <h3 class="font-label-md text-on-error-container">Perlu Perhatian</h3>
-            <p class="font-body-md text-on-error-container/80 mt-1 line-clamp-2" id="dp-alert-text"></p>
-          </div>
-          <button class="px-3 py-1.5 rounded-lg bg-surface-container-lowest text-error font-label-sm shadow-sm hover:bg-surface-container-lowest/90 transition-colors whitespace-nowrap flex-shrink-0"
-                  onclick="SIKAP.Router.navigate('view-arsip-dokumen')">
-            Lihat Catatan
-          </button>
-        </div>
-
-        <!-- If no alerts, show success banner -->
-        <div class="rounded-xl bg-emerald-50 p-5 flex items-start gap-4 hidden border border-emerald-200" id="dp-success-card">
-          <span class="material-symbols-outlined text-emerald-700 mt-0.5 flex-shrink-0">check_circle</span>
+    <section class="grid grid-cols-1 gap-5 lg:grid-cols-12" aria-label="Ringkasan kelengkapan">
+      <article class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-[#123a8f] to-[#315da8] p-6 text-on-primary shadow-[0_18px_45px_rgba(0,35,111,0.18)] sm:p-8 lg:col-span-7">
+        <div class="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -bottom-24 right-20 h-44 w-44 rounded-full border-[24px] border-white/5" aria-hidden="true"></div>
+        <div class="relative grid min-h-[236px] grid-cols-1 items-center gap-7 sm:grid-cols-[1fr_auto]">
           <div>
-            <h3 class="font-label-md text-emerald-800">Semua Dokumen Wajib Lengkap</h3>
-            <p class="font-body-md text-emerald-700/80 mt-1">Tidak ada dokumen yang perlu direvisi atau diunggah ulang saat ini.</p>
+            <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-label-sm text-white/90 ring-1 ring-inset ring-white/15">
+              <span class="material-symbols-outlined text-[15px]" aria-hidden="true">verified_user</span>
+              Dokumen wajib
+            </div>
+            <h2 class="text-h2 text-white">Kelengkapan dokumen terverifikasi</h2>
+            <p class="mt-2 max-w-lg text-body-md text-blue-100">Persentase dihitung hanya dari dokumen wajib yang telah disetujui oleh admin.</p>
+            <p class="mt-5 text-label-md text-white" id="dp-doc-meta">0 dari 0 dokumen wajib terverifikasi</p>
+            <div class="mt-2 h-2.5 overflow-hidden rounded-full bg-white/20" role="progressbar" id="dp-doc-progressbar"
+                 aria-label="Kelengkapan dokumen wajib" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="dp-doc-progress-fill" class="h-full rounded-full bg-gradient-to-r from-sky-300 to-white transition-[width] duration-700 ease-out" style="width:0%"></div>
+            </div>
+            <button type="button" id="dp-primary-action" class="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-label-md text-primary shadow-sm transition-all hover:bg-blue-50 sm:w-auto">
+              <span class="material-symbols-outlined text-[18px]" id="dp-primary-action-icon" aria-hidden="true">upload_file</span>
+              <span id="dp-primary-action-label">Lengkapi dokumen</span>
+            </button>
+          </div>
+          <div class="flex justify-center sm:justify-end">
+            <div class="relative flex h-40 w-40 items-center justify-center" role="img" id="dp-ring-label" aria-label="Progres dokumen wajib 0 persen">
+              <svg class="h-40 w-40 -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="stroke-white/20" cx="50" cy="50" fill="none" r="42" stroke-width="8"></circle>
+                <circle class="stroke-white transition-all duration-700 ease-out" cx="50" cy="50" fill="none" r="42"
+                        id="dp-progress-ring" stroke-dasharray="263.89" stroke-dashoffset="263.89" stroke-linecap="round" stroke-width="8"></circle>
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span class="text-[36px] font-bold leading-none tracking-tight text-white" id="dp-progress-pct">0%</span>
+                <span class="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100">Terverifikasi</span>
+              </div>
+            </div>
           </div>
         </div>
+      </article>
 
+      <article class="flex flex-col rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-6 shadow-sm sm:p-7 lg:col-span-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <span class="material-symbols-outlined" aria-hidden="true">manage_accounts</span>
+            </div>
+            <h2 class="text-h3 text-on-surface">Kelengkapan profil pribadi</h2>
+            <p class="mt-1 text-body-md text-on-surface-variant">Data kontak dan identitas yang dapat Anda perbarui sendiri.</p>
+          </div>
+          <span class="shrink-0 text-h2 text-primary" id="dp-profile-pct">0%</span>
+        </div>
+        <div class="mt-6 h-2.5 overflow-hidden rounded-full bg-surface-container-high" role="progressbar" id="dp-profile-progressbar"
+             aria-label="Kelengkapan profil pribadi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="dp-profile-progress-fill" class="h-full rounded-full bg-primary transition-[width] duration-700 ease-out" style="width:0%"></div>
+        </div>
+        <p class="mt-3 text-body-sm text-on-surface-variant" id="dp-profile-meta">0 dari 0 data profil telah diisi</p>
+        <div class="mt-5 rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
+          <p class="text-label-sm uppercase tracking-wider text-on-surface-variant">Masih perlu dilengkapi</p>
+          <p class="mt-1 text-body-md text-on-surface" id="dp-profile-missing">Memuat data profil...</p>
+        </div>
+        <button type="button" class="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-primary/20 px-4 py-2.5 text-label-md text-primary transition-colors hover:bg-primary/5"
+                onclick="SIKAP.Router.navigate('view-profil-pegawai')">
+          <span id="dp-profile-action-label">Lengkapi profil</span>
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
+        </button>
+      </article>
+    </section>
+
+    <section aria-labelledby="dp-status-title">
+      <div class="mb-3">
+        <h2 class="text-h3 text-on-surface" id="dp-status-title">Status dokumen wajib</h2>
+        <p class="mt-0.5 text-body-sm text-on-surface-variant">Ringkasan proses verifikasi dokumen Anda.</p>
       </div>
-    </div>
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div class="rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4 sm:p-5">
+          <div class="flex items-center justify-between gap-3"><span class="text-label-sm text-emerald-800">Terverifikasi</span><span class="material-symbols-outlined text-[20px] text-emerald-700" aria-hidden="true">verified</span></div>
+          <div class="mt-3 text-[28px] font-bold leading-none text-emerald-900" id="dp-stat-verified">0</div>
+        </div>
+        <div class="rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 sm:p-5">
+          <div class="flex items-center justify-between gap-3"><span class="text-label-sm text-amber-800">Menunggu</span><span class="material-symbols-outlined text-[20px] text-amber-700" aria-hidden="true">schedule</span></div>
+          <div class="mt-3 text-[28px] font-bold leading-none text-amber-900" id="dp-stat-pending">0</div>
+        </div>
+        <div class="rounded-2xl border border-orange-200/80 bg-orange-50/70 p-4 sm:p-5">
+          <div class="flex items-center justify-between gap-3"><span class="text-label-sm text-orange-800">Perlu revisi</span><span class="material-symbols-outlined text-[20px] text-orange-700" aria-hidden="true">edit_note</span></div>
+          <div class="mt-3 text-[28px] font-bold leading-none text-orange-900" id="dp-stat-rejected">0</div>
+        </div>
+        <div class="rounded-2xl border border-rose-200/80 bg-rose-50/70 p-4 sm:p-5">
+          <div class="flex items-center justify-between gap-3"><span class="text-label-sm text-rose-800">Belum diunggah</span><span class="material-symbols-outlined text-[20px] text-rose-700" aria-hidden="true">upload_file</span></div>
+          <div class="mt-3 text-[28px] font-bold leading-none text-rose-900" id="dp-stat-empty">0</div>
+        </div>
+      </div>
+    </section>
 
-    <!-- Document Status List Section -->
-    <div class="rounded-xl bg-surface-container-lowest shadow-sm border border-outline-variant/30 overflow-hidden">
-      <div class="px-6 py-4 border-b border-outline-variant/30 bg-surface flex justify-between items-center">
-        <h3 class="font-h3 text-on-surface">Daftar Status Dokumen</h3>
-        <button class="text-primary font-label-md hover:underline flex items-center gap-1"
-                onclick="SIKAP.Router.navigate('view-arsip-dokumen')">
-          Lihat Semua <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+    <section class="overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-lowest shadow-sm" aria-labelledby="dp-priority-title">
+      <div class="flex flex-col gap-2 border-b border-outline-variant/30 bg-surface px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div>
+          <h2 class="text-h3 text-on-surface" id="dp-priority-title">Prioritas Anda</h2>
+          <p class="mt-0.5 text-body-sm text-on-surface-variant" id="dp-priority-summary">Tindakan paling penting ditampilkan terlebih dahulu.</p>
+        </div>
+        <button type="button" class="inline-flex min-h-11 items-center gap-1 self-start rounded-lg px-2 text-label-md text-primary transition-colors hover:bg-primary/5 sm:self-auto" onclick="SIKAP.DashboardPegawai.openArchive()">
+          Buka arsip <span class="material-symbols-outlined text-[17px]" aria-hidden="true">arrow_forward</span>
         </button>
       </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-surface">
-              <th class="px-6 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider">Nama Dokumen</th>
-              <th class="px-6 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider hidden sm:table-cell">Kategori</th>
-              <th class="px-6 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 font-label-sm text-on-surface-variant uppercase tracking-wider hidden md:table-cell">Terakhir Diperbarui</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-outline-variant/30" id="dp-doc-table-body">
-            <!-- Rows injected by JS -->
-          </tbody>
+      <div id="dp-priority-list" class="divide-y divide-outline-variant/25" aria-live="polite"></div>
+      <div id="dp-priority-more" class="hidden border-t border-outline-variant/30 bg-surface-container-low px-5 py-3 text-center text-body-sm text-on-surface-variant"></div>
+    </section>
+
+    <section class="overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-lowest shadow-sm" aria-labelledby="dp-doc-list-title">
+      <div class="flex items-center justify-between gap-4 border-b border-outline-variant/30 bg-surface px-5 py-4 sm:px-6">
+        <div>
+          <h2 class="text-h3 text-on-surface" id="dp-doc-list-title">Ringkasan dokumen</h2>
+          <p class="mt-0.5 text-body-sm text-on-surface-variant">Maksimal enam dokumen ditampilkan pada dashboard.</p>
+        </div>
+        <button type="button" class="hidden min-h-11 items-center gap-1 rounded-lg px-2 text-label-md text-primary transition-colors hover:bg-primary/5 sm:inline-flex" onclick="SIKAP.DashboardPegawai.openArchive()">
+          Lihat semua <span class="material-symbols-outlined text-[17px]" aria-hidden="true">arrow_forward</span>
+        </button>
+      </div>
+      <div class="hidden overflow-x-auto md:block">
+        <table class="w-full border-collapse text-left">
+          <caption class="sr-only">Ringkasan status dokumen kepegawaian</caption>
+          <thead><tr class="bg-surface-container-low/60">
+            <th scope="col" class="px-6 py-3 text-label-sm uppercase tracking-wider text-on-surface-variant">Dokumen</th>
+            <th scope="col" class="px-6 py-3 text-label-sm uppercase tracking-wider text-on-surface-variant">Status</th>
+            <th scope="col" class="hidden px-6 py-3 text-label-sm uppercase tracking-wider text-on-surface-variant lg:table-cell">Diperbarui</th>
+            <th scope="col" class="px-6 py-3 text-right text-label-sm uppercase tracking-wider text-on-surface-variant">Aksi</th>
+          </tr></thead>
+          <tbody class="divide-y divide-outline-variant/25" id="dp-doc-table-body"></tbody>
         </table>
       </div>
-    </div>
+      <div class="divide-y divide-outline-variant/25 md:hidden" id="dp-doc-mobile-list"></div>
+      <div class="border-t border-outline-variant/30 p-4 sm:hidden">
+        <button type="button" class="inline-flex min-h-11 w-full items-center justify-center gap-1 rounded-xl bg-surface-container-high px-4 text-label-md text-primary" onclick="SIKAP.DashboardPegawai.openArchive()">
+          Lihat semua dokumen <span class="material-symbols-outlined text-[17px]" aria-hidden="true">arrow_forward</span>
+        </button>
+      </div>
+    </section>
 
-  </div><!-- /dp-data -->
+    <p class="text-center text-body-sm text-on-surface-variant" id="dp-last-synced" aria-live="polite"></p>
+  </div>
 </div>
 
 <script>
-// ============================================================
-// Employee Dashboard Logic
-// ============================================================
-SIKAP.DashboardPegawai = {};
+SIKAP.DashboardPegawai = SIKAP.DashboardPegawai || {};
+SIKAP.DashboardPegawai.state = SIKAP.DashboardPegawai.state || { data: null, loadedAt: 0, inFlight: false };
+SIKAP.DashboardPegawai.CACHE_MS = 15000;
 
-/**
- * Status badge helper — returns Tailwind classes + label.
- */
-SIKAP.DashboardPegawai.statusBadge = function(status) {
-  switch (status) {
-    case 'Terverifikasi':
-      return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-label-sm">' +
-             '<span class="material-symbols-outlined text-[13px]">verified</span>Terverifikasi</span>';
-    case 'Menunggu':
-      return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-label-sm">' +
-             '<span class="material-symbols-outlined text-[13px]">pending</span>Menunggu</span>';
-    case 'Ditolak':
-      return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-label-sm">' +
-             '<span class="material-symbols-outlined text-[13px]">edit_note</span>Perlu Revisi</span>';
-    default:
-      return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-label-sm">' +
-             '<span class="material-symbols-outlined text-[13px]">warning</span>Belum Diunggah</span>';
+SIKAP.DashboardPegawai.invalidate = function() {
+  SIKAP.DashboardPegawai.state.data = null;
+  SIKAP.DashboardPegawai.state.loadedAt = 0;
+};
+
+SIKAP.DashboardPegawai.clampPct = function(value) {
+  var number = Number(value);
+  if (!isFinite(number)) return 0;
+  return Math.max(0, Math.min(100, Math.round(number)));
+};
+
+SIKAP.DashboardPegawai.safeCount = function(value) {
+  var number = Number(value);
+  return isFinite(number) && number > 0 ? Math.floor(number) : 0;
+};
+
+SIKAP.DashboardPegawai.normalizeStatus = function(status) {
+  return ['Terverifikasi', 'Menunggu', 'Ditolak', 'Belum_Unggah'].indexOf(status) !== -1 ? status : 'Belum_Unggah';
+};
+
+SIKAP.DashboardPegawai.normalizeRow = function(row) {
+  row = row && typeof row === 'object' ? row : {};
+  return {
+    idDokumen: String(row.idDokumen || row.id || ''),
+    idArsip: String(row.idArsip || ''),
+    nama: String(row.nama || 'Dokumen tanpa nama'),
+    kategori: String(row.kategori || 'Umum'),
+    wajib: row.wajib === 'Ya' ? 'Ya' : 'Tidak',
+    status: SIKAP.DashboardPegawai.normalizeStatus(row.status),
+    waktuUpdate: String(row.waktuUpdate || '-'),
+    catatan: String(row.catatan || '')
+  };
+};
+
+SIKAP.DashboardPegawai.normalizeData = function(raw) {
+  raw = raw && typeof raw === 'object' ? raw : {};
+  var fallbackCounts = raw.counts && typeof raw.counts === 'object' ? raw.counts : {};
+  var sourceCounts = raw.wajibCounts && typeof raw.wajibCounts === 'object' ? raw.wajibCounts : fallbackCounts;
+  var tableRows = Array.isArray(raw.tableRows) ? raw.tableRows.map(SIKAP.DashboardPegawai.normalizeRow) : [];
+  var priorityRows = Array.isArray(raw.priorityRows)
+    ? raw.priorityRows.map(SIKAP.DashboardPegawai.normalizeRow)
+    : tableRows.filter(function(row) { return row.status === 'Ditolak' || (row.wajib === 'Ya' && row.status !== 'Terverifikasi'); });
+
+  return {
+    nama: String(raw.nama || 'Pegawai'),
+    pct: SIKAP.DashboardPegawai.clampPct(raw.pct),
+    wajibTotal: SIKAP.DashboardPegawai.safeCount(raw.wajibTotal),
+    wajibVerified: SIKAP.DashboardPegawai.safeCount(raw.wajibVerified),
+    wajibCounts: {
+      terverifikasi: SIKAP.DashboardPegawai.safeCount(sourceCounts.terverifikasi),
+      menunggu: SIKAP.DashboardPegawai.safeCount(sourceCounts.menunggu),
+      ditolak: SIKAP.DashboardPegawai.safeCount(sourceCounts.ditolak),
+      belumUnggah: SIKAP.DashboardPegawai.safeCount(sourceCounts.belumUnggah)
+    },
+    profilePct: SIKAP.DashboardPegawai.clampPct(raw.profilePct),
+    profileFilled: SIKAP.DashboardPegawai.safeCount(raw.profileFilled),
+    profileTotal: SIKAP.DashboardPegawai.safeCount(raw.profileTotal),
+    profileMissingFields: Array.isArray(raw.profileMissingFields) ? raw.profileMissingFields.map(function(item) { return String(item); }) : [],
+    priorityRows: priorityRows,
+    tableRows: tableRows
+  };
+};
+
+SIKAP.DashboardPegawai.statusInfo = function(status) {
+  var map = {
+    Terverifikasi: { label: 'Terverifikasi', icon: 'verified', badge: 'bg-emerald-100 text-emerald-800 ring-emerald-200/80', iconWrap: 'bg-emerald-100 text-emerald-700' },
+    Menunggu: { label: 'Menunggu verifikasi', icon: 'schedule', badge: 'bg-amber-100 text-amber-800 ring-amber-200/80', iconWrap: 'bg-amber-100 text-amber-700' },
+    Ditolak: { label: 'Perlu revisi', icon: 'edit_note', badge: 'bg-orange-100 text-orange-800 ring-orange-200/80', iconWrap: 'bg-orange-100 text-orange-700' },
+    Belum_Unggah: { label: 'Belum diunggah', icon: 'upload_file', badge: 'bg-rose-100 text-rose-800 ring-rose-200/80', iconWrap: 'bg-rose-100 text-rose-700' }
+  };
+  return map[status] || map.Belum_Unggah;
+};
+
+SIKAP.DashboardPegawai.createIcon = function(name, className) {
+  var icon = document.createElement('span');
+  icon.className = 'material-symbols-outlined ' + (className || '');
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = name;
+  return icon;
+};
+
+SIKAP.DashboardPegawai.createStatusBadge = function(status) {
+  var info = SIKAP.DashboardPegawai.statusInfo(status);
+  var badge = document.createElement('span');
+  badge.className = 'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ' + info.badge;
+  badge.appendChild(SIKAP.DashboardPegawai.createIcon(info.icon, 'text-[14px]'));
+  var label = document.createElement('span');
+  label.textContent = info.label;
+  badge.appendChild(label);
+  return badge;
+};
+
+SIKAP.DashboardPegawai.actionForRow = function(row) {
+  if (row.status === 'Ditolak') return { label: 'Lihat catatan', icon: 'rate_review', action: 'rejection' };
+  if (row.status === 'Belum_Unggah') return { label: 'Unggah', icon: 'upload_file', action: 'upload' };
+  return { label: 'Lihat detail', icon: 'visibility', action: row.idArsip ? 'preview' : 'archive' };
+};
+
+SIKAP.DashboardPegawai.openArchive = function() { SIKAP.Router.navigate('view-arsip-dokumen'); };
+
+SIKAP.DashboardPegawai.openDocument = function(row, action) {
+  if (!row || !row.idDokumen) { SIKAP.DashboardPegawai.openArchive(); return; }
+  SIKAP.Arsip = SIKAP.Arsip || {};
+  SIKAP.Arsip.state = SIKAP.Arsip.state || {};
+  SIKAP.Arsip.state.pendingAction = {
+    type: action || SIKAP.DashboardPegawai.actionForRow(row).action,
+    idDokumen: row.idDokumen,
+    idArsip: row.idArsip || '',
+    isReplace: row.status === 'Ditolak'
+  };
+  SIKAP.Router.navigate('view-arsip-dokumen');
+};
+
+SIKAP.DashboardPegawai.createActionButton = function(row, compact) {
+  var action = SIKAP.DashboardPegawai.actionForRow(row);
+  var button = document.createElement('button');
+  button.type = 'button';
+  button.className = compact
+    ? 'inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-surface-container-high px-3 py-2 text-[12px] font-semibold text-primary transition-colors hover:bg-surface-container-highest'
+    : 'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-label-md text-on-primary shadow-sm transition-colors hover:bg-primary/90 sm:w-auto';
+  button.appendChild(SIKAP.DashboardPegawai.createIcon(action.icon, 'text-[17px]'));
+  var label = document.createElement('span');
+  label.textContent = action.label;
+  button.appendChild(label);
+  button.addEventListener('click', function() { SIKAP.DashboardPegawai.openDocument(row, action.action); });
+  return button;
+};
+
+SIKAP.DashboardPegawai.renderPriorities = function(data) {
+  var list = document.getElementById('dp-priority-list');
+  var more = document.getElementById('dp-priority-more');
+  list.replaceChildren();
+  more.classList.add('hidden');
+  more.textContent = '';
+
+  if (!data.priorityRows.length) {
+    var success = document.createElement('div');
+    success.className = 'flex flex-col items-start gap-4 px-5 py-6 sm:flex-row sm:items-center sm:px-6';
+    success.setAttribute('role', 'status');
+    var successIcon = document.createElement('div');
+    successIcon.className = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700';
+    successIcon.appendChild(SIKAP.DashboardPegawai.createIcon('task_alt', 'text-[22px]'));
+    success.appendChild(successIcon);
+    var text = document.createElement('div');
+    var title = document.createElement('h3');
+    title.className = 'text-label-md text-on-surface';
+    title.textContent = data.wajibTotal > 0 ? 'Semua dokumen wajib telah terverifikasi' : 'Belum ada dokumen wajib';
+    var desc = document.createElement('p');
+    desc.className = 'mt-1 text-body-md text-on-surface-variant';
+    desc.textContent = data.wajibTotal > 0 ? 'Tidak ada dokumen wajib yang perlu diunggah atau diperbaiki saat ini.' : 'Master dokumen wajib belum tersedia. Anda tetap dapat membuka arsip dokumen.';
+    text.appendChild(title); text.appendChild(desc); success.appendChild(text); list.appendChild(success);
+    document.getElementById('dp-priority-summary').textContent = 'Tidak ada tindakan mendesak saat ini.';
+    return;
+  }
+
+  document.getElementById('dp-priority-summary').textContent = data.priorityRows.length + ' dokumen memerlukan perhatian atau masih diproses.';
+  data.priorityRows.slice(0, 5).forEach(function(row) {
+    var info = SIKAP.DashboardPegawai.statusInfo(row.status);
+    var item = document.createElement('article');
+    item.className = 'flex flex-col gap-4 px-5 py-5 transition-colors hover:bg-surface-container-low/60 sm:flex-row sm:items-center sm:px-6';
+    var content = document.createElement('div');
+    content.className = 'flex min-w-0 flex-1 items-start gap-3.5';
+    var iconWrap = document.createElement('div');
+    iconWrap.className = 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ' + info.iconWrap;
+    iconWrap.appendChild(SIKAP.DashboardPegawai.createIcon(info.icon, 'text-[20px]'));
+    content.appendChild(iconWrap);
+    var copy = document.createElement('div');
+    copy.className = 'min-w-0 flex-1';
+    var titleWrap = document.createElement('div');
+    titleWrap.className = 'flex flex-wrap items-center gap-2';
+    var name = document.createElement('h3');
+    name.className = 'text-label-md text-on-surface';
+    name.textContent = row.nama;
+    titleWrap.appendChild(name); titleWrap.appendChild(SIKAP.DashboardPegawai.createStatusBadge(row.status)); copy.appendChild(titleWrap);
+    var desc = document.createElement('p');
+    desc.className = 'mt-1.5 text-body-sm leading-relaxed text-on-surface-variant';
+    if (row.status === 'Ditolak') desc.textContent = row.catatan || 'Buka catatan admin dan unggah versi perbaikan.';
+    else if (row.status === 'Belum_Unggah') desc.textContent = 'Dokumen wajib ini belum diunggah.';
+    else desc.textContent = 'Dokumen sudah diterima dan sedang menunggu pemeriksaan admin.';
+    copy.appendChild(desc); content.appendChild(copy); item.appendChild(content); item.appendChild(SIKAP.DashboardPegawai.createActionButton(row, false)); list.appendChild(item);
+  });
+  if (data.priorityRows.length > 5) {
+    more.textContent = (data.priorityRows.length - 5) + ' item lainnya tersedia di Arsip Dokumen.';
+    more.classList.remove('hidden');
   }
 };
 
-/**
- * Renders dashboard data into the view.
- */
-SIKAP.DashboardPegawai.render = function(data) {
-  // Greeting
-  document.getElementById('dp-greeting-name').textContent = data.nama || '—';
+SIKAP.DashboardPegawai.sortDocumentRows = function(rows) {
+  var priority = { Ditolak: 0, Belum_Unggah: 1, Menunggu: 2, Terverifikasi: 3 };
+  return rows.slice().sort(function(a, b) {
+    if (a.wajib !== b.wajib) return a.wajib === 'Ya' ? -1 : 1;
+    var statusDiff = priority[a.status] - priority[b.status];
+    if (statusDiff !== 0) return statusDiff;
+    return a.nama.localeCompare(b.nama);
+  });
+};
 
-  // Progress ring
-  var pct = data.pct || 0;
-  var circumference = 282.74;
-  var offset = circumference - (pct / 100) * circumference;
-  document.getElementById('dp-progress-ring').style.strokeDashoffset = offset;
-  document.getElementById('dp-progress-pct').textContent = pct + '%';
-
-  // Stat counters
-  document.getElementById('dp-stat-verified').textContent = data.counts.terverifikasi;
-  document.getElementById('dp-stat-pending').textContent = data.counts.menunggu;
-  document.getElementById('dp-stat-rejected').textContent = data.counts.ditolak;
-  document.getElementById('dp-stat-empty').textContent = data.counts.belumUnggah;
-
-  // Alert / success banner
-  var alertCard = document.getElementById('dp-alert-card');
-  var successCard = document.getElementById('dp-success-card');
-
-  if (data.rejectedDocs && data.rejectedDocs.length > 0) {
-    var firstRejected = data.rejectedDocs[0];
-    document.getElementById('dp-alert-text').textContent =
-      firstRejected.nama + ': ' + firstRejected.catatan;
-    alertCard.classList.remove('hidden');
-    successCard.classList.add('hidden');
-  } else if (data.counts.belumUnggah === 0 && data.counts.ditolak === 0) {
-    alertCard.classList.add('hidden');
-    successCard.classList.remove('hidden');
-  } else {
-    alertCard.classList.add('hidden');
-    successCard.classList.add('hidden');
-  }
-
-  // Document table
+SIKAP.DashboardPegawai.renderDocumentLists = function(data) {
   var tbody = document.getElementById('dp-doc-table-body');
-  if (data.tableRows && data.tableRows.length > 0) {
-    tbody.innerHTML = data.tableRows.map(function(row) {
-      var catatanHtml = row.catatan
-        ? '<div class="font-body-sm text-on-surface-variant mt-0.5 truncate max-w-[200px]" title="' +
-          row.catatan.replace(/"/g, '&quot;') + '">' + row.catatan + '</div>'
-        : '';
-      return '<tr class="hover:bg-surface-container-low transition-colors">' +
-        '<td class="px-6 py-3">' +
-          '<div class="font-body-md text-on-surface">' + row.nama + '</div>' +
-          (row.wajib === 'Ya' ? '<span class="font-label-sm text-primary">Wajib</span>' : '') +
-        '</td>' +
-        '<td class="px-6 py-3 hidden sm:table-cell font-body-sm text-on-surface-variant">' + row.kategori + '</td>' +
-        '<td class="px-6 py-3">' + SIKAP.DashboardPegawai.statusBadge(row.status) + catatanHtml + '</td>' +
-        '<td class="px-6 py-3 hidden md:table-cell font-body-sm text-on-surface-variant">' + row.waktuUpdate + '</td>' +
-      '</tr>';
-    }).join('');
-  } else {
-    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-on-surface-variant font-body-md">' +
-      '<span class="material-symbols-outlined text-3xl text-outline mb-2 block">description</span>' +
-      'Belum ada dokumen yang diunggah.</td></tr>';
+  var mobile = document.getElementById('dp-doc-mobile-list');
+  tbody.replaceChildren(); mobile.replaceChildren();
+  var rows = SIKAP.DashboardPegawai.sortDocumentRows(data.tableRows).slice(0, 6);
+  if (!rows.length) {
+    var emptyRow = document.createElement('tr');
+    var emptyCell = document.createElement('td');
+    emptyCell.colSpan = 4; emptyCell.className = 'px-6 py-10 text-center text-body-md text-on-surface-variant'; emptyCell.textContent = 'Belum ada master dokumen yang tersedia.';
+    emptyRow.appendChild(emptyCell); tbody.appendChild(emptyRow);
+    var mobileEmpty = document.createElement('p');
+    mobileEmpty.className = 'px-5 py-8 text-center text-body-md text-on-surface-variant'; mobileEmpty.textContent = 'Belum ada master dokumen yang tersedia.'; mobile.appendChild(mobileEmpty);
+    return;
   }
+  rows.forEach(function(row) {
+    var tr = document.createElement('tr'); tr.className = 'transition-colors hover:bg-surface-container-low/60';
+    var nameCell = document.createElement('td'); nameCell.className = 'px-6 py-4';
+    var name = document.createElement('div'); name.className = 'text-label-md text-on-surface'; name.textContent = row.nama;
+    var meta = document.createElement('div'); meta.className = 'mt-1 text-body-sm text-on-surface-variant'; meta.textContent = row.kategori + (row.wajib === 'Ya' ? ' • Wajib' : ' • Opsional');
+    nameCell.appendChild(name); nameCell.appendChild(meta); tr.appendChild(nameCell);
+    var statusCell = document.createElement('td'); statusCell.className = 'px-6 py-4'; statusCell.appendChild(SIKAP.DashboardPegawai.createStatusBadge(row.status)); tr.appendChild(statusCell);
+    var dateCell = document.createElement('td'); dateCell.className = 'hidden px-6 py-4 text-body-sm text-on-surface-variant lg:table-cell'; dateCell.textContent = row.waktuUpdate === '-' ? 'Belum ada' : row.waktuUpdate; tr.appendChild(dateCell);
+    var actionCell = document.createElement('td'); actionCell.className = 'px-6 py-4 text-right'; actionCell.appendChild(SIKAP.DashboardPegawai.createActionButton(row, true)); tr.appendChild(actionCell); tbody.appendChild(tr);
+
+    var card = document.createElement('article'); card.className = 'space-y-3 px-5 py-4';
+    var cardTop = document.createElement('div'); cardTop.className = 'flex items-start justify-between gap-3';
+    var cardCopy = document.createElement('div'); cardCopy.className = 'min-w-0';
+    var cardName = document.createElement('h3'); cardName.className = 'text-label-md text-on-surface'; cardName.textContent = row.nama;
+    var cardMeta = document.createElement('p'); cardMeta.className = 'mt-1 text-body-sm text-on-surface-variant'; cardMeta.textContent = row.kategori + (row.wajib === 'Ya' ? ' • Wajib' : ' • Opsional');
+    cardCopy.appendChild(cardName); cardCopy.appendChild(cardMeta); cardTop.appendChild(cardCopy); cardTop.appendChild(SIKAP.DashboardPegawai.createStatusBadge(row.status)); card.appendChild(cardTop);
+    var cardBottom = document.createElement('div'); cardBottom.className = 'flex items-center justify-between gap-3';
+    var date = document.createElement('span'); date.className = 'text-body-sm text-on-surface-variant'; date.textContent = row.waktuUpdate === '-' ? 'Belum diperbarui' : row.waktuUpdate;
+    cardBottom.appendChild(date); cardBottom.appendChild(SIKAP.DashboardPegawai.createActionButton(row, true)); card.appendChild(cardBottom); mobile.appendChild(card);
+  });
 };
 
-/**
- * Loads dashboard data from backend.
- */
-SIKAP.DashboardPegawai.load = function() {
-  // Show loading state
-  document.getElementById('dp-loading').classList.remove('hidden');
-  document.getElementById('dp-error').classList.add('hidden');
-  document.getElementById('dp-data').classList.add('hidden');
+SIKAP.DashboardPegawai.render = function(rawData) {
+  var data = SIKAP.DashboardPegawai.normalizeData(rawData);
+  document.getElementById('dp-greeting-name').textContent = data.nama;
+  var circumference = 263.89;
+  document.getElementById('dp-progress-ring').style.strokeDashoffset = circumference - (data.pct / 100) * circumference;
+  document.getElementById('dp-progress-pct').textContent = data.pct + '%';
+  document.getElementById('dp-ring-label').setAttribute('aria-label', 'Progres dokumen wajib ' + data.pct + ' persen');
+  document.getElementById('dp-doc-meta').textContent = data.wajibVerified + ' dari ' + data.wajibTotal + ' dokumen wajib terverifikasi';
+  document.getElementById('dp-doc-progress-fill').style.width = data.pct + '%';
+  document.getElementById('dp-doc-progressbar').setAttribute('aria-valuenow', String(data.pct));
+  document.getElementById('dp-profile-pct').textContent = data.profilePct + '%';
+  document.getElementById('dp-profile-progress-fill').style.width = data.profilePct + '%';
+  document.getElementById('dp-profile-progressbar').setAttribute('aria-valuenow', String(data.profilePct));
+  document.getElementById('dp-profile-meta').textContent = data.profileFilled + ' dari ' + data.profileTotal + ' data profil telah diisi';
+  document.getElementById('dp-profile-missing').textContent = data.profileMissingFields.length
+    ? data.profileMissingFields.slice(0, 3).join(', ') + (data.profileMissingFields.length > 3 ? ' +' + (data.profileMissingFields.length - 3) + ' lainnya' : '')
+    : 'Semua data profil pribadi sudah terisi.';
+  document.getElementById('dp-profile-action-label').textContent = data.profilePct === 100 ? 'Lihat profil' : 'Lengkapi profil';
+  document.getElementById('dp-stat-verified').textContent = data.wajibCounts.terverifikasi;
+  document.getElementById('dp-stat-pending').textContent = data.wajibCounts.menunggu;
+  document.getElementById('dp-stat-rejected').textContent = data.wajibCounts.ditolak;
+  document.getElementById('dp-stat-empty').textContent = data.wajibCounts.belumUnggah;
 
+  var primaryAction = document.getElementById('dp-primary-action');
+  var primaryLabel = document.getElementById('dp-primary-action-label');
+  var primaryIcon = document.getElementById('dp-primary-action-icon');
+  var firstPriority = data.priorityRows[0] || null;
+  primaryAction.onclick = function() { if (firstPriority) SIKAP.DashboardPegawai.openDocument(firstPriority); else SIKAP.DashboardPegawai.openArchive(); };
+  if (firstPriority && firstPriority.status === 'Ditolak') { primaryLabel.textContent = 'Perbaiki dokumen'; primaryIcon.textContent = 'edit_document'; }
+  else if (firstPriority && firstPriority.status === 'Belum_Unggah') { primaryLabel.textContent = 'Lengkapi dokumen'; primaryIcon.textContent = 'upload_file'; }
+  else if (firstPriority && firstPriority.status === 'Menunggu') { primaryLabel.textContent = 'Lihat proses verifikasi'; primaryIcon.textContent = 'schedule'; }
+  else { primaryLabel.textContent = 'Buka arsip dokumen'; primaryIcon.textContent = 'folder_open'; }
+
+  SIKAP.DashboardPegawai.renderPriorities(data);
+  SIKAP.DashboardPegawai.renderDocumentLists(data);
+  document.getElementById('dp-last-synced').textContent = 'Data disinkronkan pada ' + new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }).format(new Date()) + ' WITA';
+  return data;
+};
+
+SIKAP.DashboardPegawai.showState = function(state) {
+  var loading = document.getElementById('dp-loading');
+  var error = document.getElementById('dp-error');
+  var data = document.getElementById('dp-data');
+  loading.classList.toggle('hidden', state !== 'loading');
+  error.classList.toggle('hidden', state !== 'error');
+  error.classList.toggle('flex', state === 'error');
+  data.classList.toggle('hidden', state !== 'data');
+};
+
+SIKAP.DashboardPegawai.load = function(force) {
+  var dashboardState = SIKAP.DashboardPegawai.state;
+  if (dashboardState.inFlight) return;
+  var cacheIsFresh = dashboardState.data && (Date.now() - dashboardState.loadedAt < SIKAP.DashboardPegawai.CACHE_MS);
+  if (!force && cacheIsFresh) {
+    SIKAP.DashboardPegawai.render(dashboardState.data);
+    SIKAP.DashboardPegawai.showState('data');
+    return;
+  }
+  dashboardState.inFlight = true;
+  SIKAP.DashboardPegawai.showState('loading');
   SIKAP.Api.call('getMyDashboard', { token: SIKAP.state.token })
     .then(function(result) {
-      document.getElementById('dp-loading').classList.add('hidden');
-      if (result.success) {
-        SIKAP.DashboardPegawai.render(result.data);
-        document.getElementById('dp-data').classList.remove('hidden');
-      } else {
-        document.getElementById('dp-error-msg').textContent = result.message || 'Terjadi kesalahan.';
-        document.getElementById('dp-error').classList.remove('hidden');
-        if (result.message && result.message.indexOf('Sesi') !== -1) {
-          SIKAP.Auth.handleSessionExpired();
-        }
+      if (result && result.success) {
+        var normalized = SIKAP.DashboardPegawai.render(result.data);
+        dashboardState.data = normalized;
+        dashboardState.loadedAt = Date.now();
+        SIKAP.DashboardPegawai.showState('data');
+        return;
       }
+      var message = result && result.message ? String(result.message) : 'Terjadi kesalahan saat mengambil data.';
+      document.getElementById('dp-error-msg').textContent = message;
+      SIKAP.DashboardPegawai.showState('error');
+      if (/^Sesi tidak valid/i.test(message)) SIKAP.Auth.handleSessionExpired();
     })
-    .catch(function(err) {
-      document.getElementById('dp-loading').classList.add('hidden');
-      document.getElementById('dp-error-msg').textContent = 'Gagal terhubung ke server.';
-      document.getElementById('dp-error').classList.remove('hidden');
-    });
+    .catch(function(error) {
+      console.error('Dashboard pegawai load error:', error);
+      document.getElementById('dp-error-msg').textContent = 'Koneksi ke server terganggu. Periksa jaringan Anda lalu coba lagi.';
+      SIKAP.DashboardPegawai.showState('error');
+    })
+    .finally(function() { dashboardState.inFlight = false; });
 };
 </script>

@@ -16,7 +16,8 @@ SIKAP.Arsip.state = {
   uploadingId: null, // Holds doc ID during upload / replace flow
   deletingArsipId: null, // Holds ID_Arsip during delete confirmation
   deletingDocName: '',
-  currentPreviewId: null
+  currentPreviewId: null,
+  pendingAction: null // Context passed from the employee dashboard
 };
 
 /**
@@ -34,6 +35,7 @@ SIKAP.Arsip.load = function() {
         SIKAP.Arsip.renderSummary(result.data);
         SIKAP.Arsip.renderCategorizedTables(result.data);
         SIKAP.Arsip.populateUploadSelect(result.data.tableRows || []);
+        SIKAP.Arsip.handlePendingAction();
       } else {
         SIKAP.Toast.show(result.message, 'error');
       }
@@ -43,6 +45,32 @@ SIKAP.Arsip.load = function() {
       SIKAP.Toast.show('Terjadi kesalahan jaringan saat memuat arsip.', 'error');
       SIKAP.UI.hideLoading();
     });
+};
+
+/**
+ * Opens a contextual document action requested from another view.
+ * The action is consumed only after archive data and modal selects are ready.
+ */
+SIKAP.Arsip.handlePendingAction = function() {
+  var pending = SIKAP.Arsip.state.pendingAction;
+  if (!pending) return;
+  SIKAP.Arsip.state.pendingAction = null;
+
+  var record = (SIKAP.Arsip.state.docs || []).find(function(doc) {
+    return String(doc.idDokumen || '') === String(pending.idDokumen || '');
+  });
+  if (!record) {
+    SIKAP.Toast.show('Dokumen yang dipilih tidak ditemukan.', 'warning');
+    return;
+  }
+
+  if (pending.type === 'rejection' && record.idArsip) {
+    SIKAP.Arsip.openPenolakanModal(record.idArsip);
+  } else if (pending.type === 'upload') {
+    SIKAP.Arsip.openUploadModal(record.idDokumen, !!pending.isReplace);
+  } else if (pending.type === 'preview' && record.idArsip) {
+    SIKAP.Arsip.openPreviewModal(record.idArsip);
+  }
 };
 
 // ============================================================
@@ -428,6 +456,9 @@ SIKAP.Arsip.submitUpload = function() {
         SIKAP.UI.hideLoading();
         if (res.success) {
           SIKAP.Toast.show(res.message, 'success');
+          if (SIKAP.DashboardPegawai && SIKAP.DashboardPegawai.invalidate) {
+            SIKAP.DashboardPegawai.invalidate();
+          }
           SIKAP.Arsip.closeUploadModal();
           SIKAP.Arsip.load(); 
         } else {
@@ -610,6 +641,9 @@ SIKAP.Arsip.confirmDelete = function() {
       
       if (res.success) {
         SIKAP.Toast.show(res.message, 'success');
+        if (SIKAP.DashboardPegawai && SIKAP.DashboardPegawai.invalidate) {
+          SIKAP.DashboardPegawai.invalidate();
+        }
         SIKAP.Arsip.load();
       } else {
         SIKAP.Toast.show(res.message, 'error');

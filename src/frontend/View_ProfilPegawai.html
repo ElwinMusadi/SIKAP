@@ -839,6 +839,9 @@ SIKAP.ProfilPegawai.handleSave = function(event) {
       saveText.textContent = 'Simpan Perubahan';
 
       if (result.success) {
+        if (SIKAP.DashboardPegawai && SIKAP.DashboardPegawai.invalidate) {
+          SIKAP.DashboardPegawai.invalidate();
+        }
         // Update stored originals
         SIKAP.ProfilPegawai._original = {
           tempatLahir: updates.tempatLahir,

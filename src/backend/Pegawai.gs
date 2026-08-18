@@ -223,10 +223,10 @@ function uploadFotoProfil(token, base64Data, mimeType) {
 // ============================================================
 
 /**
- * Returns document completeness summary for the logged-in employee.
+ * Returns the profile and document completeness summary for the logged-in employee.
  * Used to populate the Employee Dashboard.
  * @param {string} token - Session token.
- * @returns {Object} Result with document stats.
+ * @returns {Object} Result with profile, required-document, and priority stats.
  */
 function getMyDashboard(token) {
   try {
@@ -235,12 +235,42 @@ function getMyDashboard(token) {
 
     var nip = auth.session.nip;
 
+    // Profile completeness intentionally covers fields employees can maintain
+    // themselves. Admin-owned employment fields do not reduce this score.
+    var userRecord = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, nip);
+    if (!userRecord) return { success: false, message: 'Data pengguna tidak ditemukan.' };
+
+    var profileFields = [
+      { index: COL_PEGAWAI.TEMPAT_LAHIR, label: 'Tempat lahir' },
+      { index: COL_PEGAWAI.TANGGAL_LAHIR, label: 'Tanggal lahir' },
+      { index: COL_PEGAWAI.AGAMA, label: 'Agama' },
+      { index: COL_PEGAWAI.PENDIDIKAN_TERAKHIR, label: 'Pendidikan terakhir' },
+      { index: COL_PEGAWAI.STATUS_PERNIKAHAN, label: 'Status pernikahan' },
+      { index: COL_PEGAWAI.GOLONGAN_DARAH, label: 'Golongan darah' },
+      { index: COL_PEGAWAI.NO_HP, label: 'Nomor HP' },
+      { index: COL_PEGAWAI.EMAIL, label: 'Email' },
+      { index: COL_PEGAWAI.ALAMAT, label: 'Alamat' }
+    ];
+    var profileFilled = 0;
+    var profileMissingFields = [];
+    for (var pf = 0; pf < profileFields.length; pf++) {
+      var rawProfileValue = userRecord.data[profileFields[pf].index];
+      var profileValue = rawProfileValue instanceof Date
+        ? rawProfileValue
+        : String(rawProfileValue || '').replace(/^'+/, '').trim();
+      if (profileValue && profileValue !== '-') {
+        profileFilled++;
+      } else {
+        profileMissingFields.push(profileFields[pf].label);
+      }
+    }
+    var profileTotal = profileFields.length;
+    var profilePct = profileTotal > 0 ? Math.round((profileFilled / profileTotal) * 100) : 100;
+
     // Get all master documents (wajib only for completeness %)
     var masterDocs = getAllData(SHEET_NAMES.MASTER_DOKUMEN);
     var allWajibIds = [];
-    var allDocIds = [];
     for (var i = 0; i < masterDocs.length; i++) {
-      allDocIds.push(masterDocs[i][0]); // ID_Dokumen
       if (masterDocs[i][3] === 'Ya') {
         allWajibIds.push(masterDocs[i][0]);
       }
@@ -252,8 +282,20 @@ function getMyDashboard(token) {
     for (var j = 0; j < allArsip.length; j++) {
       if (String(allArsip[j][COL_ARSIP.NIP]) === String(nip)) {
         var docId = allArsip[j][COL_ARSIP.ID_DOKUMEN];
-        // Keep latest (assume sorted by Waktu_Upload desc or just overwrite)
-        myArsip[docId] = allArsip[j];
+        var currentArsip = myArsip[docId];
+        if (!currentArsip) {
+          myArsip[docId] = allArsip[j];
+        } else {
+          var candidateTime = new Date(allArsip[j][COL_ARSIP.WAKTU_UPLOAD]).getTime();
+          var currentTime = new Date(currentArsip[COL_ARSIP.WAKTU_UPLOAD]).getTime();
+          // Prefer the newest valid timestamp. If timestamps are unavailable,
+          // preserve append-order semantics by treating the later row as current.
+          if ((isNaN(currentTime) && !isNaN(candidateTime)) ||
+              (!isNaN(candidateTime) && candidateTime >= currentTime) ||
+              (isNaN(candidateTime) && isNaN(currentTime))) {
+            myArsip[docId] = allArsip[j];
+          }
+        }
       }
     }
 
@@ -265,8 +307,15 @@ function getMyDashboard(token) {
       belumUnggah: 0
     };
 
-    var rejectedDocs = []; // For the "Perlu Perhatian" alert
-    var tableRows = [];    // For the document status table
+    var wajibCounts = {
+      terverifikasi: 0,
+      menunggu: 0,
+      ditolak: 0,
+      belumUnggah: 0
+    };
+
+    var rejectedDocs = [];
+    var tableRows = [];
 
     for (var k = 0; k < masterDocs.length; k++) {
       var id = masterDocs[k][0];
@@ -292,12 +341,30 @@ function getMyDashboard(token) {
       else if (status === DOC_STATUS.MENUNGGU) counts.menunggu++;
       else if (status === DOC_STATUS.DITOLAK) {
         counts.ditolak++;
-        if (catatan) rejectedDocs.push({ nama: nama, catatan: catatan });
       }
       else counts.belumUnggah++;
 
+      if (wajib === 'Ya') {
+        if (status === DOC_STATUS.TERVERIFIKASI) wajibCounts.terverifikasi++;
+        else if (status === DOC_STATUS.MENUNGGU) wajibCounts.menunggu++;
+        else if (status === DOC_STATUS.DITOLAK) wajibCounts.ditolak++;
+        else wajibCounts.belumUnggah++;
+      }
+
+      if (status === DOC_STATUS.DITOLAK) {
+        rejectedDocs.push({
+          idArsip: arsipRow ? arsipRow[COL_ARSIP.ID_ARSIP] : '',
+          idDokumen: id,
+          nama: nama,
+          wajib: wajib,
+          catatan: catatan || 'Dokumen belum memenuhi ketentuan verifikasi.'
+        });
+      }
+
       tableRows.push({
         id: id,
+        idDokumen: id,
+        idArsip: arsipRow ? arsipRow[COL_ARSIP.ID_ARSIP] : '',
         nama: nama,
         kategori: kategori,
         wajib: wajib,
@@ -309,22 +376,40 @@ function getMyDashboard(token) {
 
     // Calculate completeness % (wajib docs only)
     var wajibTotal = allWajibIds.length;
-    var wajibVerified = 0;
-    for (var m = 0; m < allWajibIds.length; m++) {
-      var w = myArsip[allWajibIds[m]];
-      if (w && w[COL_ARSIP.STATUS_VERIFIKASI] === DOC_STATUS.TERVERIFIKASI) {
-        wajibVerified++;
-      }
-    }
+    var wajibVerified = wajibCounts.terverifikasi;
     var pct = wajibTotal > 0 ? Math.round((wajibVerified / wajibTotal) * 100) : 0;
+
+    // Keep the dashboard focused on what an employee needs to do next.
+    // Revisions come first, followed by missing required docs and pending docs.
+    var statusPriority = {};
+    statusPriority[DOC_STATUS.DITOLAK] = 0;
+    statusPriority[DOC_STATUS.BELUM_UNGGAH] = 1;
+    statusPriority[DOC_STATUS.MENUNGGU] = 2;
+    statusPriority[DOC_STATUS.TERVERIFIKASI] = 3;
+    var priorityRows = tableRows.filter(function(row) {
+      return row.status === DOC_STATUS.DITOLAK ||
+        (row.wajib === 'Ya' && row.status !== DOC_STATUS.TERVERIFIKASI);
+    }).sort(function(a, b) {
+      var priorityDiff = statusPriority[a.status] - statusPriority[b.status];
+      if (priorityDiff !== 0) return priorityDiff;
+      return String(a.nama || '').localeCompare(String(b.nama || ''));
+    });
 
     return {
       success: true,
       data: {
         nama: auth.session.nama,
         pct: pct,
+        wajibTotal: wajibTotal,
+        wajibVerified: wajibVerified,
+        wajibCounts: wajibCounts,
+        profilePct: profilePct,
+        profileFilled: profileFilled,
+        profileTotal: profileTotal,
+        profileMissingFields: profileMissingFields,
         counts: counts,
         rejectedDocs: rejectedDocs,
+        priorityRows: priorityRows,
         tableRows: tableRows
       }
     };
