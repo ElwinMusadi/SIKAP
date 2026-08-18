@@ -969,3 +969,29 @@
     </form>
   </div>
 </div>
+
+<!-- Modal Crop Foto -->
+<div id="master-crop-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-on-surface/60 backdrop-blur-sm"></div>
+  <div class="bg-surface-container-lowest rounded-2xl shadow-2xl border border-outline-variant/30 w-full max-w-2xl relative z-10 flex flex-col overflow-hidden h-[90vh] md:h-[600px]">
+    <div class="px-6 py-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface">
+      <h3 class="font-h3 text-on-surface text-lg">Sesuaikan Foto</h3>
+      <button type="button" onclick="SIKAP.MasterDataPegawai.closeCropModal()" class="text-on-surface-variant hover:text-error transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="flex-1 bg-surface-container-highest p-4 relative overflow-hidden flex items-center justify-center">
+      <div class="w-full h-full max-h-full max-w-full flex items-center justify-center">
+        <img id="master-crop-img" src="" class="max-w-full max-h-full block">
+      </div>
+    </div>
+    <div class="px-6 py-4 border-t border-outline-variant/20 bg-surface flex justify-end gap-3">
+      <button type="button" onclick="SIKAP.MasterDataPegawai.closeCropModal()" class="px-5 py-2 rounded-lg font-label-md text-on-surface hover:bg-surface-container transition-colors">Batal</button>
+      <button type="button" id="master-crop-save-btn" onclick="SIKAP.MasterDataPegawai.cropAndSave()" class="px-5 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary/90 flex items-center gap-2 shadow-sm transition-all">
+        <span class="material-symbols-outlined text-[18px]">crop</span>
+        <span>Crop & Simpan</span>
+      </button>
+    </div>
+  </div>
+</div>
+

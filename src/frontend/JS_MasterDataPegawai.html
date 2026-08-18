@@ -103,26 +103,83 @@ SIKAP.MasterDataPegawai.handleFotoChange = function(inputEl, mode) {
     return;
   }
 
+  SIKAP.MasterDataPegawai._cropMode = mode;
+  SIKAP.MasterDataPegawai._cropMimeType = file.type;
+
   var reader = new FileReader();
   reader.onload = function(e) {
-    var dataUrl = e.target.result;
-    var previewImg = document.getElementById(mode + '-foto-preview');
-    var placeholder = document.getElementById(mode + '-foto-placeholder');
-    var removeBtn = document.getElementById(mode + '-foto-remove');
-
-    previewImg.src = dataUrl;
-    previewImg.classList.remove('hidden');
-    placeholder.classList.add('hidden');
-    if (removeBtn) removeBtn.classList.remove('hidden');
-
-    var base64Part = dataUrl.split(',')[1];
-    if (mode === 'tambah') {
-      SIKAP.MasterDataPegawai._tambahFoto = { base64: base64Part, mimeType: file.type };
-    } else {
-      SIKAP.MasterDataPegawai._editFoto = { base64: base64Part, mimeType: file.type };
+    var cropImg = document.getElementById('master-crop-img');
+    cropImg.src = e.target.result;
+    
+    document.getElementById('master-crop-modal').classList.remove('hidden');
+    
+    if (SIKAP.MasterDataPegawai._cropper) {
+      SIKAP.MasterDataPegawai._cropper.destroy();
     }
+    
+    SIKAP.MasterDataPegawai._cropper = new Cropper(cropImg, {
+      aspectRatio: 1,
+      viewMode: 1,
+      dragMode: 'move',
+      autoCropArea: 1,
+      restore: false,
+      guides: true,
+      center: true,
+      highlight: false,
+      cropBoxMovable: true,
+      cropBoxResizable: true,
+      toggleDragModeOnDblclick: false,
+    });
   };
   reader.readAsDataURL(file);
+};
+
+SIKAP.MasterDataPegawai.closeCropModal = function() {
+  document.getElementById('master-crop-modal').classList.add('hidden');
+  if (SIKAP.MasterDataPegawai._cropper) {
+    SIKAP.MasterDataPegawai._cropper.destroy();
+    SIKAP.MasterDataPegawai._cropper = null;
+  }
+  var inputEl = document.getElementById(SIKAP.MasterDataPegawai._cropMode + '-foto-input');
+  if (inputEl) inputEl.value = '';
+};
+
+SIKAP.MasterDataPegawai.cropAndSave = function() {
+  if (!SIKAP.MasterDataPegawai._cropper) return;
+  
+  var canvas = SIKAP.MasterDataPegawai._cropper.getCroppedCanvas({
+    width: 600,
+    height: 600
+  });
+  
+  if (!canvas) {
+    SIKAP.Toast.show('Gagal memproses foto.', 'error');
+    return;
+  }
+  
+  var mode = SIKAP.MasterDataPegawai._cropMode;
+  var mimeType = SIKAP.MasterDataPegawai._cropMimeType || 'image/jpeg';
+  var dataUrl = canvas.toDataURL(mimeType, 0.85);
+  var base64Part = dataUrl.split(',')[1];
+  
+  // Store cropped base64
+  if (mode === 'tambah') {
+    SIKAP.MasterDataPegawai._tambahFoto = { base64: base64Part, mimeType: mimeType };
+  } else {
+    SIKAP.MasterDataPegawai._editFoto = { base64: base64Part, mimeType: mimeType };
+  }
+  
+  // Update Preview UI
+  var previewImg = document.getElementById(mode + '-foto-preview');
+  var placeholder = document.getElementById(mode + '-foto-placeholder');
+  var removeBtn = document.getElementById(mode + '-foto-remove');
+
+  previewImg.src = dataUrl;
+  previewImg.classList.remove('hidden');
+  placeholder.classList.add('hidden');
+  if (removeBtn) removeBtn.classList.remove('hidden');
+  
+  SIKAP.MasterDataPegawai.closeCropModal();
 };
 
 SIKAP.MasterDataPegawai.removeFoto = function(mode) {
