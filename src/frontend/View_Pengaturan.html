@@ -151,7 +151,70 @@
   </div>
 
   <!-- ======================================== -->
-  <!-- SECTION 4: Tentang Aplikasi              -->
+  <!-- SECTION 4: Pencadangan Sistem (Backup)   -->
+  <!-- Admin-only: shown via JS role check      -->
+  <!-- ======================================== -->
+  <div id="settings-backup-section" class="hidden">
+    <div class="h-px bg-outline-variant w-full my-8"></div>
+    <h2 class="text-on-surface text-[22px] font-bold leading-tight tracking-[-0.015em] pb-2">Pencadangan Sistem</h2>
+    <p class="text-on-surface-variant font-body-md mb-6">
+      Buat salinan cadangan (snapshot) data pegawai dan dokumen kepegawaian. Backup disimpan di Google Drive pada folder <strong>SIKAP_Backups</strong> dan tidak mengubah data asli.
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <!-- Card: Backup Database -->
+      <div class="bg-surface-container rounded-xl p-5 flex flex-col gap-4 border border-outline-variant/30">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-full bg-info-container text-info flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[20px]">table_chart</span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <p class="font-label-md text-on-surface">Backup Database</p>
+            <p class="font-body-sm text-on-surface-variant mt-0.5">Mencadangkan semua data dari Spreadsheet (Data Pegawai, Arsip Dokumen, Log Aktivitas). Proses cepat, selesai dalam hitungan detik.</p>
+          </div>
+        </div>
+        <button id="settings-backup-db-btn"
+                class="self-start flex items-center gap-2 px-4 py-2 rounded-lg bg-info text-white font-label-md hover:opacity-90 transition-all shadow-sm active:scale-95"
+                onclick="SIKAP.Settings.triggerBackup('database')">
+          <span class="material-symbols-outlined text-[18px]">cloud_download</span>
+          <span id="settings-backup-db-text">Backup Database Sekarang</span>
+        </button>
+      </div>
+
+      <!-- Card: Backup Full -->
+      <div class="bg-surface-container rounded-xl p-5 flex flex-col gap-4 border border-outline-variant/30">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-full bg-primary-container text-primary flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[20px]">folder_zip</span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <p class="font-label-md text-on-surface">Backup Penuh</p>
+            <p class="font-body-sm text-on-surface-variant mt-0.5">Mencadangkan Database <em>dan</em> seluruh file dokumen yang telah diunggah di Google Drive. Proses lebih lama bergantung jumlah file.</p>
+          </div>
+        </div>
+        <button id="settings-backup-full-btn"
+                class="self-start flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:bg-primary-hover transition-all shadow-sm active:scale-95"
+                onclick="SIKAP.Settings.triggerBackup('full')">
+          <span class="material-symbols-outlined text-[18px]">backup</span>
+          <span id="settings-backup-full-text">Backup Penuh Sekarang</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Info Note -->
+    <div class="mt-4 flex items-start gap-2 p-3 rounded-lg bg-warning-container/50 border border-warning-border">
+      <span class="material-symbols-outlined text-warning text-[18px] shrink-0 mt-0.5">info</span>
+      <p class="font-body-sm text-on-surface-variant">
+        Backup Penuh yang melibatkan banyak dokumen dapat memerlukan waktu hingga beberapa menit. Jangan tutup browser selama proses berlangsung.
+        Hasil backup akan tersedia di folder <strong class="text-on-surface">SIKAP_Backups</strong> di Google Drive akun Anda.
+      </p>
+    </div>
+  </div>
+
+  <!-- ======================================== -->
+  <!-- SECTION 5: Tentang Aplikasi              -->
   <!-- ======================================== -->
   <div class="mt-16 mb-8 flex flex-col items-center justify-center text-center opacity-70">
     <p class="text-on-surface-variant font-label-sm uppercase tracking-wider mb-1">Sistem Informasi Kepegawaian dan Arsip Pegawai</p>

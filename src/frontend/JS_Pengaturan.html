@@ -18,6 +18,8 @@ SIKAP.Settings.loadProfile = function() {
         document.getElementById('settings-nip').value = d.nip || '—';
         document.getElementById('settings-role').value = d.role || '—';
         document.getElementById('settings-status').value = d.statusKepegawaian || '—';
+        // Tampilkan seksi Backup jika user adalah Admin
+        SIKAP.Settings._checkBackupVisibility(d.role);
       } else {
         var msg = (result && result.message) ? result.message : 'Gagal memuat profil.';
         SIKAP.Toast.show(msg, 'error');
@@ -132,5 +134,58 @@ SIKAP.Settings.closeLogoutModal = function() {
 
 SIKAP.Settings.confirmLogout = function() {
   SIKAP.Auth.confirmLogout();
+};
+
+/**
+ * Menampilkan seksi Backup hanya untuk Admin.
+ * Dipanggil oleh loadProfile setelah data profil dimuat.
+ */
+SIKAP.Settings._checkBackupVisibility = function(role) {
+  var section = document.getElementById('settings-backup-section');
+  if (section && role === 'Admin') {
+    section.classList.remove('hidden');
+  }
+};
+
+/**
+ * Triggers a backup operation.
+ * @param {'database'|'full'} type - Type of backup to perform.
+ */
+SIKAP.Settings.triggerBackup = function(type) {
+  var isDb = (type === 'database');
+  var btnId = isDb ? 'settings-backup-db-btn' : 'settings-backup-full-btn';
+  var textId = isDb ? 'settings-backup-db-text' : 'settings-backup-full-text';
+  var apiFunc = isDb ? 'adminBackupDatabase' : 'adminBackupFull';
+
+  var btn = document.getElementById(btnId);
+  var textEl = document.getElementById(textId);
+
+  // Loading state
+  if (btn) btn.disabled = true;
+  if (textEl) textEl.innerHTML =
+    '<svg class="animate-spin h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24">' +
+    '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>' +
+    '<path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>' +
+    '</svg>' + (isDb ? 'Membuat backup...' : 'Membuat backup penuh...');
+
+  SIKAP.Api.call(apiFunc, { token: SIKAP.state.token })
+    .then(function(result) {
+      if (result && result.success) {
+        var msg = result.message;
+        if (result.data && result.data.url) {
+          msg += ' <a href="' + result.data.url + '" target="_blank" class="underline font-medium">Lihat di Drive</a>';
+        }
+        SIKAP.Toast.show(result.message + (result.data && result.data.docsCopied ? ' (' + result.data.docsCopied + ' file dokumen)' : ''), 'success', 6000);
+      } else {
+        SIKAP.Toast.show((result && result.message) ? result.message : 'Backup gagal.', 'error');
+      }
+    })
+    .catch(function() {
+      SIKAP.Toast.show('Backup gagal. Periksa koneksi dan coba lagi.', 'error');
+    })
+    .finally(function() {
+      if (btn) btn.disabled = false;
+      if (textEl) textEl.textContent = isDb ? 'Backup Database Sekarang' : 'Backup Penuh Sekarang';
+    });
 };
 </script>
