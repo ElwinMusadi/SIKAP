@@ -676,6 +676,61 @@ function adminSetStatusAkun(token, targetNip, newStatus) {
 }
 
 /**
+ * Permanently deletes an employee record and associated data.
+ * @param {string} token - Session token.
+ * @param {string} targetNip - NIP of employee to delete.
+ * @returns {Object} Result object.
+ */
+function adminDeletePegawai(token, targetNip) {
+  try {
+    var auth = authorize(token, [ROLES.ADMIN], false);
+    if (!auth.authorized) return { success: false, message: auth.error };
+
+    // Prevent admin from deleting their own account
+    if (String(targetNip) === String(auth.session.nip)) {
+      return { success: false, message: 'Anda tidak dapat menghapus akun Anda sendiri.' };
+    }
+
+    var cleanNip = String(targetNip).replace(/^'+/, '').trim();
+    var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, cleanNip);
+    if (!user) return { success: false, message: 'Pegawai tidak ditemukan.' };
+
+    var namaPegawai = String(user.data[COL_PEGAWAI.NAMA]).trim();
+
+    // 1. Rename Drive folder (Option B selected)
+    var folderId = String(user.data[COL_PEGAWAI.DRIVE_FOLDER_ID] || '').trim();
+    if (folderId) {
+      try {
+        var folder = DriveApp.getFolderById(folderId);
+        folder.setName('[DELETED] - ' + namaPegawai);
+      } catch (e) {
+        Logger.log('Could not rename Drive folder ' + folderId + ': ' + e.toString());
+      }
+    }
+
+    // 2. Delete rows in Arsip_Dokumen (col NIP is index 1, see COL_ARSIP.NIP)
+    deleteByColumnValue(SHEET_NAMES.ARSIP_DOKUMEN, 1, cleanNip);
+
+    // 3. Delete sessions in Sesi_Login (col NIP is index 1, see COL_SESI.NIP)
+    deleteByColumnValue(SHEET_NAMES.SESI_LOGIN, 1, cleanNip);
+
+    // 4. Delete the main record in Data_Pegawai
+    deleteByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, cleanNip);
+
+    logActivity(auth.session.nip, auth.session.role, 'PEGAWAI_DELETE', 'USER',
+      cleanNip, 'Data pegawai dihapus: ' + namaPegawai, 'SUCCESS');
+
+    return {
+      success: true,
+      message: 'Data pegawai ' + namaPegawai + ' berhasil dihapus.'
+    };
+  } catch (e) {
+    Logger.log('adminDeletePegawai error: ' + e.toString());
+    return { success: false, message: 'Terjadi kesalahan sistem saat menghapus pegawai.' };
+  }
+}
+
+/**
  * Resets an employee's password to the default (last 6 digits of NIP).
  * Forces next login to change password.
  * @param {string} token - Session token.

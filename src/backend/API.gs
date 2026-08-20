@@ -53,7 +53,8 @@ function doPost(e) {
       adminApproveDokumen: adminApproveDokumen,
       adminRejectDokumen: adminRejectDokumen,
       adminBackupDatabase: adminBackupDatabase,
-      adminBackupFull: adminBackupFull
+      adminBackupFull: adminBackupFull,
+      adminDeletePegawai: adminDeletePegawai
     };
 
     // 4. Validate action against whitelist
@@ -90,7 +91,8 @@ function doPost(e) {
       adminApproveDokumen: ['token', 'idArsip'],
       adminRejectDokumen: ['token', 'idArsip', 'alasanPenolakan'],
       adminBackupDatabase: ['token'],
-      adminBackupFull: ['token']
+      adminBackupFull: ['token'],
+      adminDeletePegawai: ['token', 'targetNip']
     };
 
     var paramNames = payloadMap[action] || [];

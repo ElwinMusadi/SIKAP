@@ -190,6 +190,51 @@
 </div>
 
 <!-- ============================================================ -->
+<!-- MODAL: KONFIRMASI HAPUS PEGAWAI                            -->
+<!-- ============================================================ -->
+<div class="fixed inset-0 z-[200] hidden items-center justify-center" id="mdp-delete-modal">
+  <!-- Overlay -->
+  <div class="absolute inset-0 bg-on-background/30 backdrop-blur-sm" onclick="SIKAP.MasterDataPegawai.closeDeleteModal()"></div>
+  <!-- Card -->
+  <div class="relative bg-surface-container-lowest w-full max-w-md rounded-xl shadow-xl z-10 overflow-hidden mx-4 transform transition-all scale-95 opacity-0" id="mdp-delete-card">
+    <!-- Top accent -->
+    <div class="absolute top-0 left-0 right-0 h-1 bg-error"></div>
+    <div class="p-xl flex flex-col items-center text-center">
+      <!-- Icon -->
+      <div class="w-16 h-16 rounded-full flex items-center justify-center mb-lg bg-error-container text-error">
+        <span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">delete_forever</span>
+      </div>
+      <!-- Text -->
+      <h2 class="font-h2 text-on-surface mb-sm">Hapus Data Pegawai?</h2>
+      <p class="font-body-lg text-on-surface-variant mb-lg">Tindakan ini permanen dan tidak dapat dibatalkan. Folder Drive pegawai akan ditandai [DELETED].</p>
+      <!-- Target info -->
+      <div class="w-full bg-surface-container-low rounded-lg p-md mb-xl flex flex-col items-start text-left gap-xs border border-error/20">
+        <span class="font-label-sm text-error uppercase tracking-wider font-semibold">Target Penghapusan</span>
+        <div class="flex items-center gap-md mt-1">
+          <div class="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-[16px] text-error">person_remove</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-label-md text-on-surface" id="mdp-delete-nama">—</span>
+            <span class="font-body-sm text-on-surface-variant" id="mdp-delete-nip">—</span>
+          </div>
+        </div>
+      </div>
+      <!-- Actions -->
+      <div class="flex w-full gap-md">
+        <button class="flex-1 px-lg py-md rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors font-label-md focus:outline-none focus:ring-2 focus:ring-error"
+                onclick="SIKAP.MasterDataPegawai.closeDeleteModal()" id="mdp-delete-cancel-btn">Batal</button>
+        <button class="flex-1 px-lg py-md rounded-lg bg-error text-white hover:bg-error/90 font-label-md text-center focus:outline-none focus:ring-2 focus:ring-error focus:ring-offset-2 flex items-center justify-center gap-sm transition-colors"
+                id="mdp-delete-action-btn" onclick="SIKAP.MasterDataPegawai.executeDelete()">
+          <span class="material-symbols-outlined text-[18px]">delete</span>
+          <span id="mdp-delete-action-text">Ya, Hapus</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
 <!-- SLIDE-OVER PANEL: TAMBAH PEGAWAI                            -->
 <!-- ============================================================ -->
 <div class="fixed inset-0 z-[200] hidden" id="mdp-tambah-panel">

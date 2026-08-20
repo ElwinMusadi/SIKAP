@@ -283,6 +283,10 @@ SIKAP.MasterDataPegawai.renderTable = function() {
               ' onclick="SIKAP.MasterDataPegawai.openConfirm(\'' + safeNip + '\', \'' + safeNama.replace(/'/g, '\\\'') + '\', \'' + r.statusAkun + '\')">' +
               '<span class="material-symbols-outlined text-[18px]">' + toggleIcon + '</span>' +
             '</button>' +
+            '<button class="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded-lg transition-colors border border-outline-variant/30 hover:border-error/30 cursor-pointer" title="Hapus Data Pegawai"' +
+              ' onclick="SIKAP.MasterDataPegawai.openDeleteModal(\'' + safeNip + '\', \'' + safeNama.replace(/'/g, '\\\'') + '\')">' +
+              '<span class="material-symbols-outlined text-[18px]">delete</span>' +
+            '</button>' +
           '</div>' +
         '</td>' +
       '</tr>';
@@ -372,6 +376,72 @@ SIKAP.MasterDataPegawai.load = function() {
       document.getElementById('mdp-loading').classList.add('hidden');
       document.getElementById('mdp-error-msg').textContent = 'Gagal terhubung ke server.';
       document.getElementById('mdp-error').classList.remove('hidden');
+    });
+};
+
+// ---- Delete Pegawai ----
+
+SIKAP.MasterDataPegawai.openDeleteModal = function(nip, nama) {
+  SIKAP.MasterDataPegawai._targetDelete = nip;
+  
+  document.getElementById('mdp-delete-nama').textContent = nama;
+  document.getElementById('mdp-delete-nip').textContent = nip;
+  
+  var modal = document.getElementById('mdp-delete-modal');
+  var card = document.getElementById('mdp-delete-card');
+  
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  setTimeout(function() {
+    card.classList.remove('scale-95', 'opacity-0');
+    card.classList.add('scale-100', 'opacity-100');
+  }, 10);
+};
+
+SIKAP.MasterDataPegawai.closeDeleteModal = function() {
+  SIKAP.MasterDataPegawai._targetDelete = null;
+  var card = document.getElementById('mdp-delete-card');
+  
+  card.classList.remove('scale-100', 'opacity-100');
+  card.classList.add('scale-95', 'opacity-0');
+  setTimeout(function() {
+    var modal = document.getElementById('mdp-delete-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }, 200);
+};
+
+SIKAP.MasterDataPegawai.executeDelete = function() {
+  if (!SIKAP.MasterDataPegawai._targetDelete) return;
+  
+  var nip = SIKAP.MasterDataPegawai._targetDelete;
+  var btn = document.getElementById('mdp-delete-action-btn');
+  var text = document.getElementById('mdp-delete-action-text');
+  var cancelBtn = document.getElementById('mdp-delete-cancel-btn');
+  var originalText = text.textContent;
+  
+  btn.disabled = true;
+  cancelBtn.disabled = true;
+  text.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2 inline-block" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path></svg> Menghapus...';
+  
+  SIKAP.Api.call('adminDeletePegawai', { token: SIKAP.state.token, targetNip: nip })
+    .then(function(result) {
+      if (result && result.success) {
+        SIKAP.Toast.show(result.message, 'success');
+        SIKAP.MasterDataPegawai.closeDeleteModal();
+        SIKAP.MasterDataPegawai.load(); // Reload table
+      } else {
+        SIKAP.Toast.show(result ? result.message : 'Gagal menghapus pegawai.', 'error');
+        btn.disabled = false;
+        cancelBtn.disabled = false;
+        text.textContent = originalText;
+      }
+    })
+    .catch(function(err) {
+      SIKAP.Toast.show('Terjadi kesalahan koneksi.', 'error');
+      btn.disabled = false;
+      cancelBtn.disabled = false;
+      text.textContent = originalText;
     });
 };
 

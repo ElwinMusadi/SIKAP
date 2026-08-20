@@ -161,12 +161,22 @@ function updateCell(sheetName, row, col, value) {
  * @param {string} key - The primary key value.
  */
 function deleteByPrimaryKey(sheetName, key) {
+  deleteByColumnValue(sheetName, 0, key);
+}
+
+/**
+ * Deletes rows matching a value in a specific column.
+ * @param {string} sheetName - The sheet tab name.
+ * @param {number} colIndex - 0-based column index.
+ * @param {string} value - The value to match.
+ */
+function deleteByColumnValue(sheetName, colIndex, value) {
   var sheet = getSheet(sheetName);
   if (!sheet) return;
   var data = sheet.getDataRange().getValues();
   // Delete from bottom to top to preserve row indices
   for (var i = data.length - 1; i >= 1; i--) {
-    if (String(data[i][0]) === String(key)) {
+    if (String(data[i][colIndex]) === String(value)) {
       sheet.deleteRow(i + 1);
     }
   }
