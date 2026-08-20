@@ -432,16 +432,15 @@ SIKAP.MasterDataPegawai.executeDelete = function() {
         SIKAP.MasterDataPegawai.load(); // Reload table
       } else {
         SIKAP.Toast.show(result ? result.message : 'Gagal menghapus pegawai.', 'error');
-        btn.disabled = false;
-        cancelBtn.disabled = false;
-        text.textContent = originalText;
       }
     })
     .catch(function(err) {
       SIKAP.Toast.show('Terjadi kesalahan koneksi.', 'error');
+    })
+    .finally(function() {
       btn.disabled = false;
       cancelBtn.disabled = false;
-      text.textContent = originalText;
+      text.textContent = 'Ya, Hapus';
     });
 };
 
