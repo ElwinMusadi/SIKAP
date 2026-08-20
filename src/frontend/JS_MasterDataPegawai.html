@@ -748,11 +748,15 @@ SIKAP.MasterDataPegawai.loadEmployeeDocs = function(nip) {
         var wajibContainer = document.getElementById('edit-wajib-doc-list');
         if (wajibContainer && d.wajibRows) {
           wajibContainer.innerHTML = d.wajibRows.map(renderItem).join('');
+          var wajibTitle = document.getElementById('edit-wajib-doc-title');
+          if (wajibTitle) wajibTitle.textContent = 'Dokumen Wajib (' + d.wajibRows.length + ' Dokumen)';
         }
 
         var opsContainer = document.getElementById('edit-opsional-doc-list');
         if (opsContainer && d.opsionalRows) {
           opsContainer.innerHTML = d.opsionalRows.map(renderItem).join('');
+          var opsTitle = document.getElementById('edit-opsional-doc-title');
+          if (opsTitle) opsTitle.textContent = 'Dokumen Opsional (' + d.opsionalRows.length + ' Dokumen)';
         }
       }
     });
