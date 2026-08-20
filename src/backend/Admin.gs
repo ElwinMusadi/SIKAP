@@ -695,10 +695,10 @@ function adminDeletePegawai(token, targetNip) {
     var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, cleanNip);
     if (!user) return { success: false, message: 'Pegawai tidak ditemukan.' };
 
-    var namaPegawai = String(user.data[COL_PEGAWAI.NAMA]).trim();
+    var namaPegawai = String(user.data[COL_PEGAWAI.NAMA_LENGKAP]).trim();
 
     // 1. Rename Drive folder (Option B selected)
-    var folderId = String(user.data[COL_PEGAWAI.DRIVE_FOLDER_ID] || '').trim();
+    var folderId = String(user.data[COL_PEGAWAI.FOLDER_DRIVE_ID] || '').trim();
     if (folderId) {
       try {
         var folder = DriveApp.getFolderById(folderId);
