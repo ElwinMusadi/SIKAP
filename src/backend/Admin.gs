@@ -118,6 +118,42 @@ function adminGetDashboardStats(token) {
 }
 
 /**
+ * Retrieves the complete activity log for the Admin.
+ * @param {string} token - Session token (Admin only).
+ * @returns {Object} Result object.
+ */
+function adminGetLogAktivitas(token) {
+  try {
+    var auth = authorize(token, [ROLES.ADMIN], false);
+    if (!auth.authorized) return { success: false, message: auth.error };
+
+    var logs = getAllData(SHEET_NAMES.LOG_AKTIVITAS);
+    var result = [];
+    
+    // Process from newest to oldest
+    for (var k = logs.length - 1; k >= 1; k--) {
+      var log = logs[k];
+      result.push({
+        id: log[COL_LOG.LOG_ID],
+        time: _formatDateTime(log[COL_LOG.TIMESTAMP]),
+        actorNip: log[COL_LOG.ACTOR_NIP],
+        actorRole: log[COL_LOG.ACTOR_ROLE],
+        action: log[COL_LOG.ACTION],
+        targetType: log[COL_LOG.TARGET_TYPE],
+        targetId: log[COL_LOG.TARGET_ID],
+        description: log[COL_LOG.DESCRIPTION],
+        result: log[COL_LOG.RESULT]
+      });
+    }
+
+    return { success: true, data: result };
+  } catch (e) {
+    Logger.log('adminGetLogAktivitas error: ' + e.toString());
+    return { success: false, message: 'Terjadi kesalahan sistem.' };
+  }
+}
+
+/**
  * Returns all employee records for the admin table.
  * Includes document completeness % per employee.
  * @param {string} token - Session token.
