@@ -91,7 +91,7 @@ function adminGetDashboardStats(token) {
 
       recentActivities.push({
         id: log[COL_LOG.LOG_ID],
-        time: _formatDate(timestamp),
+        time: _formatDateTime(timestamp),
         actorNip: actorNip,
         action: action,
         description: description

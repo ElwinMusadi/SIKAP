@@ -1,0 +1,35 @@
+<!-- VIEW: LOG AKTIVITAS -->
+<div class="h-full flex flex-col space-y-6">
+  
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 class="text-h1 font-h1 text-on-surface">Log Aktivitas Sistem</h1>
+      <p class="text-body-md font-body-md text-on-surface-variant mt-1">
+        Catatan seluruh aktivitas yang dilakukan oleh pengguna di dalam sistem SIKAP.
+      </p>
+    </div>
+  </div>
+
+  <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col overflow-hidden">
+    <!-- Filter Bar -->
+    <div class="p-4 border-b border-outline-variant/20 bg-surface flex flex-col sm:flex-row gap-4 justify-between items-center">
+      <div class="relative w-full max-w-sm">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+        <input type="text" id="log-search-input" placeholder="Cari aktivitas atau nama pegawai..." class="w-full bg-surface-container-highest text-on-surface pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary border border-transparent focus:border-primary transition-all">
+      </div>
+      <button class="px-4 py-2 rounded-lg bg-surface-container text-on-surface font-label-md hover:bg-outline-variant/20 transition-colors flex items-center gap-2" onclick="SIKAP.LogAktivitas.loadData()">
+        <span class="material-symbols-outlined text-[18px]">refresh</span> Muat Ulang
+      </button>
+    </div>
+
+    <!-- Feed Container -->
+    <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-surface-container-lowest min-h-[400px]">
+      <div id="log-aktivitas-feed" class="space-y-4 max-w-4xl mx-auto">
+        <div class="text-center py-12">
+          <span class="material-symbols-outlined text-[48px] text-on-surface-variant/50 animate-pulse">history</span>
+          <p class="text-on-surface-variant mt-4 font-body-md">Memuat log aktivitas...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

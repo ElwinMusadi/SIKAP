@@ -1,0 +1,122 @@
+<script>
+/**
+ * @namespace SIKAP.LogAktivitas
+ * Logic for Log Aktivitas page.
+ */
+SIKAP.LogAktivitas = SIKAP.LogAktivitas || {};
+SIKAP.LogAktivitas.data = [];
+
+SIKAP.LogAktivitas.init = function() {
+  var searchInput = document.getElementById('log-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+      SIKAP.LogAktivitas.renderFeed(e.target.value);
+    });
+  }
+  SIKAP.LogAktivitas.loadData();
+};
+
+SIKAP.LogAktivitas.loadData = function() {
+  var feedContainer = document.getElementById('log-aktivitas-feed');
+  if (feedContainer) {
+    feedContainer.innerHTML = '<div class="text-center py-12"><span class="material-symbols-outlined text-[48px] text-on-surface-variant/50 animate-pulse">history</span><p class="text-on-surface-variant mt-4 font-body-md">Memuat log aktivitas...</p></div>';
+  }
+
+  SIKAP.Api.call('adminGetLogAktivitas', { token: SIKAP.state.token })
+    .then(function(res) {
+      if (res.success) {
+        SIKAP.LogAktivitas.data = res.data;
+        var searchInput = document.getElementById('log-search-input');
+        var query = searchInput ? searchInput.value : '';
+        SIKAP.LogAktivitas.renderFeed(query);
+      } else {
+        if (feedContainer) {
+          feedContainer.innerHTML = '<div class="text-center py-12 text-error"><span class="material-symbols-outlined text-[48px]">error</span><p class="mt-4">' + res.message + '</p></div>';
+        }
+      }
+    })
+    .catch(function(err) {
+      if (feedContainer) {
+        feedContainer.innerHTML = '<div class="text-center py-12 text-error"><span class="material-symbols-outlined text-[48px]">cloud_off</span><p class="mt-4">Gagal terhubung ke server.</p></div>';
+      }
+    });
+};
+
+SIKAP.LogAktivitas.renderFeed = function(searchQuery) {
+  var feedContainer = document.getElementById('log-aktivitas-feed');
+  if (!feedContainer) return;
+
+  var q = (searchQuery || '').toLowerCase();
+  var filtered = SIKAP.LogAktivitas.data.filter(function(act) {
+    return act.description.toLowerCase().indexOf(q) !== -1 ||
+           act.action.toLowerCase().indexOf(q) !== -1 ||
+           act.actorNip.toLowerCase().indexOf(q) !== -1;
+  });
+
+  if (filtered.length === 0) {
+    feedContainer.innerHTML = '<div class="text-center py-12"><span class="material-symbols-outlined text-[48px] text-on-surface-variant/50">search_off</span><p class="text-on-surface-variant mt-4 font-body-md">Tidak ada aktivitas yang sesuai.</p></div>';
+    return;
+  }
+
+  var html = '';
+  filtered.forEach(function(act) {
+    var actionType = act.action.toUpperCase();
+    var descLower = act.description.toLowerCase();
+    
+    var title = "Aktivitas Sistem";
+    var icon = '<span class="material-symbols-outlined text-[20px]">info</span>';
+    var iconClass = 'text-slate-600 bg-surface-container-highest';
+    
+    // Determine icon based on action type (similar to dashboard)
+    if (actionType.indexOf('VERIFY') !== -1 || descLower.indexOf('verifikasi') !== -1) {
+      title = "Verifikasi Dokumen";
+      icon = '<span class="material-symbols-outlined text-[20px]">verified</span>';
+      iconClass = 'text-emerald-600 bg-emerald-500/10';
+      if (descLower.indexOf('ditolak') !== -1 || descLower.indexOf('revisi') !== -1) {
+        title = "Verifikasi Ditolak";
+        icon = '<span class="material-symbols-outlined text-[20px]">cancel</span>';
+        iconClass = 'text-amber-600 bg-amber-500/10';
+      }
+    } else if (actionType.indexOf('UPLOAD') !== -1 || descLower.indexOf('unggah') !== -1) {
+      title = "Dokumen Diunggah";
+      icon = '<span class="material-symbols-outlined text-[20px]">upload_file</span>';
+      iconClass = 'text-blue-600 bg-blue-500/10';
+    } else if (actionType.indexOf('CREATE') !== -1 || descLower.indexOf('tambah') !== -1) {
+      title = "Pegawai Ditambahkan";
+      icon = '<span class="material-symbols-outlined text-[20px]">person_add</span>';
+      iconClass = 'text-[#137333] bg-[#137333]/10';
+    } else if (actionType.indexOf('UPDATE') !== -1 || descLower.indexOf('ubah') !== -1 || descLower.indexOf('diperbarui') !== -1) {
+      title = "Data Diperbarui";
+      icon = '<span class="material-symbols-outlined text-[20px]">edit_document</span>';
+      iconClass = 'text-purple-600 bg-purple-500/10';
+    } else if (actionType.indexOf('DELETE') !== -1 || descLower.indexOf('hapus') !== -1) {
+      title = "Data Dihapus";
+      icon = '<span class="material-symbols-outlined text-[20px]">delete</span>';
+      iconClass = 'text-error bg-error-container';
+    } else if (actionType.indexOf('LOGIN') !== -1 || actionType.indexOf('LOGOUT') !== -1) {
+      title = "Aktivitas Akun";
+      icon = '<span class="material-symbols-outlined text-[20px]">login</span>';
+      iconClass = 'text-slate-600 bg-surface-container-highest'; 
+    }
+
+    html += '<div class="flex items-start gap-4 p-4 bg-surface rounded-xl border border-outline-variant/20 hover:border-outline-variant/40 hover:shadow-sm transition-all">';
+    html +=   '<div class="w-10 h-10 rounded-full shrink-0 flex items-center justify-center ' + iconClass + '">';
+    html +=     icon;
+    html +=   '</div>';
+    html +=   '<div class="flex flex-col flex-1 min-w-0">';
+    html +=     '<div class="flex items-center justify-between mb-1">';
+    html +=       '<span class="text-[14px] font-bold text-on-surface">' + title + '</span>';
+    html +=       '<span class="text-[12px] text-on-surface-variant font-medium">' + act.time + '</span>';
+    html +=     '</div>';
+    html +=     '<span class="text-[14px] text-on-surface-variant leading-relaxed">' + SIKAP.escapeHtml(act.description) + '</span>';
+    html +=     '<div class="mt-2 text-[11px] font-mono text-on-surface-variant/70 uppercase tracking-wide">Aktor: ' + act.actorNip + ' (' + act.actorRole + ')</div>';
+    html +=   '</div>';
+    html += '</div>';
+  });
+
+  feedContainer.innerHTML = html;
+};
+
+// Register hook
+SIKAP.Hooks.onPageLoad('view-log-aktivitas', SIKAP.LogAktivitas.init);
+</script>

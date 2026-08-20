@@ -470,6 +470,22 @@ function _formatDate(val) {
   }
 }
 
+/**
+ * Formats a Date object or string to 'dd MMM yyyy, HH:mm'.
+ * @param {Date|string} val - Date to format.
+ * @returns {string} Formatted date/time string.
+ */
+function _formatDateTime(val) {
+  try {
+    if (!val || val === '-') return '-';
+    var d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return Utilities.formatDate(d, 'Asia/Makassar', 'dd MMM yyyy, HH:mm');
+  } catch (e) {
+    return String(val);
+  }
+}
+
 // ============================================================
 // TESTS
 // ============================================================
