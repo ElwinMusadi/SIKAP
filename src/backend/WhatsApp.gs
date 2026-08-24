@@ -96,7 +96,7 @@ function notifyDokumenApproved(targetNip, namaDokumen, namaLengkap) {
     var pegawai = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, targetNip);
     if (!pegawai) {
       Logger.log('notifyDokumenApproved: Pegawai tidak ditemukan: ' + targetNip);
-      return;
+      return 'Pegawai tidak ditemukan';
     }
 
     var noHp = String(pegawai.data[COL_PEGAWAI.NO_HP] || '').replace(/^'+/, '').trim();
@@ -104,7 +104,7 @@ function notifyDokumenApproved(targetNip, namaDokumen, namaLengkap) {
 
     if (!noHp) {
       Logger.log('notifyDokumenApproved: Nomor HP kosong untuk NIP ' + targetNip + '. Notifikasi dilewati.');
-      return;
+      return 'No HP kosong';
     }
 
     var message =
@@ -116,9 +116,11 @@ function notifyDokumenApproved(targetNip, namaDokumen, namaLengkap) {
 
     var result = sendFonnteMessage(noHp, message);
     Logger.log('notifyDokumenApproved → ' + JSON.stringify(result));
+    return result.success ? 'WhatsApp terkirim' : 'WhatsApp gagal: ' + result.message;
   } catch (e) {
     // Silent fail — do not disrupt the approval flow
     Logger.log('notifyDokumenApproved silent error: ' + e.toString());
+    return 'WhatsApp error: ' + e.message;
   }
 }
 
@@ -135,7 +137,7 @@ function notifyDokumenRejected(targetNip, namaDokumen, namaLengkap, alasan) {
     var pegawai = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, targetNip);
     if (!pegawai) {
       Logger.log('notifyDokumenRejected: Pegawai tidak ditemukan: ' + targetNip);
-      return;
+      return 'Pegawai tidak ditemukan';
     }
 
     var noHp = String(pegawai.data[COL_PEGAWAI.NO_HP] || '').replace(/^'+/, '').trim();
@@ -143,7 +145,7 @@ function notifyDokumenRejected(targetNip, namaDokumen, namaLengkap, alasan) {
 
     if (!noHp) {
       Logger.log('notifyDokumenRejected: Nomor HP kosong untuk NIP ' + targetNip + '. Notifikasi dilewati.');
-      return;
+      return 'No HP kosong';
     }
 
     var message =
@@ -156,9 +158,11 @@ function notifyDokumenRejected(targetNip, namaDokumen, namaLengkap, alasan) {
 
     var result = sendFonnteMessage(noHp, message);
     Logger.log('notifyDokumenRejected → ' + JSON.stringify(result));
+    return result.success ? 'WhatsApp terkirim' : 'WhatsApp gagal: ' + result.message;
   } catch (e) {
     // Silent fail — do not disrupt the rejection flow
     Logger.log('notifyDokumenRejected silent error: ' + e.toString());
+    return 'WhatsApp error: ' + e.message;
   }
 }
 

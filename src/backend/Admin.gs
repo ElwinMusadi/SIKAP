@@ -1002,11 +1002,11 @@ function adminApproveDokumen(token, idArsip) {
     // Lookup document name for notification
     var masterDoc = findByPrimaryKey(SHEET_NAMES.MASTER_DOKUMEN, docId);
     var namaDokumen = masterDoc ? masterDoc.data[COL_MASTER_DOKUMEN.NAMA_DOKUMEN] : docId;
-    notifyDokumenApproved(String(targetNip).replace(/^'+/, '').trim(), namaDokumen);
+    var waStatus = notifyDokumenApproved(String(targetNip).replace(/^'+/, '').trim(), namaDokumen);
 
     return {
       success: true,
-      message: 'Dokumen berhasil disetujui.'
+      message: 'Dokumen berhasil disetujui. (' + waStatus + ')'
     };
   } catch (e) {
     Logger.log('adminApproveDokumen error: ' + e.toString());
@@ -1064,11 +1064,11 @@ function adminRejectDokumen(token, idArsip, alasanPenolakan) {
     // Lookup document name for notification
     var masterDoc = findByPrimaryKey(SHEET_NAMES.MASTER_DOKUMEN, docId);
     var namaDokumen = masterDoc ? masterDoc.data[COL_MASTER_DOKUMEN.NAMA_DOKUMEN] : docId;
-    notifyDokumenRejected(String(targetNip).replace(/^'+/, '').trim(), namaDokumen, null, reasonStr);
+    var waStatus = notifyDokumenRejected(String(targetNip).replace(/^'+/, '').trim(), namaDokumen, null, reasonStr);
 
     return {
       success: true,
-      message: 'Dokumen berhasil ditolak.'
+      message: 'Dokumen berhasil ditolak. (' + waStatus + ')'
     };
   } catch (e) {
     Logger.log('adminRejectDokumen error: ' + e.toString());
