@@ -252,3 +252,4 @@ function adminTestFonnteMessage(token) {
     return { success: false, message: 'Gagal mengirim pesan uji: ' + e.message };
   }
 }
+function _forceAuth() { UrlFetchApp.fetch("https://google.com"); }
