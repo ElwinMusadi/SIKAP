@@ -214,6 +214,71 @@
   </div>
 
   <!-- ======================================== -->
+  <!-- SECTION 5: Notifikasi WhatsApp           -->
+  <!-- Admin-only: shown via JS role check      -->
+  <!-- ======================================== -->
+  <div id="settings-whatsapp-section" class="hidden">
+    <div class="h-px bg-outline-variant w-full my-8"></div>
+    <h2 class="text-on-surface text-[22px] font-bold leading-tight tracking-[-0.015em] pb-2">Notifikasi WhatsApp</h2>
+    <p class="text-on-surface-variant font-body-md mb-6">
+      Konfigurasi integrasi WhatsApp via <strong>Fonnte</strong> untuk mengirimkan notifikasi otomatis kepada pegawai saat dokumen diverifikasi atau ditolak.
+    </p>
+
+    <div class="bg-surface-container rounded-xl p-5 border border-outline-variant/30 flex flex-col gap-5 max-w-[560px]">
+
+      <!-- Status Badge -->
+      <div class="flex items-center gap-3">
+        <div id="wa-status-dot" class="w-2.5 h-2.5 rounded-full bg-outline flex-shrink-0"></div>
+        <span id="wa-status-label" class="font-body-sm text-on-surface-variant">Memeriksa status...</span>
+      </div>
+
+      <!-- Token Input -->
+      <div class="flex flex-col gap-2">
+        <label class="font-label-md text-on-surface" for="wa-token-input">Token Fonnte</label>
+        <div class="relative flex items-center">
+          <input type="password"
+                 id="wa-token-input"
+                 class="w-full rounded-lg text-on-surface bg-surface border border-outline-variant focus:ring-2 focus:ring-primary h-12 px-4 font-body-md pr-12 outline-none transition-all"
+                 placeholder="Masukkan token dari dashboard Fonnte">
+          <button type="button"
+                  class="absolute right-4 text-outline hover:text-on-surface transition-colors"
+                  onclick="SIKAP.Settings.toggleWaTokenVisibility()">
+            <span class="material-symbols-outlined text-[20px]" id="wa-token-vis-icon">visibility</span>
+          </button>
+        </div>
+        <p class="font-body-sm text-on-surface-variant">Token dapat ditemukan di <strong>dashboard Fonnte → Device → Token</strong>.</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap items-center gap-3">
+        <button id="wa-save-btn"
+                type="button"
+                onclick="SIKAP.Settings.saveFonnteToken()"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:opacity-90 transition-all shadow-sm active:scale-95">
+          <span class="material-symbols-outlined text-[18px]">save</span>
+          <span id="wa-save-text">Simpan Token</span>
+        </button>
+
+        <button id="wa-test-btn"
+                type="button"
+                onclick="SIKAP.Settings.testFonnteMessage()"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-label-md hover:bg-surface-container-high transition-all active:scale-95">
+          <span class="material-symbols-outlined text-[18px]">send</span>
+          <span id="wa-test-text">Kirim Pesan Uji</span>
+        </button>
+      </div>
+
+      <!-- Info note -->
+      <div class="flex items-start gap-2 p-3 rounded-lg bg-surface-container-high border border-outline-variant/30">
+        <span class="material-symbols-outlined text-[18px] text-on-surface-variant shrink-0 mt-0.5">info</span>
+        <p class="font-body-sm text-on-surface-variant">
+          Pesan uji akan dikirim ke nomor HP Anda yang terdaftar di Data Pegawai. Pastikan Nomor HP Anda sudah diisi sebelum melakukan uji.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================== -->
   <!-- SECTION 5: Tentang Aplikasi              -->
   <!-- ======================================== -->
   <div class="mt-16 mb-8 flex flex-col items-center justify-center text-center opacity-70">

@@ -55,7 +55,10 @@ function doPost(e) {
       adminRejectDokumen: adminRejectDokumen,
       adminBackupDatabase: adminBackupDatabase,
       adminBackupFull: adminBackupFull,
-      adminDeletePegawai: adminDeletePegawai
+      adminDeletePegawai: adminDeletePegawai,
+      adminSaveFonnteToken: adminSaveFonnteToken,
+      adminGetFonnteStatus: adminGetFonnteStatus,
+      adminTestFonnteMessage: adminTestFonnteMessage
     };
 
     // 4. Validate action against whitelist
@@ -94,7 +97,10 @@ function doPost(e) {
       adminRejectDokumen: ['token', 'idArsip', 'alasanPenolakan'],
       adminBackupDatabase: ['token'],
       adminBackupFull: ['token'],
-      adminDeletePegawai: ['token', 'targetNip']
+      adminDeletePegawai: ['token', 'targetNip'],
+      adminSaveFonnteToken: ['token', 'fonnteToken'],
+      adminGetFonnteStatus: ['token'],
+      adminTestFonnteMessage: ['token']
     };
 
     var paramNames = payloadMap[action] || [];

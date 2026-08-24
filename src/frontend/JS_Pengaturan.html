@@ -19,7 +19,7 @@ SIKAP.Settings.loadProfile = function() {
         document.getElementById('settings-role').value = d.role || '—';
         document.getElementById('settings-status').value = d.statusKepegawaian || '—';
         // Tampilkan seksi Backup jika user adalah Admin
-        SIKAP.Settings._checkBackupVisibility(d.role);
+        SIKAP.Settings._checkAdminSections(d.role);
       } else {
         var msg = (result && result.message) ? result.message : 'Gagal memuat profil.';
         SIKAP.Toast.show(msg, 'error');
@@ -137,15 +137,22 @@ SIKAP.Settings.confirmLogout = function() {
 };
 
 /**
- * Menampilkan seksi Backup hanya untuk Admin.
- * Dipanggil oleh loadProfile setelah data profil dimuat.
+ * Menampilkan seksi Admin-only (Backup, WhatsApp) dan memuat status Fonnte.
  */
-SIKAP.Settings._checkBackupVisibility = function(role) {
-  var section = document.getElementById('settings-backup-section');
-  if (section && role === 'Admin') {
-    section.classList.remove('hidden');
+SIKAP.Settings._checkAdminSections = function(role) {
+  var backupSection = document.getElementById('settings-backup-section');
+  var waSection = document.getElementById('settings-whatsapp-section');
+  if (role === 'Admin') {
+    if (backupSection) backupSection.classList.remove('hidden');
+    if (waSection) {
+      waSection.classList.remove('hidden');
+      SIKAP.Settings.loadFonnteStatus();
+    }
   }
 };
+
+// Keep the old name for backward compatibility
+SIKAP.Settings._checkBackupVisibility = SIKAP.Settings._checkAdminSections;
 
 /**
  * Triggers a backup operation.
@@ -186,6 +193,118 @@ SIKAP.Settings.triggerBackup = function(type) {
     .finally(function() {
       if (btn) btn.disabled = false;
       if (textEl) textEl.textContent = isDb ? 'Backup Database Sekarang' : 'Backup Penuh Sekarang';
+    });
+};
+
+// ============================================================
+// WhatsApp / Fonnte Settings
+// ============================================================
+
+/**
+ * Loads Fonnte configuration status and updates the status indicator.
+ */
+SIKAP.Settings.loadFonnteStatus = function() {
+  SIKAP.Api.call('adminGetFonnteStatus', { token: SIKAP.state.token })
+    .then(function(result) {
+      var dot = document.getElementById('wa-status-dot');
+      var label = document.getElementById('wa-status-label');
+      if (!dot || !label) return;
+
+      if (result && result.success) {
+        if (result.data.isConfigured) {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0';
+          label.textContent = 'Token terkonfigurasi (' + result.data.tokenHint + '). Notifikasi WhatsApp aktif.';
+        } else {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0';
+          label.textContent = 'Token belum dikonfigurasi. Notifikasi WhatsApp tidak aktif.';
+        }
+      } else {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-error flex-shrink-0';
+        label.textContent = 'Gagal memeriksa status.';
+      }
+    })
+    .catch(function() {
+      var label = document.getElementById('wa-status-label');
+      if (label) label.textContent = 'Gagal memeriksa status.';
+    });
+};
+
+/**
+ * Toggles visibility of the token input field.
+ */
+SIKAP.Settings.toggleWaTokenVisibility = function() {
+  var input = document.getElementById('wa-token-input');
+  var icon = document.getElementById('wa-token-vis-icon');
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icon) icon.textContent = 'visibility_off';
+  } else {
+    input.type = 'password';
+    if (icon) icon.textContent = 'visibility';
+  }
+};
+
+/**
+ * Saves the Fonnte token via API.
+ */
+SIKAP.Settings.saveFonnteToken = function() {
+  var input = document.getElementById('wa-token-input');
+  var btn = document.getElementById('wa-save-btn');
+  var textEl = document.getElementById('wa-save-text');
+  var tokenVal = input ? input.value.trim() : '';
+
+  if (!tokenVal) {
+    SIKAP.Toast.show('Masukkan token Fonnte terlebih dahulu.', 'warning');
+    return;
+  }
+
+  if (btn) btn.disabled = true;
+  if (textEl) textEl.textContent = 'Menyimpan...';
+
+  SIKAP.Api.call('adminSaveFonnteToken', { token: SIKAP.state.token, fonnteToken: tokenVal })
+    .then(function(result) {
+      if (result && result.success) {
+        SIKAP.Toast.show('Token Fonnte berhasil disimpan!', 'success');
+        if (input) input.value = '';
+        SIKAP.Settings.loadFonnteStatus();
+      } else {
+        SIKAP.Toast.show((result && result.message) || 'Gagal menyimpan token.', 'error');
+      }
+    })
+    .catch(function() {
+      SIKAP.Toast.show('Gagal menyimpan token. Periksa koneksi.', 'error');
+    })
+    .finally(function() {
+      if (btn) btn.disabled = false;
+      if (textEl) textEl.textContent = 'Simpan Token';
+    });
+};
+
+/**
+ * Sends a WhatsApp test message to the admin's registered phone number.
+ */
+SIKAP.Settings.testFonnteMessage = function() {
+  var btn = document.getElementById('wa-test-btn');
+  var textEl = document.getElementById('wa-test-text');
+
+  if (btn) btn.disabled = true;
+  if (textEl) textEl.textContent = 'Mengirim...';
+
+  SIKAP.Api.call('adminTestFonnteMessage', { token: SIKAP.state.token })
+    .then(function(result) {
+      if (result && result.success) {
+        SIKAP.Toast.show('Pesan uji berhasil dikirim ke WhatsApp Anda! 🎉', 'success', 5000);
+      } else {
+        SIKAP.Toast.show((result && result.message) || 'Gagal mengirim pesan uji.', 'error');
+      }
+    })
+    .catch(function() {
+      SIKAP.Toast.show('Gagal mengirim pesan uji. Periksa koneksi.', 'error');
+    })
+    .finally(function() {
+      if (btn) btn.disabled = false;
+      if (textEl) textEl.textContent = 'Kirim Pesan Uji';
     });
 };
 </script>

@@ -999,6 +999,11 @@ function adminApproveDokumen(token, idArsip) {
     logActivity(verifierNip, auth.session.role, 'DOKUMEN_APPROVE', 'DOCUMENT',
       idArsip, 'Verifikasi dokumen disetujui: ID ' + docId + ' (NIP ' + targetNip + ')', 'SUCCESS');
 
+    // Lookup document name for notification
+    var masterDoc = findByPrimaryKey(SHEET_NAMES.MASTER_DOKUMEN, docId);
+    var namaDokumen = masterDoc ? masterDoc.data[COL_MASTER_DOKUMEN.NAMA_DOKUMEN] : docId;
+    notifyDokumenApproved(String(targetNip).replace(/^'+/, '').trim(), namaDokumen);
+
     return {
       success: true,
       message: 'Dokumen berhasil disetujui.'
@@ -1055,6 +1060,11 @@ function adminRejectDokumen(token, idArsip, alasanPenolakan) {
     var docId = record.data[COL_ARSIP.ID_DOKUMEN];
     logActivity(verifierNip, auth.session.role, 'DOKUMEN_REJECT', 'DOCUMENT',
       idArsip, 'Verifikasi dokumen ditolak: ID ' + docId + ' (NIP ' + targetNip + '). Alasan: ' + reasonStr, 'SUCCESS');
+
+    // Lookup document name for notification
+    var masterDoc = findByPrimaryKey(SHEET_NAMES.MASTER_DOKUMEN, docId);
+    var namaDokumen = masterDoc ? masterDoc.data[COL_MASTER_DOKUMEN.NAMA_DOKUMEN] : docId;
+    notifyDokumenRejected(String(targetNip).replace(/^'+/, '').trim(), namaDokumen, null, reasonStr);
 
     return {
       success: true,
