@@ -635,6 +635,10 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
       'SUCCESS'
     );
 
+    // 5. Kirim notifikasi WA ke semua Admin
+    var namaPegawai = user.data[COL_PEGAWAI.NAMA_LENGKAP] || nip;
+    notifyAdminsNewDocument(namaPegawai, namaDokumen);
+
     return {
       success: true,
       message: namaDokumen + ' berhasil diunggah dan sedang menunggu verifikasi.',

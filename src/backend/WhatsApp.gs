@@ -35,14 +35,14 @@ function sendFonnteMessage(target, message) {
       return { success: false, message: 'Token Fonnte belum dikonfigurasi.' };
     }
 
-    // Normalize phone number to international format (add 62 prefix if starts with 0)
-    var normalizedTarget = String(target || '').replace(/\D/g, '');
-    if (normalizedTarget.startsWith('0')) {
-      normalizedTarget = '62' + normalizedTarget.substring(1);
-    }
+    // Normalize phone number(s) to international format (add 62 prefix if starts with 0)
+    var normalizedTarget = String(target || '').split(',').map(function(t) {
+      var n = t.replace(/\D/g, '');
+      return n.startsWith('0') ? '62' + n.substring(1) : n;
+    }).filter(Boolean).join(',');
 
-    if (!normalizedTarget || normalizedTarget.length < 10) {
-      Logger.log('sendFonnteMessage: Invalid phone number: ' + target);
+    if (!normalizedTarget) {
+      Logger.log('sendFonnteMessage: Invalid phone number(s): ' + target);
       return { success: false, message: 'Nomor HP tidak valid.' };
     }
 
@@ -256,3 +256,49 @@ function adminTestFonnteMessage(token) {
   }
 }
 function _forceAuth() { UrlFetchApp.fetch("https://google.com"); }
+
+/**
+ * Sends a WhatsApp notification to all Admins when a new document is uploaded.
+ * @param {string} namaPegawai - Full name of the employee who uploaded the document.
+ * @param {string} namaDokumen - Name of the uploaded document.
+ */
+function notifyAdminsNewDocument(namaPegawai, namaDokumen) {
+  try {
+    var pegawaiSheet = getSheet(SHEET_NAMES.DATA_PEGAWAI);
+    if (!pegawaiSheet) return 'Sheet Data_Pegawai tidak ditemukan';
+
+    var data = pegawaiSheet.getDataRange().getValues();
+    var adminNumbers = [];
+
+    // Skip header row
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var role = String(row[COL_PEGAWAI.ROLE]).trim();
+      var noHp = String(row[COL_PEGAWAI.NO_HP]).trim();
+      var statusAkun = String(row[COL_PEGAWAI.STATUS_AKUN]).trim();
+
+      if (role === 'Admin' && statusAkun === 'Aktif' && noHp) {
+        adminNumbers.push(noHp.replace(/^'+/, ''));
+      }
+    }
+
+    if (adminNumbers.length === 0) {
+      Logger.log('notifyAdminsNewDocument: Tidak ada Admin aktif dengan nomor HP.');
+      return 'Tidak ada Admin aktif dengan nomor HP';
+    }
+
+    var targetNumbers = adminNumbers.join(',');
+    var message =
+      'Halo Administrator TU,\n\n' +
+      'Pegawai *' + namaPegawai + '* baru saja mengunggah/memperbarui dokumen *' + namaDokumen + '*.\n\n' +
+      'Mohon segera login ke SIKAP untuk melakukan verifikasi dokumen tersebut.\n\n' +
+      SIKAP_APP_URL;
+
+    var result = sendFonnteMessage(targetNumbers, message);
+    Logger.log('notifyAdminsNewDocument → ' + JSON.stringify(result));
+    return result.success ? 'WhatsApp terkirim ke ' + adminNumbers.length + ' Admin' : 'WhatsApp gagal: ' + result.message;
+  } catch (e) {
+    Logger.log('notifyAdminsNewDocument silent error: ' + e.toString());
+    return 'WhatsApp error: ' + e.message;
+  }
+}
