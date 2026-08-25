@@ -277,7 +277,7 @@ function notifyAdminsNewDocument(namaPegawai, namaDokumen) {
       var noHp = String(row[COL_PEGAWAI.NO_HP]).trim();
       var statusAkun = String(row[COL_PEGAWAI.STATUS_AKUN]).trim();
 
-      if (role === 'Admin' && statusAkun === 'Aktif' && noHp) {
+      if (role.indexOf('Admin') !== -1 && statusAkun === 'Aktif' && noHp) {
         adminNumbers.push(noHp.replace(/^'+/, ''));
       }
     }
