@@ -276,7 +276,7 @@ SIKAP.VerifikasiDokumen.executeReject = function() {
   submitIcon.textContent = 'hourglass_empty';
   submitText.textContent = 'Memproses...';
 
-  SIKAP.Api.call('adminRejectDokumen', { token: SIKAP.state.token, idArsip: item.idArsip, reason: reason })
+  SIKAP.Api.call('adminRejectDokumen', { token: SIKAP.state.token, idArsip: item.idArsip, alasanPenolakan: reason })
     .then(function(result) {
       submitBtn.disabled = false;
       submitIcon.textContent = 'block';
