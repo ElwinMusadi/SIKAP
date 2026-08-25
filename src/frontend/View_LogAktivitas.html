@@ -1,35 +1,160 @@
-<!-- VIEW: LOG AKTIVITAS -->
-<div class="h-full flex flex-col space-y-6">
-  
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-    <div>
-      <h1 class="text-h1 font-h1 text-on-surface">Log Aktivitas Sistem</h1>
-      <p class="text-body-md font-body-md text-on-surface-variant mt-1">
-        Catatan seluruh aktivitas yang dilakukan oleh pengguna di dalam sistem SIKAP.
+<!-- ============================================================ -->
+<!-- View_LogAktivitas.html — System activity log                -->
+<!-- ============================================================ -->
+
+<div class="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-container-margin">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div class="min-w-0">
+      <div class="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/10 bg-primary/5 px-3 py-1 text-label-sm text-primary">
+        <span class="material-symbols-outlined text-[15px]" aria-hidden="true">history</span>
+        Administrasi sistem
+      </div>
+      <h1 class="text-h1-mobile text-on-surface lg:text-h1">Log Aktivitas</h1>
+      <p class="mt-1 max-w-2xl text-body-md text-on-surface-variant sm:text-body-lg">
+        Pantau riwayat tindakan pengguna dan perubahan penting yang terjadi di dalam SIKAP.
       </p>
     </div>
-  </div>
+    <button type="button" id="log-refresh-btn"
+            class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-outline-variant/50 bg-surface-container-lowest px-4 py-2.5 text-label-md text-on-surface shadow-sm transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            onclick="SIKAP.LogAktivitas.loadData(true)">
+      <span class="material-symbols-outlined text-[18px]" id="log-refresh-icon" aria-hidden="true">refresh</span>
+      <span id="log-refresh-label">Muat ulang</span>
+    </button>
+  </header>
 
-  <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col overflow-hidden">
-    <!-- Filter Bar -->
-    <div class="p-4 border-b border-outline-variant/20 bg-surface flex flex-col sm:flex-row gap-4 justify-between items-center">
-      <div class="relative w-full max-w-sm">
-        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-        <input type="text" id="log-search-input" placeholder="Cari aktivitas atau nama pegawai..." class="w-full bg-surface-container-highest text-on-surface pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary border border-transparent focus:border-primary transition-all">
+  <section class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4" aria-label="Ringkasan log aktivitas">
+    <article class="flex items-center justify-between rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm">
+      <div>
+        <p class="text-label-sm uppercase tracking-wider text-on-surface-variant">Total aktivitas</p>
+        <p class="mt-2 text-[28px] font-bold leading-none text-on-surface" id="log-stat-total">—</p>
       </div>
-      <button class="px-4 py-2 rounded-lg bg-surface-container text-on-surface font-label-md hover:bg-outline-variant/20 transition-colors flex items-center gap-2" onclick="SIKAP.LogAktivitas.loadData()">
-        <span class="material-symbols-outlined text-[18px]">refresh</span> Muat Ulang
+      <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+      </div>
+    </article>
+
+    <article class="flex items-center justify-between rounded-2xl border border-emerald-200/60 bg-emerald-50/60 p-5 shadow-sm">
+      <div>
+        <p class="text-label-sm uppercase tracking-wider text-emerald-800">Berhasil</p>
+        <p class="mt-2 text-[28px] font-bold leading-none text-emerald-900" id="log-stat-success">—</p>
+      </div>
+      <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+        <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+      </div>
+    </article>
+
+    <article class="flex items-center justify-between rounded-2xl border border-rose-200/60 bg-rose-50/60 p-5 shadow-sm">
+      <div>
+        <p class="text-label-sm uppercase tracking-wider text-rose-800">Gagal / perlu dicek</p>
+        <p class="mt-2 text-[28px] font-bold leading-none text-rose-900" id="log-stat-failed">—</p>
+      </div>
+      <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
+        <span class="material-symbols-outlined" aria-hidden="true">error</span>
+      </div>
+    </article>
+  </section>
+
+  <section class="overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-lowest shadow-sm" aria-labelledby="log-list-title">
+    <div class="border-b border-outline-variant/30 bg-surface p-4 sm:p-5">
+      <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div class="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(280px,1fr)_220px_190px]">
+          <div class="sm:col-span-2 lg:col-span-1">
+            <label for="log-search-input" class="mb-1.5 block text-label-sm text-on-surface-variant">Cari aktivitas</label>
+            <div class="relative">
+              <span class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant" aria-hidden="true">search</span>
+              <input type="search" id="log-search-input" autocomplete="off"
+                     placeholder="Deskripsi, aksi, NIP, atau target..."
+                     class="min-h-11 w-full rounded-xl border border-outline-variant/50 bg-surface-container-lowest py-2.5 pl-11 pr-10 text-body-md text-on-surface transition-colors placeholder:text-outline focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+              <button type="button" id="log-search-clear" aria-label="Hapus pencarian" title="Hapus pencarian"
+                      class="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
+                      onclick="SIKAP.LogAktivitas.clearSearch()">
+                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label for="log-category-filter" class="mb-1.5 block text-label-sm text-on-surface-variant">Jenis aktivitas</label>
+            <select id="log-category-filter"
+                    class="min-h-11 w-full rounded-xl border border-outline-variant/50 bg-surface-container-lowest px-3 py-2.5 text-body-md text-on-surface transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="">Semua aktivitas</option>
+              <option value="account">Akun &amp; keamanan</option>
+              <option value="document">Dokumen</option>
+              <option value="employee">Data pegawai</option>
+              <option value="system">Sistem lainnya</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="log-result-filter" class="mb-1.5 block text-label-sm text-on-surface-variant">Hasil proses</label>
+            <select id="log-result-filter"
+                    class="min-h-11 w-full rounded-xl border border-outline-variant/50 bg-surface-container-lowest px-3 py-2.5 text-body-md text-on-surface transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="">Semua hasil</option>
+              <option value="success">Berhasil</option>
+              <option value="failed">Gagal</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="button" id="log-reset-filter-btn"
+                class="hidden min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-3 text-label-md text-primary transition-colors hover:bg-primary/5"
+                onclick="SIKAP.LogAktivitas.resetFilters()">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">filter_alt_off</span>
+          Reset filter
+        </button>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2 border-b border-outline-variant/25 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div>
+        <h2 class="text-label-md text-on-surface" id="log-list-title">Riwayat aktivitas terbaru</h2>
+        <p class="mt-0.5 text-body-sm text-on-surface-variant" id="log-result-summary">Memuat data aktivitas...</p>
+      </div>
+      <p class="text-body-sm text-on-surface-variant" id="log-last-synced" aria-live="polite"></p>
+    </div>
+
+    <div id="log-loading" class="flex min-h-[380px] flex-col items-center justify-center gap-4 px-5 py-16" role="status" aria-live="polite">
+      <svg class="h-10 w-10 animate-spin text-primary" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <p class="text-body-md text-on-surface-variant">Memuat log aktivitas...</p>
+    </div>
+
+    <div id="log-error" class="hidden min-h-[380px] flex-col items-center justify-center px-5 py-16 text-center" role="alert" aria-live="assertive">
+      <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-error-container text-error">
+        <span class="material-symbols-outlined text-[28px]" aria-hidden="true">cloud_off</span>
+      </div>
+      <h3 class="text-h3 text-on-surface">Log aktivitas gagal dimuat</h3>
+      <p class="mt-2 max-w-md text-body-md text-on-surface-variant" id="log-error-message">Terjadi kesalahan saat mengambil data.</p>
+      <button type="button" class="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-label-md text-on-primary shadow-sm hover:bg-primary/90"
+              onclick="SIKAP.LogAktivitas.loadData(true)">
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
+        Coba lagi
       </button>
     </div>
 
-    <!-- Feed Container -->
-    <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-surface-container-lowest min-h-[400px]">
-      <div id="log-aktivitas-feed" class="space-y-4 max-w-4xl mx-auto">
-        <div class="text-center py-12">
-          <span class="material-symbols-outlined text-[48px] text-on-surface-variant/50 animate-pulse">history</span>
-          <p class="text-on-surface-variant mt-4 font-body-md">Memuat log aktivitas...</p>
-        </div>
+    <div id="log-empty" class="hidden min-h-[320px] flex-col items-center justify-center px-5 py-14 text-center" role="status">
+      <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant">
+        <span class="material-symbols-outlined text-[28px]" id="log-empty-icon" aria-hidden="true">search_off</span>
+      </div>
+      <h3 class="text-h3 text-on-surface" id="log-empty-title">Aktivitas tidak ditemukan</h3>
+      <p class="mt-2 max-w-md text-body-md text-on-surface-variant" id="log-empty-message">Coba ubah kata kunci atau filter yang digunakan.</p>
+      <button type="button" id="log-empty-reset-btn" class="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-primary/20 px-4 py-2.5 text-label-md text-primary hover:bg-primary/5"
+              onclick="SIKAP.LogAktivitas.resetFilters()">
+        Reset filter
+      </button>
+    </div>
+
+    <div id="log-list-container" class="hidden">
+      <ol id="log-aktivitas-feed" class="divide-y divide-outline-variant/25" aria-live="polite"></ol>
+      <div id="log-load-more-container" class="hidden border-t border-outline-variant/30 bg-surface px-4 py-4 text-center">
+        <button type="button" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-surface-container-high px-5 py-2.5 text-label-md text-primary transition-colors hover:bg-surface-container-highest"
+                onclick="SIKAP.LogAktivitas.loadMore()">
+          Tampilkan lebih banyak
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">expand_more</span>
+        </button>
       </div>
     </div>
-  </div>
+  </section>
 </div>

@@ -1,122 +1,372 @@
 <script>
 /**
  * @namespace SIKAP.LogAktivitas
- * Logic for Log Aktivitas page.
+ * Controller for the admin activity log page.
  */
 SIKAP.LogAktivitas = SIKAP.LogAktivitas || {};
-SIKAP.LogAktivitas.data = [];
+SIKAP.LogAktivitas.state = SIKAP.LogAktivitas.state || {
+  data: [],
+  visibleCount: 20,
+  pageSize: 20,
+  inFlight: false,
+  eventsBound: false,
+  searchTimer: null
+};
 
 SIKAP.LogAktivitas.init = function() {
-  var searchInput = document.getElementById('log-search-input');
-  if (searchInput) {
-    searchInput.addEventListener('input', function(e) {
-      SIKAP.LogAktivitas.renderFeed(e.target.value);
-    });
-  }
+  SIKAP.LogAktivitas.bindEvents();
   SIKAP.LogAktivitas.loadData();
 };
 
-SIKAP.LogAktivitas.loadData = function() {
-  var feedContainer = document.getElementById('log-aktivitas-feed');
-  if (feedContainer) {
-    feedContainer.innerHTML = '<div class="text-center py-12"><span class="material-symbols-outlined text-[48px] text-on-surface-variant/50 animate-pulse">history</span><p class="text-on-surface-variant mt-4 font-body-md">Memuat log aktivitas...</p></div>';
+SIKAP.LogAktivitas.bindEvents = function() {
+  var state = SIKAP.LogAktivitas.state;
+  if (state.eventsBound) return;
+
+  var searchInput = document.getElementById('log-search-input');
+  var categoryFilter = document.getElementById('log-category-filter');
+  var resultFilter = document.getElementById('log-result-filter');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      clearTimeout(state.searchTimer);
+      state.searchTimer = setTimeout(function() {
+        state.visibleCount = state.pageSize;
+        SIKAP.LogAktivitas.renderFeed();
+      }, 180);
+      SIKAP.LogAktivitas.updateFilterControls();
+    });
   }
 
-  SIKAP.Api.call('adminGetLogAktivitas', { token: SIKAP.state.token })
-    .then(function(res) {
-      if (res.success) {
-        SIKAP.LogAktivitas.data = res.data;
-        var searchInput = document.getElementById('log-search-input');
-        var query = searchInput ? searchInput.value : '';
-        SIKAP.LogAktivitas.renderFeed(query);
-      } else {
-        if (feedContainer) {
-          feedContainer.innerHTML = '<div class="text-center py-12 text-error"><span class="material-symbols-outlined text-[48px]">error</span><p class="mt-4">' + res.message + '</p></div>';
-        }
-      }
-    })
-    .catch(function(err) {
-      if (feedContainer) {
-        feedContainer.innerHTML = '<div class="text-center py-12 text-error"><span class="material-symbols-outlined text-[48px]">cloud_off</span><p class="mt-4">Gagal terhubung ke server.</p></div>';
-      }
+  [categoryFilter, resultFilter].forEach(function(control) {
+    if (!control) return;
+    control.addEventListener('change', function() {
+      state.visibleCount = state.pageSize;
+      SIKAP.LogAktivitas.renderFeed();
     });
-};
-
-SIKAP.LogAktivitas.renderFeed = function(searchQuery) {
-  var feedContainer = document.getElementById('log-aktivitas-feed');
-  if (!feedContainer) return;
-
-  var q = (searchQuery || '').toLowerCase();
-  var filtered = SIKAP.LogAktivitas.data.filter(function(act) {
-    return act.description.toLowerCase().indexOf(q) !== -1 ||
-           act.action.toLowerCase().indexOf(q) !== -1 ||
-           act.actorNip.toLowerCase().indexOf(q) !== -1;
   });
 
-  if (filtered.length === 0) {
-    feedContainer.innerHTML = '<div class="text-center py-12"><span class="material-symbols-outlined text-[48px] text-on-surface-variant/50">search_off</span><p class="text-on-surface-variant mt-4 font-body-md">Tidak ada aktivitas yang sesuai.</p></div>';
+  state.eventsBound = true;
+};
+
+SIKAP.LogAktivitas.normalizeActivity = function(activity) {
+  activity = activity && typeof activity === 'object' ? activity : {};
+  return {
+    id: String(activity.id || ''),
+    time: String(activity.time || 'Waktu tidak tersedia'),
+    actorNip: String(activity.actorNip || 'Sistem'),
+    actorRole: String(activity.actorRole || 'Sistem'),
+    action: String(activity.action || 'SYSTEM_ACTIVITY'),
+    targetType: String(activity.targetType || ''),
+    targetId: String(activity.targetId || ''),
+    description: String(activity.description || 'Aktivitas sistem tercatat.'),
+    result: String(activity.result || '')
+  };
+};
+
+SIKAP.LogAktivitas.getActivityMeta = function(activity) {
+  var action = activity.action.toUpperCase();
+  var description = activity.description.toLowerCase();
+
+  if (action.indexOf('DOKUMEN_APPROVE') !== -1 || description.indexOf('disetujui') !== -1) {
+    return { category: 'document', title: 'Dokumen disetujui', icon: 'verified', iconClass: 'bg-emerald-100 text-emerald-700' };
+  }
+  if (action.indexOf('DOKUMEN_REJECT') !== -1 || description.indexOf('ditolak') !== -1 || description.indexOf('revisi') !== -1) {
+    return { category: 'document', title: 'Dokumen perlu revisi', icon: 'rate_review', iconClass: 'bg-orange-100 text-orange-700' };
+  }
+  if (action.indexOf('FOTO_PROFIL_UPLOAD') !== -1) {
+    return { category: 'employee', title: 'Foto profil diperbarui', icon: 'add_a_photo', iconClass: 'bg-purple-100 text-purple-700' };
+  }
+  if (action.indexOf('DOKUMEN') !== -1 || action.indexOf('UPLOAD') !== -1 || activity.targetType.toUpperCase() === 'DOCUMENT') {
+    return { category: 'document', title: 'Aktivitas dokumen', icon: 'description', iconClass: 'bg-blue-100 text-blue-700' };
+  }
+  if (action.indexOf('LOGIN') !== -1 || action.indexOf('LOGOUT') !== -1 || action.indexOf('PASSWORD') !== -1) {
+    var accountTitle = action.indexOf('LOGOUT') !== -1 ? 'Pengguna keluar' : (action.indexOf('LOGIN') !== -1 ? 'Pengguna masuk' : 'Keamanan akun');
+    return { category: 'account', title: accountTitle, icon: action.indexOf('LOGOUT') !== -1 ? 'logout' : 'shield_person', iconClass: 'bg-slate-100 text-slate-700' };
+  }
+  if (action.indexOf('PEGAWAI_CREATE') !== -1) {
+    return { category: 'employee', title: 'Pegawai ditambahkan', icon: 'person_add', iconClass: 'bg-teal-100 text-teal-700' };
+  }
+  if (action.indexOf('PEGAWAI_DELETE') !== -1) {
+    return { category: 'employee', title: 'Data pegawai dihapus', icon: 'person_remove', iconClass: 'bg-rose-100 text-rose-700' };
+  }
+  if (action.indexOf('PEGAWAI') !== -1 || action.indexOf('PROFILE') !== -1 || activity.targetType.toUpperCase() === 'USER') {
+    return { category: 'employee', title: 'Data pegawai diperbarui', icon: 'manage_accounts', iconClass: 'bg-purple-100 text-purple-700' };
+  }
+  if (action.indexOf('BACKUP') !== -1) {
+    return { category: 'system', title: 'Backup sistem', icon: 'cloud_done', iconClass: 'bg-cyan-100 text-cyan-700' };
+  }
+  if (action.indexOf('CONFIG') !== -1) {
+    return { category: 'system', title: 'Konfigurasi sistem', icon: 'settings', iconClass: 'bg-indigo-100 text-indigo-700' };
+  }
+  return { category: 'system', title: 'Aktivitas sistem', icon: 'info', iconClass: 'bg-surface-container-high text-primary' };
+};
+
+SIKAP.LogAktivitas.getResultMeta = function(result) {
+  var normalized = String(result || '').toUpperCase();
+  if (normalized.indexOf('FAIL') !== -1 || normalized.indexOf('ERROR') !== -1 || normalized.indexOf('GAGAL') !== -1) {
+    return { key: 'failed', label: 'Gagal', className: 'bg-rose-100 text-rose-800 ring-rose-200/80' };
+  }
+  if (normalized.indexOf('SUCCESS') !== -1 || normalized.indexOf('BERHASIL') !== -1) {
+    return { key: 'success', label: 'Berhasil', className: 'bg-emerald-100 text-emerald-800 ring-emerald-200/80' };
+  }
+  return { key: 'unknown', label: result || 'Tercatat', className: 'bg-surface-container-high text-on-surface-variant ring-outline-variant/40' };
+};
+
+SIKAP.LogAktivitas.createIcon = function(name, className) {
+  var icon = document.createElement('span');
+  icon.className = 'material-symbols-outlined ' + (className || '');
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = name;
+  return icon;
+};
+
+SIKAP.LogAktivitas.setRefreshState = function(isLoading) {
+  var button = document.getElementById('log-refresh-btn');
+  var icon = document.getElementById('log-refresh-icon');
+  var label = document.getElementById('log-refresh-label');
+  if (button) button.disabled = isLoading;
+  if (icon) icon.classList.toggle('animate-spin', isLoading);
+  if (label) label.textContent = isLoading ? 'Memuat...' : 'Muat ulang';
+};
+
+SIKAP.LogAktivitas.showState = function(activeState) {
+  ['loading', 'error', 'empty', 'list'].forEach(function(stateName) {
+    var element = document.getElementById(stateName === 'list' ? 'log-list-container' : 'log-' + stateName);
+    if (!element) return;
+    var isActive = stateName === activeState;
+    element.classList.toggle('hidden', !isActive);
+    if (stateName === 'error' || stateName === 'empty') element.classList.toggle('flex', isActive);
+  });
+};
+
+SIKAP.LogAktivitas.loadData = function(force) {
+  var state = SIKAP.LogAktivitas.state;
+  if (state.inFlight) return;
+  if (!force && state.data.length) {
+    SIKAP.LogAktivitas.renderStats();
+    SIKAP.LogAktivitas.renderFeed();
     return;
   }
 
-  var html = '';
-  filtered.forEach(function(act) {
-    var actionType = act.action.toUpperCase();
-    var descLower = act.description.toLowerCase();
-    
-    var title = "Aktivitas Sistem";
-    var icon = '<span class="material-symbols-outlined text-[20px]">info</span>';
-    var iconClass = 'text-slate-600 bg-surface-container-highest';
-    
-    // Determine icon based on action type (similar to dashboard)
-    if (actionType.indexOf('VERIFY') !== -1 || descLower.indexOf('verifikasi') !== -1) {
-      title = "Verifikasi Dokumen";
-      icon = '<span class="material-symbols-outlined text-[20px]">verified</span>';
-      iconClass = 'text-emerald-600 bg-emerald-500/10';
-      if (descLower.indexOf('ditolak') !== -1 || descLower.indexOf('revisi') !== -1) {
-        title = "Verifikasi Ditolak";
-        icon = '<span class="material-symbols-outlined text-[20px]">cancel</span>';
-        iconClass = 'text-amber-600 bg-amber-500/10';
+  state.inFlight = true;
+  state.visibleCount = state.pageSize;
+  SIKAP.LogAktivitas.setRefreshState(true);
+  SIKAP.LogAktivitas.showState('loading');
+  document.getElementById('log-result-summary').textContent = 'Memuat data aktivitas...';
+
+  SIKAP.Api.call('adminGetLogAktivitas', { token: SIKAP.state.token })
+    .then(function(response) {
+      if (response && response.success) {
+        state.data = Array.isArray(response.data) ? response.data.map(SIKAP.LogAktivitas.normalizeActivity) : [];
+        SIKAP.LogAktivitas.renderStats();
+        SIKAP.LogAktivitas.renderFeed();
+        document.getElementById('log-last-synced').textContent = 'Diperbarui ' + new Intl.DateTimeFormat('id-ID', {
+          hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar'
+        }).format(new Date()) + ' WITA';
+        return;
       }
-    } else if (actionType.indexOf('UPLOAD') !== -1 || descLower.indexOf('unggah') !== -1) {
-      title = "Dokumen Diunggah";
-      icon = '<span class="material-symbols-outlined text-[20px]">upload_file</span>';
-      iconClass = 'text-blue-600 bg-blue-500/10';
-    } else if (actionType.indexOf('CREATE') !== -1 || descLower.indexOf('tambah') !== -1) {
-      title = "Pegawai Ditambahkan";
-      icon = '<span class="material-symbols-outlined text-[20px]">person_add</span>';
-      iconClass = 'text-[#137333] bg-[#137333]/10';
-    } else if (actionType.indexOf('UPDATE') !== -1 || descLower.indexOf('ubah') !== -1 || descLower.indexOf('diperbarui') !== -1) {
-      title = "Data Diperbarui";
-      icon = '<span class="material-symbols-outlined text-[20px]">edit_document</span>';
-      iconClass = 'text-purple-600 bg-purple-500/10';
-    } else if (actionType.indexOf('DELETE') !== -1 || descLower.indexOf('hapus') !== -1) {
-      title = "Data Dihapus";
-      icon = '<span class="material-symbols-outlined text-[20px]">delete</span>';
-      iconClass = 'text-error bg-error-container';
-    } else if (actionType.indexOf('LOGIN') !== -1 || actionType.indexOf('LOGOUT') !== -1) {
-      title = "Aktivitas Akun";
-      icon = '<span class="material-symbols-outlined text-[20px]">login</span>';
-      iconClass = 'text-slate-600 bg-surface-container-highest'; 
-    }
 
-    html += '<div class="flex items-start gap-4 p-4 bg-surface rounded-xl border border-outline-variant/20 hover:border-outline-variant/40 hover:shadow-sm transition-all">';
-    html +=   '<div class="w-10 h-10 rounded-full shrink-0 flex items-center justify-center ' + iconClass + '">';
-    html +=     icon;
-    html +=   '</div>';
-    html +=   '<div class="flex flex-col flex-1 min-w-0">';
-    html +=     '<div class="flex items-center justify-between mb-1">';
-    html +=       '<span class="text-[14px] font-bold text-on-surface">' + title + '</span>';
-    html +=       '<span class="text-[12px] text-on-surface-variant font-medium">' + act.time + '</span>';
-    html +=     '</div>';
-    html +=     '<span class="text-[14px] text-on-surface-variant leading-relaxed">' + SIKAP.escapeHtml(act.description) + '</span>';
-    html +=     '<div class="mt-2 text-[11px] font-mono text-on-surface-variant/70 uppercase tracking-wide">Aktor: ' + act.actorNip + ' (' + act.actorRole + ')</div>';
-    html +=   '</div>';
-    html += '</div>';
-  });
-
-  feedContainer.innerHTML = html;
+      var message = response && response.message ? String(response.message) : 'Terjadi kesalahan saat mengambil log aktivitas.';
+      document.getElementById('log-error-message').textContent = message;
+      document.getElementById('log-result-summary').textContent = 'Data tidak tersedia.';
+      SIKAP.LogAktivitas.showState('error');
+      if (/^Sesi tidak valid/i.test(message)) SIKAP.Auth.handleSessionExpired();
+    })
+    .catch(function(error) {
+      console.error('Log aktivitas load error:', error);
+      document.getElementById('log-error-message').textContent = 'Koneksi ke server terganggu. Periksa jaringan Anda lalu coba lagi.';
+      document.getElementById('log-result-summary').textContent = 'Data tidak tersedia.';
+      SIKAP.LogAktivitas.showState('error');
+    })
+    .finally(function() {
+      state.inFlight = false;
+      SIKAP.LogAktivitas.setRefreshState(false);
+    });
 };
 
-// Register hook
-SIKAP.Hooks.onPageLoad('view-log-aktivitas', SIKAP.LogAktivitas.init);
+SIKAP.LogAktivitas.renderStats = function() {
+  var data = SIKAP.LogAktivitas.state.data;
+  var successCount = 0;
+  var failedCount = 0;
+  data.forEach(function(activity) {
+    var result = SIKAP.LogAktivitas.getResultMeta(activity.result);
+    if (result.key === 'success') successCount++;
+    if (result.key === 'failed') failedCount++;
+  });
+  document.getElementById('log-stat-total').textContent = data.length;
+  document.getElementById('log-stat-success').textContent = successCount;
+  document.getElementById('log-stat-failed').textContent = failedCount;
+};
+
+SIKAP.LogAktivitas.getFilters = function() {
+  return {
+    query: (document.getElementById('log-search-input').value || '').trim().toLowerCase(),
+    category: document.getElementById('log-category-filter').value,
+    result: document.getElementById('log-result-filter').value
+  };
+};
+
+SIKAP.LogAktivitas.getFilteredData = function() {
+  var filters = SIKAP.LogAktivitas.getFilters();
+  return SIKAP.LogAktivitas.state.data.filter(function(activity) {
+    var meta = SIKAP.LogAktivitas.getActivityMeta(activity);
+    var resultMeta = SIKAP.LogAktivitas.getResultMeta(activity.result);
+    var searchable = [activity.description, activity.action, activity.actorNip, activity.actorRole, activity.targetType, activity.targetId, meta.title].join(' ').toLowerCase();
+    return (!filters.query || searchable.indexOf(filters.query) !== -1) &&
+      (!filters.category || meta.category === filters.category) &&
+      (!filters.result || resultMeta.key === filters.result);
+  });
+};
+
+SIKAP.LogAktivitas.createResultBadge = function(resultMeta) {
+  var badge = document.createElement('span');
+  badge.className = 'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ' + resultMeta.className;
+  badge.textContent = resultMeta.label;
+  return badge;
+};
+
+SIKAP.LogAktivitas.createActivityItem = function(activity) {
+  var meta = SIKAP.LogAktivitas.getActivityMeta(activity);
+  var resultMeta = SIKAP.LogAktivitas.getResultMeta(activity.result);
+  var item = document.createElement('li');
+  item.className = 'group px-5 py-5 transition-colors hover:bg-surface-container-low/60 sm:px-6';
+
+  var layout = document.createElement('article');
+  layout.className = 'flex items-start gap-3.5 sm:gap-4';
+
+  var iconWrap = document.createElement('div');
+  iconWrap.className = 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ' + meta.iconClass;
+  iconWrap.appendChild(SIKAP.LogAktivitas.createIcon(meta.icon, 'text-[21px]'));
+  layout.appendChild(iconWrap);
+
+  var content = document.createElement('div');
+  content.className = 'min-w-0 flex-1';
+  var headingRow = document.createElement('div');
+  headingRow.className = 'flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between';
+
+  var headingGroup = document.createElement('div');
+  headingGroup.className = 'flex min-w-0 flex-wrap items-center gap-2';
+  var title = document.createElement('h3');
+  title.className = 'text-label-md text-on-surface';
+  title.textContent = meta.title;
+  headingGroup.appendChild(title);
+  headingGroup.appendChild(SIKAP.LogAktivitas.createResultBadge(resultMeta));
+  headingRow.appendChild(headingGroup);
+
+  var time = document.createElement('time');
+  time.className = 'shrink-0 text-body-sm font-medium text-on-surface-variant';
+  time.textContent = activity.time;
+  headingRow.appendChild(time);
+  content.appendChild(headingRow);
+
+  var description = document.createElement('p');
+  description.className = 'mt-2 break-words text-body-md leading-relaxed text-on-surface-variant';
+  description.textContent = activity.description;
+  content.appendChild(description);
+
+  var metadata = document.createElement('div');
+  metadata.className = 'mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-body-sm text-on-surface-variant';
+
+  var actor = document.createElement('span');
+  actor.className = 'inline-flex items-center gap-1.5 rounded-lg bg-surface-container-high px-2.5 py-1';
+  actor.appendChild(SIKAP.LogAktivitas.createIcon('person', 'text-[14px]'));
+  var actorText = document.createElement('span');
+  actorText.textContent = activity.actorNip + ' · ' + activity.actorRole;
+  actor.appendChild(actorText);
+  metadata.appendChild(actor);
+
+  var action = document.createElement('code');
+  action.className = 'rounded-md bg-surface-container-low px-2 py-1 font-mono text-[11px] text-on-surface-variant';
+  action.textContent = activity.action;
+  metadata.appendChild(action);
+
+  if (activity.targetId) {
+    var target = document.createElement('span');
+    target.className = 'inline-flex min-w-0 items-center gap-1';
+    target.appendChild(SIKAP.LogAktivitas.createIcon('flag', 'text-[14px]'));
+    var targetText = document.createElement('span');
+    targetText.className = 'break-all';
+    targetText.textContent = activity.targetId;
+    target.appendChild(targetText);
+    metadata.appendChild(target);
+  }
+
+  content.appendChild(metadata);
+  layout.appendChild(content);
+  item.appendChild(layout);
+  return item;
+};
+
+SIKAP.LogAktivitas.renderFeed = function() {
+  var state = SIKAP.LogAktivitas.state;
+  var feed = document.getElementById('log-aktivitas-feed');
+  if (!feed) return;
+
+  SIKAP.LogAktivitas.updateFilterControls();
+  var filtered = SIKAP.LogAktivitas.getFilteredData();
+  var filters = SIKAP.LogAktivitas.getFilters();
+  var hasFilters = !!(filters.query || filters.category || filters.result);
+
+  if (!filtered.length) {
+    var hasAnyData = state.data.length > 0;
+    document.getElementById('log-empty-icon').textContent = hasAnyData ? 'search_off' : 'history';
+    document.getElementById('log-empty-title').textContent = hasAnyData ? 'Aktivitas tidak ditemukan' : 'Belum ada aktivitas';
+    document.getElementById('log-empty-message').textContent = hasAnyData ? 'Coba ubah kata kunci atau filter yang digunakan.' : 'Aktivitas pengguna akan muncul di halaman ini setelah tercatat oleh sistem.';
+    document.getElementById('log-empty-reset-btn').classList.toggle('hidden', !hasFilters);
+    document.getElementById('log-result-summary').textContent = hasAnyData ? 'Tidak ada hasil yang sesuai dengan filter.' : 'Belum ada data aktivitas.';
+    SIKAP.LogAktivitas.showState('empty');
+    return;
+  }
+
+  var visible = filtered.slice(0, state.visibleCount);
+  feed.replaceChildren();
+  visible.forEach(function(activity) {
+    feed.appendChild(SIKAP.LogAktivitas.createActivityItem(activity));
+  });
+
+  document.getElementById('log-result-summary').textContent = 'Menampilkan ' + visible.length + ' dari ' + filtered.length + ' aktivitas' + (hasFilters ? ' yang sesuai filter.' : '.');
+  document.getElementById('log-load-more-container').classList.toggle('hidden', visible.length >= filtered.length);
+  SIKAP.LogAktivitas.showState('list');
+};
+
+SIKAP.LogAktivitas.updateFilterControls = function() {
+  var search = document.getElementById('log-search-input');
+  var category = document.getElementById('log-category-filter');
+  var result = document.getElementById('log-result-filter');
+  var hasSearch = !!(search && search.value.trim());
+  var hasFilter = hasSearch || !!(category && category.value) || !!(result && result.value);
+
+  var clearSearch = document.getElementById('log-search-clear');
+  if (clearSearch) {
+    clearSearch.classList.toggle('hidden', !hasSearch);
+    clearSearch.classList.toggle('flex', hasSearch);
+  }
+  var resetButton = document.getElementById('log-reset-filter-btn');
+  if (resetButton) {
+    resetButton.classList.toggle('hidden', !hasFilter);
+    resetButton.classList.toggle('inline-flex', hasFilter);
+  }
+};
+
+SIKAP.LogAktivitas.clearSearch = function() {
+  var search = document.getElementById('log-search-input');
+  if (!search) return;
+  search.value = '';
+  search.focus();
+  SIKAP.LogAktivitas.state.visibleCount = SIKAP.LogAktivitas.state.pageSize;
+  SIKAP.LogAktivitas.renderFeed();
+};
+
+SIKAP.LogAktivitas.resetFilters = function() {
+  document.getElementById('log-search-input').value = '';
+  document.getElementById('log-category-filter').value = '';
+  document.getElementById('log-result-filter').value = '';
+  SIKAP.LogAktivitas.state.visibleCount = SIKAP.LogAktivitas.state.pageSize;
+  SIKAP.LogAktivitas.renderFeed();
+};
+
+SIKAP.LogAktivitas.loadMore = function() {
+  SIKAP.LogAktivitas.state.visibleCount += SIKAP.LogAktivitas.state.pageSize;
+  SIKAP.LogAktivitas.renderFeed();
+};
 </script>

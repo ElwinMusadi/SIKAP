@@ -326,6 +326,11 @@ SIKAP.UI.onViewEnter = function(viewId) {
         SIKAP.VerifikasiDokumen.load();
       }
       break;
+    case 'view-log-aktivitas':
+      if (SIKAP.LogAktivitas && SIKAP.LogAktivitas.init) {
+        SIKAP.LogAktivitas.init();
+      }
+      break;
   }
 };
 

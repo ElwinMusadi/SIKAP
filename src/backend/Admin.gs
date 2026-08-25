@@ -131,7 +131,7 @@ function adminGetLogAktivitas(token) {
     var result = [];
     
     // Process from newest to oldest
-    for (var k = logs.length - 1; k >= 1; k--) {
+    for (var k = logs.length - 1; k >= 0; k--) {
       var log = logs[k];
       result.push({
         id: log[COL_LOG.LOG_ID],

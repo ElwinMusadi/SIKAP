@@ -6,7 +6,7 @@
 
 var FONNTE_API_URL = 'https://api.fonnte.com/send';
 var FONNTE_TOKEN_KEY = 'FONNTE_TOKEN';
-var SIKAP_APP_URL = 'https://sikap.uptdpenda-kupang.web.id/';
+var SIKAP_APP_URL = 'https://sikap.uptdpenda-kupang.web.id';
 
 /**
  * Retrieves the Fonnte token from Script Properties.
@@ -109,9 +109,8 @@ function notifyDokumenApproved(targetNip, namaDokumen, namaLengkap) {
 
     var message =
       'Halo *' + nama + '*,\n\n' +
-      'Dokumen *' + namaDokumen + '* Anda telah ✅ *diverifikasi* oleh Administrator SIKAP.\n\n' +
+      'Dokumen *' + namaDokumen + '* Anda telah ✅ *diverifikasi* oleh Administrator TU.\n\n' +
       'Silakan login ke SIKAP untuk melihat status dokumen Anda.\n\n' +
-      '— SIKAP UPTD Pendapatan Daerah Wilayah Kota Kupang\n' +
       SIKAP_APP_URL;
 
     var result = sendFonnteMessage(noHp, message);
