@@ -197,68 +197,100 @@ SIKAP.Settings.triggerBackup = function(type) {
 };
 
 // ============================================================
-// WhatsApp / Fonnte Settings
+// WhatsApp Gateway Settings
 // ============================================================
 
 /**
- * Loads Fonnte configuration status and updates the status indicator.
+ * Loads WhatsApp provider status and updates all UI indicators.
  */
 SIKAP.Settings.loadFonnteStatus = function() {
-  SIKAP.Api.call('adminGetFonnteStatus', { token: SIKAP.state.token })
+  SIKAP.Api.call('adminGetWaProvider', { token: SIKAP.state.token })
     .then(function(result) {
+      if (!result || !result.success) return;
+      var d = result.data;
+
+      // Update Fonnte status indicator
       var dot = document.getElementById('wa-status-dot');
       var label = document.getElementById('wa-status-label');
-      if (!dot || !label) return;
-
-      if (result && result.success) {
-        if (result.data.isConfigured) {
+      if (dot && label) {
+        if (d.fonnte.isConfigured) {
           dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0';
-          label.textContent = 'Token terkonfigurasi (' + result.data.tokenHint + '). Notifikasi WhatsApp aktif.';
+          label.textContent = 'Token terkonfigurasi (' + d.fonnte.tokenHint + '). Siap digunakan.';
         } else {
           dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0';
-          label.textContent = 'Token belum dikonfigurasi. Notifikasi WhatsApp tidak aktif.';
+          label.textContent = 'Token belum dikonfigurasi.';
         }
-      } else {
-        dot.className = 'w-2.5 h-2.5 rounded-full bg-error flex-shrink-0';
-        label.textContent = 'Gagal memeriksa status.';
       }
+
+      // Update Meta status indicator
+      var metaDot = document.getElementById('wa-meta-status-dot');
+      var metaLabel = document.getElementById('wa-meta-status-label');
+      if (metaDot && metaLabel) {
+        if (d.meta.isConfigured) {
+          metaDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0';
+          metaLabel.textContent = 'Token & Phone ID terkonfigurasi (' + d.meta.tokenHint + '). Siap digunakan.';
+          // Pre-fill phone ID if available
+          var phoneInput = document.getElementById('wa-meta-phone-id-input');
+          if (phoneInput && d.meta.phoneId && !phoneInput.value) {
+            phoneInput.value = d.meta.phoneId;
+          }
+        } else {
+          metaDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0';
+          metaLabel.textContent = 'Belum dikonfigurasi. Isi token dan Phone Number ID.';
+        }
+      }
+
+      // Update active provider badges and button borders
+      var activeProvider = d.activeProvider || 'fonnte';
+      var fonnteBadge = document.getElementById('wa-fonnte-active-badge');
+      var metaBadge = document.getElementById('wa-meta-active-badge');
+      var fonnteBtn = document.getElementById('wa-provider-fonnte-btn');
+      var metaBtn = document.getElementById('wa-provider-meta-btn');
+
+      if (fonnteBadge) fonnteBadge.classList.toggle('hidden', activeProvider !== 'fonnte');
+      if (metaBadge) metaBadge.classList.toggle('hidden', activeProvider !== 'meta');
+      if (fonnteBtn) fonnteBtn.classList.toggle('border-primary', activeProvider === 'fonnte');
+      if (metaBtn) metaBtn.classList.toggle('border-primary', activeProvider === 'meta');
     })
-    .catch(function() {
-      var label = document.getElementById('wa-status-label');
-      if (label) label.textContent = 'Gagal memeriksa status.';
-    });
+    .catch(function() {});
 };
 
-/**
- * Toggles visibility of the token input field.
- */
 SIKAP.Settings.toggleWaTokenVisibility = function() {
   var input = document.getElementById('wa-token-input');
   var icon = document.getElementById('wa-token-vis-icon');
   if (!input) return;
-  if (input.type === 'password') {
-    input.type = 'text';
-    if (icon) icon.textContent = 'visibility_off';
-  } else {
-    input.type = 'password';
-    if (icon) icon.textContent = 'visibility';
-  }
+  input.type = input.type === 'password' ? 'text' : 'password';
+  if (icon) icon.textContent = input.type === 'password' ? 'visibility' : 'visibility_off';
 };
 
-/**
- * Saves the Fonnte token via API.
- */
+SIKAP.Settings.toggleMetaTokenVisibility = function() {
+  var input = document.getElementById('wa-meta-token-input');
+  var icon = document.getElementById('wa-meta-token-vis-icon');
+  if (!input) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
+  if (icon) icon.textContent = input.type === 'password' ? 'visibility' : 'visibility_off';
+};
+
+SIKAP.Settings.setWaProvider = function(provider) {
+  SIKAP.Api.call('adminSetWaProvider', { token: SIKAP.state.token, provider: provider })
+    .then(function(result) {
+      if (result && result.success) {
+        SIKAP.Toast.show('Penyedia WhatsApp diubah ke ' + provider.toUpperCase() + '.', 'success');
+        SIKAP.Settings.loadFonnteStatus();
+      } else {
+        SIKAP.Toast.show((result && result.message) || 'Gagal mengubah penyedia.', 'error');
+      }
+    })
+    .catch(function() { SIKAP.Toast.show('Gagal mengubah penyedia.', 'error'); });
+};
+
 SIKAP.Settings.saveFonnteToken = function() {
   var input = document.getElementById('wa-token-input');
   var btn = document.getElementById('wa-save-btn');
   var textEl = document.getElementById('wa-save-text');
   var tokenVal = input ? input.value.trim() : '';
 
-  if (!tokenVal) {
-    SIKAP.Toast.show('Masukkan token Fonnte terlebih dahulu.', 'warning');
-    return;
-  }
-
+  if (!tokenVal) { SIKAP.Toast.show('Masukkan token Fonnte terlebih dahulu.', 'warning'); return; }
   if (btn) btn.disabled = true;
   if (textEl) textEl.textContent = 'Menyimpan...';
 
@@ -272,22 +304,16 @@ SIKAP.Settings.saveFonnteToken = function() {
         SIKAP.Toast.show((result && result.message) || 'Gagal menyimpan token.', 'error');
       }
     })
-    .catch(function() {
-      SIKAP.Toast.show('Gagal menyimpan token. Periksa koneksi.', 'error');
-    })
+    .catch(function() { SIKAP.Toast.show('Gagal menyimpan token.', 'error'); })
     .finally(function() {
       if (btn) btn.disabled = false;
       if (textEl) textEl.textContent = 'Simpan Token';
     });
 };
 
-/**
- * Sends a WhatsApp test message to the admin's registered phone number.
- */
 SIKAP.Settings.testFonnteMessage = function() {
   var btn = document.getElementById('wa-test-btn');
   var textEl = document.getElementById('wa-test-text');
-
   if (btn) btn.disabled = true;
   if (textEl) textEl.textContent = 'Mengirim...';
 
@@ -299,12 +325,62 @@ SIKAP.Settings.testFonnteMessage = function() {
         SIKAP.Toast.show((result && result.message) || 'Gagal mengirim pesan uji.', 'error');
       }
     })
-    .catch(function() {
-      SIKAP.Toast.show('Gagal mengirim pesan uji. Periksa koneksi.', 'error');
-    })
+    .catch(function() { SIKAP.Toast.show('Gagal mengirim pesan uji.', 'error'); })
     .finally(function() {
       if (btn) btn.disabled = false;
       if (textEl) textEl.textContent = 'Kirim Pesan Uji';
+    });
+};
+
+SIKAP.Settings.saveMetaConfig = function() {
+  var tokenInput = document.getElementById('wa-meta-token-input');
+  var phoneIdInput = document.getElementById('wa-meta-phone-id-input');
+  var btn = document.getElementById('wa-meta-save-btn');
+  var textEl = document.getElementById('wa-meta-save-text');
+  var metaToken = tokenInput ? tokenInput.value.trim() : '';
+  var metaPhoneId = phoneIdInput ? phoneIdInput.value.trim() : '';
+
+  if (!metaToken) { SIKAP.Toast.show('Masukkan Meta Access Token terlebih dahulu.', 'warning'); return; }
+  if (!metaPhoneId) { SIKAP.Toast.show('Masukkan Phone Number ID terlebih dahulu.', 'warning'); return; }
+
+  if (btn) btn.disabled = true;
+  if (textEl) textEl.textContent = 'Menyimpan...';
+
+  SIKAP.Api.call('adminSaveMetaConfig', { token: SIKAP.state.token, metaToken: metaToken, metaPhoneId: metaPhoneId })
+    .then(function(result) {
+      if (result && result.success) {
+        SIKAP.Toast.show('Konfigurasi Meta WhatsApp berhasil disimpan! ✅', 'success');
+        if (tokenInput) tokenInput.value = '';
+        SIKAP.Settings.loadFonnteStatus();
+      } else {
+        SIKAP.Toast.show((result && result.message) || 'Gagal menyimpan konfigurasi Meta.', 'error');
+      }
+    })
+    .catch(function() { SIKAP.Toast.show('Gagal menyimpan konfigurasi Meta.', 'error'); })
+    .finally(function() {
+      if (btn) btn.disabled = false;
+      if (textEl) textEl.textContent = 'Simpan Konfigurasi';
+    });
+};
+
+SIKAP.Settings.testMetaMessage = function() {
+  var btn = document.getElementById('wa-meta-test-btn');
+  var textEl = document.getElementById('wa-meta-test-text');
+  if (btn) btn.disabled = true;
+  if (textEl) textEl.textContent = 'Mengirim...';
+
+  SIKAP.Api.call('adminTestMetaMessage', { token: SIKAP.state.token })
+    .then(function(result) {
+      if (result && result.success) {
+        SIKAP.Toast.show('Pesan uji Meta berhasil dikirim ke WhatsApp Anda! 🎉', 'success', 5000);
+      } else {
+        SIKAP.Toast.show((result && result.message) || 'Gagal mengirim pesan uji Meta.', 'error');
+      }
+    })
+    .catch(function() { SIKAP.Toast.show('Gagal mengirim pesan uji Meta.', 'error'); })
+    .finally(function() {
+      if (btn) btn.disabled = false;
+      if (textEl) textEl.textContent = 'Kirim Pesan Uji (Meta)';
     });
 };
 </script>

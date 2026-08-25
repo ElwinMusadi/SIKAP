@@ -221,58 +221,118 @@
     <div class="h-px bg-outline-variant w-full my-8"></div>
     <h2 class="text-on-surface text-[22px] font-bold leading-tight tracking-[-0.015em] pb-2">Notifikasi WhatsApp</h2>
     <p class="text-on-surface-variant font-body-md mb-6">
-      Konfigurasi integrasi WhatsApp via <strong>Fonnte</strong> untuk mengirimkan notifikasi otomatis kepada pegawai saat dokumen diverifikasi atau ditolak.
+      Konfigurasi penyedia WhatsApp Gateway untuk notifikasi otomatis SIKAP. Pilih antara <strong>Fonnte</strong> atau <strong>Meta Cloud API</strong> resmi.
     </p>
 
-    <div class="bg-surface-container rounded-xl p-5 border border-outline-variant/30 flex flex-col gap-5 max-w-[560px]">
+    <!-- Provider Selector -->
+    <div class="max-w-[560px] mb-6">
+      <p class="font-label-md text-on-surface mb-3">Penyedia Aktif</p>
+      <div class="grid grid-cols-2 gap-3">
+        <button id="wa-provider-fonnte-btn" type="button"
+                onclick="SIKAP.Settings.setWaProvider('fonnte')"
+                class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-outline-variant/50 bg-surface-container hover:border-primary/30 transition-all">
+          <span class="material-symbols-outlined text-[28px] text-on-surface-variant">message</span>
+          <span class="font-label-md text-on-surface">Fonnte</span>
+          <span class="text-[11px] text-on-surface-variant">WhatsApp Web (Tidak Resmi)</span>
+          <span id="wa-fonnte-active-badge" class="hidden text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">● Aktif</span>
+        </button>
+        <button id="wa-provider-meta-btn" type="button"
+                onclick="SIKAP.Settings.setWaProvider('meta')"
+                class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-outline-variant/50 bg-surface-container hover:border-primary/30 transition-all">
+          <span class="material-symbols-outlined text-[28px] text-on-surface-variant">cloud</span>
+          <span class="font-label-md text-on-surface">Meta Cloud API</span>
+          <span class="text-[11px] text-on-surface-variant">WhatsApp Business (Resmi)</span>
+          <span id="wa-meta-active-badge" class="hidden text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">● Aktif</span>
+        </button>
+      </div>
+    </div>
 
-      <!-- Status Badge -->
+    <!-- Fonnte Config Card -->
+    <div id="wa-fonnte-card" class="bg-surface-container rounded-xl p-5 border border-outline-variant/30 flex flex-col gap-5 max-w-[560px] mb-4">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-[18px] text-on-surface-variant">message</span>
+        <h3 class="font-label-lg text-on-surface">Konfigurasi Fonnte</h3>
+      </div>
       <div class="flex items-center gap-3">
         <div id="wa-status-dot" class="w-2.5 h-2.5 rounded-full bg-outline flex-shrink-0"></div>
         <span id="wa-status-label" class="font-body-sm text-on-surface-variant">Memeriksa status...</span>
       </div>
-
-      <!-- Token Input -->
       <div class="flex flex-col gap-2">
         <label class="font-label-md text-on-surface" for="wa-token-input">Token Fonnte</label>
         <div class="relative flex items-center">
-          <input type="password"
-                 id="wa-token-input"
+          <input type="password" id="wa-token-input"
                  class="w-full rounded-lg text-on-surface bg-surface border border-outline-variant focus:ring-2 focus:ring-primary h-12 px-4 font-body-md pr-12 outline-none transition-all"
                  placeholder="Masukkan token dari dashboard Fonnte">
-          <button type="button"
-                  class="absolute right-4 text-outline hover:text-on-surface transition-colors"
+          <button type="button" class="absolute right-4 text-outline hover:text-on-surface transition-colors"
                   onclick="SIKAP.Settings.toggleWaTokenVisibility()">
             <span class="material-symbols-outlined text-[20px]" id="wa-token-vis-icon">visibility</span>
           </button>
         </div>
         <p class="font-body-sm text-on-surface-variant">Token dapat ditemukan di <strong>dashboard Fonnte → Device → Token</strong>.</p>
       </div>
-
-      <!-- Action Buttons -->
       <div class="flex flex-wrap items-center gap-3">
-        <button id="wa-save-btn"
-                type="button"
-                onclick="SIKAP.Settings.saveFonnteToken()"
+        <button id="wa-save-btn" type="button" onclick="SIKAP.Settings.saveFonnteToken()"
                 class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:opacity-90 transition-all shadow-sm active:scale-95">
           <span class="material-symbols-outlined text-[18px]">save</span>
           <span id="wa-save-text">Simpan Token</span>
         </button>
-
-        <button id="wa-test-btn"
-                type="button"
-                onclick="SIKAP.Settings.testFonnteMessage()"
+        <button id="wa-test-btn" type="button" onclick="SIKAP.Settings.testFonnteMessage()"
                 class="flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-label-md hover:bg-surface-container-high transition-all active:scale-95">
           <span class="material-symbols-outlined text-[18px]">send</span>
           <span id="wa-test-text">Kirim Pesan Uji</span>
         </button>
       </div>
+    </div>
 
-      <!-- Info note -->
+    <!-- Meta Cloud API Config Card -->
+    <div id="wa-meta-card" class="bg-surface-container rounded-xl p-5 border border-outline-variant/30 flex flex-col gap-5 max-w-[560px] mb-4">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-[18px] text-on-surface-variant">cloud</span>
+        <h3 class="font-label-lg text-on-surface">Konfigurasi Meta WhatsApp Cloud API</h3>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="wa-meta-status-dot" class="w-2.5 h-2.5 rounded-full bg-outline flex-shrink-0"></div>
+        <span id="wa-meta-status-label" class="font-body-sm text-on-surface-variant">Memeriksa status...</span>
+      </div>
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2">
+          <label class="font-label-md text-on-surface" for="wa-meta-token-input">Meta Access Token</label>
+          <div class="relative flex items-center">
+            <input type="password" id="wa-meta-token-input"
+                   class="w-full rounded-lg text-on-surface bg-surface border border-outline-variant focus:ring-2 focus:ring-primary h-12 px-4 font-body-md pr-12 outline-none transition-all"
+                   placeholder="EAAxxxxxxx...">
+            <button type="button" class="absolute right-4 text-outline hover:text-on-surface transition-colors"
+                    onclick="SIKAP.Settings.toggleMetaTokenVisibility()">
+              <span class="material-symbols-outlined text-[20px]" id="wa-meta-token-vis-icon">visibility</span>
+            </button>
+          </div>
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="font-label-md text-on-surface" for="wa-meta-phone-id-input">Phone Number ID</label>
+          <input type="text" id="wa-meta-phone-id-input"
+                 class="w-full rounded-lg text-on-surface bg-surface border border-outline-variant focus:ring-2 focus:ring-primary h-12 px-4 font-body-md outline-none transition-all"
+                 placeholder="Contoh: 1326252690561401">
+          <p class="font-body-sm text-on-surface-variant">Ditemukan di Meta Developer → WhatsApp → API Setup → Phone Number ID.</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <button id="wa-meta-save-btn" type="button" onclick="SIKAP.Settings.saveMetaConfig()"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md hover:opacity-90 transition-all shadow-sm active:scale-95">
+          <span class="material-symbols-outlined text-[18px]">save</span>
+          <span id="wa-meta-save-text">Simpan Konfigurasi</span>
+        </button>
+        <button id="wa-meta-test-btn" type="button" onclick="SIKAP.Settings.testMetaMessage()"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-label-md hover:bg-surface-container-high transition-all active:scale-95">
+          <span class="material-symbols-outlined text-[18px]">send</span>
+          <span id="wa-meta-test-text">Kirim Pesan Uji (Meta)</span>
+        </button>
+      </div>
       <div class="flex items-start gap-2 p-3 rounded-lg bg-surface-container-high border border-outline-variant/30">
         <span class="material-symbols-outlined text-[18px] text-on-surface-variant shrink-0 mt-0.5">info</span>
         <p class="font-body-sm text-on-surface-variant">
-          Pesan uji akan dikirim ke nomor HP Anda yang terdaftar di Data Pegawai. Pastikan Nomor HP Anda sudah diisi sebelum melakukan uji.
+          Pesan uji dikirim ke nomor HP Anda yang terdaftar di Data Pegawai.
+          Meta Cloud API hanya dapat mengirim pesan ke nomor yang <strong>sudah pernah menghubungi nomor bisnis Anda</strong>, atau yang sudah terdaftar di Meta Business.<br>
+          Gunakan <strong>Token Permanen (System User Token)</strong> untuk menghindari token kedaluwarsa.
         </p>
       </div>
     </div>

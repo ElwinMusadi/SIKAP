@@ -58,7 +58,11 @@ function doPost(e) {
       adminDeletePegawai: adminDeletePegawai,
       adminSaveFonnteToken: adminSaveFonnteToken,
       adminGetFonnteStatus: adminGetFonnteStatus,
-      adminTestFonnteMessage: adminTestFonnteMessage
+      adminTestFonnteMessage: adminTestFonnteMessage,
+      adminSaveMetaConfig: adminSaveMetaConfig,
+      adminGetWaProvider: adminGetWaProvider,
+      adminSetWaProvider: adminSetWaProvider,
+      adminTestMetaMessage: adminTestMetaMessage
     };
 
     // 4. Validate action against whitelist
@@ -100,7 +104,11 @@ function doPost(e) {
       adminDeletePegawai: ['token', 'targetNip'],
       adminSaveFonnteToken: ['token', 'fonnteToken'],
       adminGetFonnteStatus: ['token'],
-      adminTestFonnteMessage: ['token']
+      adminTestFonnteMessage: ['token'],
+      adminSaveMetaConfig: ['token', 'metaToken', 'metaPhoneId'],
+      adminGetWaProvider: ['token'],
+      adminSetWaProvider: ['token', 'provider'],
+      adminTestMetaMessage: ['token']
     };
 
     var paramNames = payloadMap[action] || [];
