@@ -62,9 +62,9 @@
             <label for="log-search-input" class="mb-1.5 block text-label-sm text-on-surface-variant">Cari aktivitas</label>
             <div class="relative">
               <span class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant" aria-hidden="true">search</span>
-              <input type="search" id="log-search-input" autocomplete="off"
+              <input type="text" id="log-search-input" autocomplete="off"
                      placeholder="Deskripsi, aksi, NIP, atau target..."
-                     class="min-h-11 w-full rounded-xl border border-outline-variant/50 bg-surface-container-lowest py-2.5 pl-11 pr-10 text-body-md text-on-surface transition-colors placeholder:text-outline focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                     class="min-h-11 w-full rounded-xl border border-outline-variant/50 bg-surface-container-lowest py-2.5 !pl-[42px] !pr-10 text-body-md text-on-surface transition-colors placeholder:text-outline focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
               <button type="button" id="log-search-clear" aria-label="Hapus pencarian" title="Hapus pencarian"
                       class="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
                       onclick="SIKAP.LogAktivitas.clearSearch()">
