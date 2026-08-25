@@ -243,7 +243,22 @@ function notifyDokumenRejected(targetNip, namaDokumen, namaLengkap, alasan) {
       'Silakan login ke SIKAP dan unggah ulang dokumen Anda.\n\n' +
       SIKAP_APP_URL;
 
-    var result = sendWhatsApp(noHp, message);
+    var templateData = {
+      name: 'dokumen_ditolak',
+      language: 'id',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: nama },
+            { type: 'text', text: namaDokumen },
+            { type: 'text', text: alasan }
+          ]
+        }
+      ]
+    };
+
+    var result = sendWhatsApp(noHp, message, templateData);
     Logger.log('notifyDokumenRejected: ' + JSON.stringify(result));
     return result.success ? 'WhatsApp terkirim' : 'WhatsApp gagal: ' + result.message;
   } catch (e) {
@@ -278,7 +293,21 @@ function notifyAdminsNewDocument(namaPegawai, namaDokumen) {
       'Mohon segera login ke SIKAP untuk melakukan verifikasi dokumen tersebut.\n\n' +
       SIKAP_APP_URL;
 
-    var result = sendWhatsApp(adminNumbers.join(','), message);
+    var templateData = {
+      name: 'dokumen_baru_admin',
+      language: 'id',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: namaPegawai },
+            { type: 'text', text: namaDokumen }
+          ]
+        }
+      ]
+    };
+
+    var result = sendWhatsApp(adminNumbers.join(','), message, templateData);
     Logger.log('notifyAdminsNewDocument: ' + JSON.stringify(result));
     return result.success ? 'WhatsApp terkirim ke ' + adminNumbers.length + ' Admin' : 'WhatsApp gagal: ' + result.message;
   } catch (e) {
