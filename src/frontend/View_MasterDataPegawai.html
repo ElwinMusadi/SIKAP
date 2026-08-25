@@ -67,6 +67,17 @@
         </select>
         <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">expand_more</span>
       </div>
+      <!-- Filter: Pagination Size -->
+      <div class="relative">
+        <select class="appearance-none bg-surface-container-lowest text-on-surface font-label-md pl-3 pr-9 py-2 rounded-lg border border-outline-variant/30 shadow-xs focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer text-sm"
+                id="mdp-filter-limit" onchange="SIKAP.MasterDataPegawai.applyFilters()">
+          <option value="15">15 data</option>
+          <option value="20">20 data</option>
+          <option value="30">30 data</option>
+          <option value="50">50 data</option>
+        </select>
+        <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">expand_more</span>
+      </div>
       <button class="bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md px-3.5 py-2 rounded-lg flex items-center gap-1.5 border border-outline-variant/30 shadow-xs transition-colors text-sm"
               onclick="SIKAP.MasterDataPegawai.resetFilters()">
         <span class="material-symbols-outlined text-[16px]">filter_alt_off</span>

@@ -310,6 +310,12 @@ SIKAP.MasterDataPegawai.applyFilters = function() {
   var filterAkun = document.getElementById('mdp-filter-akun').value;
   var filterLen = document.getElementById('mdp-filter-kelengkapan').value;
 
+  var limitStr = document.getElementById('mdp-filter-limit').value;
+  var limit = parseInt(limitStr, 10);
+  if (!isNaN(limit) && limit > 0) {
+    SIKAP.MasterDataPegawai._pageSize = limit;
+  }
+
   SIKAP.MasterDataPegawai._filteredRows = SIKAP.MasterDataPegawai._allRows.filter(function(r) {
     if (q && r.nama.toLowerCase().indexOf(q) === -1 && r.nip.indexOf(q) === -1) return false;
     if (filterKep && r.statusKepegawaian !== filterKep) return false;
@@ -326,6 +332,9 @@ SIKAP.MasterDataPegawai.resetFilters = function() {
   document.getElementById('mdp-filter-kepegawaian').value = '';
   document.getElementById('mdp-filter-akun').value = '';
   document.getElementById('mdp-filter-kelengkapan').value = '';
+  document.getElementById('mdp-filter-limit').value = '15';
+  
+  SIKAP.MasterDataPegawai._pageSize = 15;
   SIKAP.MasterDataPegawai._filteredRows = SIKAP.MasterDataPegawai._allRows.slice();
   SIKAP.MasterDataPegawai._page = 1;
   SIKAP.MasterDataPegawai.renderTable();
