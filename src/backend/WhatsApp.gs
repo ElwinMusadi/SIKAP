@@ -96,7 +96,7 @@ function _normalizePhoneE164(phone) {
   return n.startsWith('0') ? '62' + n.substring(1) : n;
 }
 
-function sendMetaMessage(target, message) {
+function sendMetaMessage(target, message, templateData) {
   try {
     var token = _getMetaToken();
     var phoneId = _getMetaPhoneId();
@@ -110,12 +110,24 @@ function sendMetaMessage(target, message) {
     }
 
     var url = META_API_BASE + '/' + phoneId + '/messages';
-    var body = JSON.stringify({
+    var bodyObj = {
       messaging_product: 'whatsapp',
-      to: normalizedTarget,
-      type: 'text',
-      text: { body: message }
-    });
+      to: normalizedTarget
+    };
+
+    if (templateData) {
+      bodyObj.type = 'template';
+      bodyObj.template = {
+        name: templateData.name,
+        language: { code: templateData.language || 'id' },
+        components: templateData.components || []
+      };
+    } else {
+      bodyObj.type = 'text';
+      bodyObj.text = { body: message };
+    }
+
+    var body = JSON.stringify(bodyObj);
 
     var options = {
       method: 'post',
@@ -150,7 +162,7 @@ function sendMetaMessage(target, message) {
 // UNIVERSAL ROUTER
 // ============================================================
 
-function sendWhatsApp(target, message) {
+function sendWhatsApp(target, message, templateData) {
   var provider = _getWaProvider();
 
   if (provider === 'meta') {
@@ -160,7 +172,7 @@ function sendWhatsApp(target, message) {
     var successCount = 0;
     var errors = [];
     numbers.forEach(function(num) {
-      var result = sendMetaMessage(num, message);
+      var result = sendMetaMessage(num, message, templateData);
       if (result.success) { successCount++; }
       else { errors.push(num + ': ' + result.message); }
     });
@@ -192,7 +204,21 @@ function notifyDokumenApproved(targetNip, namaDokumen, namaLengkap) {
       'Silakan login ke SIKAP untuk melihat status dokumen Anda.\n\n' +
       SIKAP_APP_URL;
 
-    var result = sendWhatsApp(noHp, message);
+    var templateData = {
+      name: 'dokumen_terverifikasi',
+      language: 'id',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: nama },
+            { type: 'text', text: namaDokumen }
+          ]
+        }
+      ]
+    };
+
+    var result = sendWhatsApp(noHp, message, templateData);
     Logger.log('notifyDokumenApproved: ' + JSON.stringify(result));
     return result.success ? 'WhatsApp terkirim' : 'WhatsApp gagal: ' + result.message;
   } catch (e) {
