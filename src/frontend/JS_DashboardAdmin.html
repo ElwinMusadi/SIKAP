@@ -145,11 +145,17 @@ SIKAP.DashboardAdmin.renderStats = function(d) {
     if (act.actorNip) {
       html +=       '<span class="inline-flex items-center gap-1.5 rounded-lg bg-surface-container-high px-2 py-0.5">';
       html +=         '<span class="material-symbols-outlined text-[14px]" aria-hidden="true">person</span>';
-      html +=         '<span>' + act.actorNip + '</span>';
+      html +=         '<span>' + act.actorNip + (act.actorRole ? ' · ' + act.actorRole : '') + '</span>';
       html +=       '</span>';
     }
     if (act.action) {
       html +=       '<code class="rounded-md bg-surface-container-low px-2 py-0.5 font-mono text-[11px] text-on-surface-variant">' + act.action + '</code>';
+    }
+    if (act.targetId) {
+      html +=       '<span class="inline-flex min-w-0 items-center gap-1">';
+      html +=         '<span class="material-symbols-outlined text-[14px]" aria-hidden="true">flag</span>';
+      html +=         '<span class="break-all text-[11px]">' + act.targetId + '</span>';
+      html +=       '</span>';
     }
     html +=       '</div>';
 

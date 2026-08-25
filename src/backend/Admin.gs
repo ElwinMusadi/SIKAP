@@ -93,8 +93,12 @@ function adminGetDashboardStats(token) {
         id: log[COL_LOG.LOG_ID],
         time: _formatDateTime(timestamp),
         actorNip: actorNip,
+        actorRole: log[COL_LOG.ACTOR_ROLE],
         action: action,
-        description: description
+        targetType: log[COL_LOG.TARGET_TYPE],
+        targetId: log[COL_LOG.TARGET_ID],
+        description: description,
+        result: log[COL_LOG.RESULT]
       });
     }
 
