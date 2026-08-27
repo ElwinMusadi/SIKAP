@@ -78,6 +78,12 @@ function adminGetDashboardStats(token) {
 
     var docPct = totalWajibPossible > 0 ? Math.round((totalWajibVerified / totalWajibPossible) * 100) : 0;
 
+    // Build a map of NIP to Name for the activity log
+    var nipToName = {};
+    for (var p = 0; p < allPegawai.length; p++) {
+      nipToName[String(allPegawai[p][COL_PEGAWAI.NIP])] = allPegawai[p][COL_PEGAWAI.NAMA_LENGKAP];
+    }
+
     // Recent Activity (last 10 logs)
     var recentActivities = [];
     var maxLogs = Math.min(logs.length, 10);
@@ -85,7 +91,8 @@ function adminGetDashboardStats(token) {
       if (k < 0) break;
       var log = logs[k];
       var timestamp = log[COL_LOG.TIMESTAMP];
-      var actorNip = log[COL_LOG.ACTOR_NIP];
+      var actorNip = String(log[COL_LOG.ACTOR_NIP]);
+      var actorName = nipToName[actorNip] || actorNip; // Fallback to NIP if name not found
       var description = log[COL_LOG.DESCRIPTION];
       var action = log[COL_LOG.ACTION];
 
@@ -93,6 +100,7 @@ function adminGetDashboardStats(token) {
         id: log[COL_LOG.LOG_ID],
         time: _formatDateTime(timestamp),
         actorNip: actorNip,
+        actorName: actorName,
         actorRole: log[COL_LOG.ACTOR_ROLE],
         action: action,
         targetType: log[COL_LOG.TARGET_TYPE],
@@ -132,15 +140,27 @@ function adminGetLogAktivitas(token) {
     if (!auth.authorized) return { success: false, message: auth.error };
 
     var logs = getAllData(SHEET_NAMES.LOG_AKTIVITAS);
+    
+    // Load employee data to get names
+    var allPegawai = getAllData(SHEET_NAMES.DATA_PEGAWAI);
+    var nipToName = {};
+    for (var p = 0; p < allPegawai.length; p++) {
+      nipToName[String(allPegawai[p][COL_PEGAWAI.NIP])] = allPegawai[p][COL_PEGAWAI.NAMA_LENGKAP];
+    }
+    
     var result = [];
     
     // Process from newest to oldest
     for (var k = logs.length - 1; k >= 0; k--) {
       var log = logs[k];
+      var actorNip = String(log[COL_LOG.ACTOR_NIP]);
+      var actorName = nipToName[actorNip] || actorNip; // Fallback to NIP if name not found
+      
       result.push({
         id: log[COL_LOG.LOG_ID],
         time: _formatDateTime(log[COL_LOG.TIMESTAMP]),
-        actorNip: log[COL_LOG.ACTOR_NIP],
+        actorNip: actorNip,
+        actorName: actorName,
         actorRole: log[COL_LOG.ACTOR_ROLE],
         action: log[COL_LOG.ACTION],
         targetType: log[COL_LOG.TARGET_TYPE],

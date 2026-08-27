@@ -54,6 +54,7 @@ SIKAP.LogAktivitas.normalizeActivity = function(activity) {
     id: String(activity.id || ''),
     time: String(activity.time || 'Waktu tidak tersedia'),
     actorNip: String(activity.actorNip || 'Sistem'),
+    actorName: String(activity.actorName || activity.actorNip || 'Sistem'),
     actorRole: String(activity.actorRole || 'Sistem'),
     action: String(activity.action || 'SYSTEM_ACTIVITY'),
     targetType: String(activity.targetType || ''),
@@ -211,7 +212,7 @@ SIKAP.LogAktivitas.getFilteredData = function() {
   return SIKAP.LogAktivitas.state.data.filter(function(activity) {
     var meta = SIKAP.LogAktivitas.getActivityMeta(activity);
     var resultMeta = SIKAP.LogAktivitas.getResultMeta(activity.result);
-    var searchable = [activity.description, activity.action, activity.actorNip, activity.actorRole, activity.targetType, activity.targetId, meta.title].join(' ').toLowerCase();
+    var searchable = [activity.description, activity.action, activity.actorNip, activity.actorName, activity.actorRole, activity.targetType, activity.targetId, meta.title].join(' ').toLowerCase();
     return (!filters.query || searchable.indexOf(filters.query) !== -1) &&
       (!filters.category || meta.category === filters.category) &&
       (!filters.result || resultMeta.key === filters.result);
@@ -271,7 +272,7 @@ SIKAP.LogAktivitas.createActivityItem = function(activity) {
   actor.className = 'inline-flex items-center gap-1.5 rounded-lg bg-surface-container-high px-2.5 py-1';
   actor.appendChild(SIKAP.LogAktivitas.createIcon('person', 'text-[14px]'));
   var actorText = document.createElement('span');
-  actorText.textContent = activity.actorNip + ' · ' + activity.actorRole;
+  actorText.textContent = activity.actorName + ' · ' + activity.actorRole;
   actor.appendChild(actorText);
   metadata.appendChild(actor);
 
