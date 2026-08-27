@@ -495,6 +495,10 @@ SIKAP.DashboardPegawai.load = function(force) {
         dashboardState.data = normalized;
         dashboardState.loadedAt = Date.now();
         SIKAP.DashboardPegawai.showState('data');
+
+        // Store profile completeness globally so Arsip Dokumen can gate uploads
+        SIKAP.state.profileComplete = (result.data.profilePct === 100);
+        SIKAP.state.missingProfileFields = result.data.profileMissingFields || [];
         return;
       }
       var message = result && result.message ? String(result.message) : 'Terjadi kesalahan saat mengambil data.';

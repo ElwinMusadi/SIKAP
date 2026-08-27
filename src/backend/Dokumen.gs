@@ -485,6 +485,40 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
       return { success: false, message: 'Akun pegawai tidak aktif. Unggah dokumen tidak diizinkan.' };
     }
 
+    // ---- Validate Profile Completeness ----
+    // All mandatory profile fields must be filled before allowing upload.
+    // NO_HP is especially critical for WhatsApp notifications.
+    var mandatoryProfileFields = [
+      { index: COL_PEGAWAI.NO_HP,              label: 'Nomor HP / WhatsApp' },
+      { index: COL_PEGAWAI.EMAIL,              label: 'Email' },
+      { index: COL_PEGAWAI.NIK,               label: 'NIK' },
+      { index: COL_PEGAWAI.TEMPAT_LAHIR,      label: 'Tempat Lahir' },
+      { index: COL_PEGAWAI.TANGGAL_LAHIR,     label: 'Tanggal Lahir' },
+      { index: COL_PEGAWAI.AGAMA,             label: 'Agama' },
+      { index: COL_PEGAWAI.PENDIDIKAN_TERAKHIR, label: 'Pendidikan Terakhir' },
+      { index: COL_PEGAWAI.STATUS_PERNIKAHAN, label: 'Status Pernikahan' },
+      { index: COL_PEGAWAI.ALAMAT,            label: 'Alamat' }
+    ];
+    var missingProfileFields = [];
+    for (var mf = 0; mf < mandatoryProfileFields.length; mf++) {
+      var rawVal = user.data[mandatoryProfileFields[mf].index];
+      var val = rawVal instanceof Date
+        ? rawVal.toString()
+        : String(rawVal || '').replace(/^'+/, '').trim();
+      if (!val || val === '-') {
+        missingProfileFields.push(mandatoryProfileFields[mf].label);
+      }
+    }
+    if (missingProfileFields.length > 0) {
+      return {
+        success: false,
+        message: 'Data diri belum lengkap. Harap lengkapi profil terlebih dahulu sebelum mengunggah dokumen.',
+        incompleteProfile: true,
+        missingFields: missingProfileFields
+      };
+    }
+
+
     var nama = String(user.data[COL_PEGAWAI.NAMA_LENGKAP] || auth.session.nama || 'Pegawai').trim();
 
     // ---- Validate idDokumen exists in Master_Dokumen ----

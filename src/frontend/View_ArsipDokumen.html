@@ -427,6 +427,58 @@
   </div>
 </div>
 
+<!-- ============================================================ -->
+<!-- MODAL: PROFIL BELUM LENGKAP                                   -->
+<!-- ============================================================ -->
+<div id="modal-profil-belum-lengkap"
+     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+  <div class="bg-surface-container-lowest rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+       style="animation: modal-slide-up 0.2s ease-out;">
+
+    <!-- Header -->
+    <div class="px-6 pt-6 pb-4 flex items-start gap-4">
+      <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center shrink-0 border border-orange-200/50">
+        <span class="material-symbols-outlined text-orange-500 text-2xl">assignment_late</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <h2 class="font-label-lg text-on-surface font-bold text-lg">Data Diri Belum Lengkap</h2>
+        <p class="font-body-sm text-on-surface-variant text-sm mt-0.5">
+          Harap lengkapi data diri Anda terlebih dahulu sebelum mengunggah dokumen.
+        </p>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="px-6 pb-5">
+      <div class="bg-orange-50 border border-orange-200/60 rounded-xl p-4">
+        <p class="font-label-sm text-orange-800 font-semibold text-xs mb-2.5">Field yang belum diisi:</p>
+        <ul id="profil-missing-fields-list" class="space-y-1.5">
+          <!-- Filled dynamically by JS -->
+        </ul>
+      </div>
+      <div class="mt-4 p-3.5 bg-blue-50 border border-blue-200/50 rounded-xl flex items-start gap-2.5">
+        <span class="material-symbols-outlined text-blue-500 text-[18px] shrink-0 mt-0.5">info</span>
+        <p class="text-xs text-blue-700 leading-relaxed">
+          Nomor HP/WhatsApp wajib diisi agar Anda dapat menerima notifikasi status verifikasi dokumen secara langsung.
+        </p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="px-6 py-4 bg-surface-container-low border-t border-outline-variant/20 flex items-center justify-end gap-3">
+      <button class="px-5 py-2.5 rounded-xl bg-surface-container-high text-on-surface font-label-md text-sm hover:bg-surface-variant transition-colors"
+              onclick="SIKAP.Arsip.closeProfilWarningModal()">
+        Batal
+      </button>
+      <button class="px-5 py-2.5 rounded-xl bg-primary text-on-primary font-label-md text-sm hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-sm"
+              onclick="SIKAP.Arsip.goToProfile()">
+        <span class="material-symbols-outlined text-[18px]">manage_accounts</span>
+        Lengkapi Profil
+      </button>
+    </div>
+  </div>
+</div>
+
 <style>
   @keyframes modal-slide-up {
     from { opacity: 0; transform: translateY(10px) scale(0.98); }

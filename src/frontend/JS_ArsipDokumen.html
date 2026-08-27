@@ -304,6 +304,13 @@ SIKAP.Arsip.populateUploadSelect = function(docs) {
 };
 
 SIKAP.Arsip.openUploadModal = function(preselectId, isReplace) {
+  // --- Profile completeness gate ---
+  // Block upload if profile is incomplete; default to allowed if flag not set yet.
+  if (SIKAP.state.profileComplete === false) {
+    SIKAP.Arsip.openProfilWarningModal(SIKAP.state.missingProfileFields || []);
+    return;
+  }
+
   document.getElementById('modal-upload-dokumen').classList.remove('hidden');
   SIKAP.Arsip.clearSelectedFile();
   
@@ -331,10 +338,42 @@ SIKAP.Arsip.openUploadModal = function(preselectId, isReplace) {
   }
   SIKAP.Arsip.updateUploadBtnState();
 };
-
 SIKAP.Arsip.closeUploadModal = function() {
   document.getElementById('modal-upload-dokumen').classList.add('hidden');
   SIKAP.Arsip.clearSelectedFile();
+};
+
+// ---- Profile Warning Modal ----
+
+/**
+ * Shows the profile completeness warning modal with the list of missing fields.
+ * @param {string[]} missingFields - Array of field label strings.
+ */
+SIKAP.Arsip.openProfilWarningModal = function(missingFields) {
+  var list = document.getElementById('profil-missing-fields-list');
+  if (list) {
+    var fields = missingFields && missingFields.length > 0 ? missingFields : ['Data profil belum lengkap'];
+    list.innerHTML = fields.map(function(f) {
+      return '<li class="flex items-center gap-2 text-xs text-orange-700">' +
+        '<span class="material-symbols-outlined text-[14px] text-orange-500">radio_button_unchecked</span>' +
+        '<span>' + SIKAP.escapeHtml(f) + '</span>' +
+        '</li>';
+    }).join('');
+  }
+  var modal = document.getElementById('modal-profil-belum-lengkap');
+  if (modal) modal.classList.remove('hidden');
+};
+
+SIKAP.Arsip.closeProfilWarningModal = function() {
+  var modal = document.getElementById('modal-profil-belum-lengkap');
+  if (modal) modal.classList.add('hidden');
+};
+
+SIKAP.Arsip.goToProfile = function() {
+  SIKAP.Arsip.closeProfilWarningModal();
+  if (SIKAP.Router && SIKAP.Router.navigate) {
+    SIKAP.Router.navigate('view-profil-pegawai');
+  }
 };
 
 // File Selection Handler
@@ -461,6 +500,13 @@ SIKAP.Arsip.submitUpload = function() {
           }
           SIKAP.Arsip.closeUploadModal();
           SIKAP.Arsip.load(); 
+        } else if (res.incompleteProfile) {
+          // Double-safety: backend rejected due to incomplete profile
+          SIKAP.state.profileComplete = false;
+          SIKAP.state.missingProfileFields = res.missingFields || [];
+          SIKAP.Arsip.closeUploadModal();
+          SIKAP.Arsip.openProfilWarningModal(res.missingFields || []);
+          SIKAP.Arsip.resetUploadUIState();
         } else {
           SIKAP.Toast.show(res.message, 'error');
           SIKAP.Arsip.resetUploadUIState();
