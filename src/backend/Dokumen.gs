@@ -494,6 +494,7 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
       { index: COL_PEGAWAI.NIK,               label: 'NIK' },
       { index: COL_PEGAWAI.TEMPAT_LAHIR,      label: 'Tempat Lahir' },
       { index: COL_PEGAWAI.TANGGAL_LAHIR,     label: 'Tanggal Lahir' },
+      { index: COL_PEGAWAI.JENIS_KELAMIN,     label: 'Jenis Kelamin' },
       { index: COL_PEGAWAI.AGAMA,             label: 'Agama' },
       { index: COL_PEGAWAI.PENDIDIKAN_TERAKHIR, label: 'Pendidikan Terakhir' },
       { index: COL_PEGAWAI.STATUS_PERNIKAHAN, label: 'Status Pernikahan' },

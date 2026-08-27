@@ -88,6 +88,10 @@ function updateMyProfile(token, updates) {
     if (updates.statusPernikahan !== undefined && allowedMarital.indexOf(updates.statusPernikahan) === -1) {
       return { success: false, message: 'Pilihan status pernikahan tidak valid.' };
     }
+    var allowedGender = ['Laki-laki', 'Perempuan', ''];
+    if (updates.jenisKelamin !== undefined && allowedGender.indexOf(updates.jenisKelamin) === -1) {
+      return { success: false, message: 'Pilihan jenis kelamin tidak valid.' };
+    }
 
     // OWNERSHIP CHECK: only update own record
     var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, auth.session.nip);
@@ -125,6 +129,7 @@ function updateMyProfile(token, updates) {
     if (updates.agama !== undefined) fields[COL_PEGAWAI.AGAMA] = escapeFormula(updates.agama);
     if (updates.pendidikanTerakhir !== undefined) fields[COL_PEGAWAI.PENDIDIKAN_TERAKHIR] = escapeFormula(updates.pendidikanTerakhir);
     if (updates.statusPernikahan !== undefined) fields[COL_PEGAWAI.STATUS_PERNIKAHAN] = escapeFormula(updates.statusPernikahan);
+    if (updates.jenisKelamin !== undefined) fields[COL_PEGAWAI.JENIS_KELAMIN] = escapeFormula(updates.jenisKelamin);
     
     // Administrative fields
     if (updates.nik !== undefined) fields[COL_PEGAWAI.NIK] = escapeFormula(updates.nik);
@@ -274,6 +279,7 @@ function getMyDashboard(token) {
     var profileFields = [
       { index: COL_PEGAWAI.TEMPAT_LAHIR, label: 'Tempat lahir' },
       { index: COL_PEGAWAI.TANGGAL_LAHIR, label: 'Tanggal lahir' },
+      { index: COL_PEGAWAI.JENIS_KELAMIN, label: 'Jenis kelamin' },
       { index: COL_PEGAWAI.AGAMA, label: 'Agama' },
       { index: COL_PEGAWAI.PENDIDIKAN_TERAKHIR, label: 'Pendidikan terakhir' },
       { index: COL_PEGAWAI.STATUS_PERNIKAHAN, label: 'Status pernikahan' },

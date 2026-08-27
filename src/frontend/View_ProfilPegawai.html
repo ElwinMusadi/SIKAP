@@ -188,10 +188,18 @@
                        onchange="SIKAP.ProfilPegawai.markDirty()">
               </div>
 
-              <!-- Jenis Kelamin (Read-only) -->
+              <!-- Jenis Kelamin -->
               <div class="flex flex-col">
-                <label class="font-label-sm text-on-surface-variant mb-1.5 text-xs font-semibold uppercase tracking-wider">Jenis Kelamin</label>
-                <div class="px-4 py-2.5 bg-surface-container/40 border border-outline-variant/20 rounded-lg text-on-surface font-body-md" id="profil-ro-jenis-kelamin">—</div>
+                <label class="font-label-sm text-on-surface mb-1.5 text-xs font-semibold uppercase tracking-wider" for="profil-jenis-kelamin">Jenis Kelamin <span class="text-error">*</span></label>
+                <div class="relative">
+                  <select class="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface font-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+                          id="profil-jenis-kelamin" required onchange="SIKAP.ProfilPegawai.markDirty()">
+                    <option value="" disabled selected>Pilih...</option>
+                    <option value="Laki-laki">Laki-laki</option>
+                    <option value="Perempuan">Perempuan</option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+                </div>
               </div>
 
               <!-- Agama -->
@@ -641,7 +649,7 @@ SIKAP.ProfilPegawai.populate = function(d) {
   // Section 1: IDENTITAS (Read-only + Editable)
   document.getElementById('profil-ro-nama').textContent = d.nama || '—';
   document.getElementById('profil-ro-nip').textContent = d.nip || '—';
-  document.getElementById('profil-ro-jenis-kelamin').textContent = d.jenisKelamin || '—';
+  document.getElementById('profil-jenis-kelamin').value = d.jenisKelamin || '';
   document.getElementById('profil-nik').value = d.nik || '';
 
   document.getElementById('profil-tempat-lahir').value = d.tempatLahir || '';
@@ -670,6 +678,7 @@ SIKAP.ProfilPegawai.populate = function(d) {
     nik: d.nik || '',
     tempatLahir: d.tempatLahir || '',
     tanggalLahir: d.tanggalLahir || '',
+    jenisKelamin: d.jenisKelamin || '',
     agama: d.agama || '',
     pendidikanTerakhir: d.pendidikanTerakhir || '',
     statusPernikahan: d.statusPernikahan || '',
@@ -854,6 +863,7 @@ SIKAP.ProfilPegawai.cancelEdit = function() {
   document.getElementById('profil-nik').value = o.nik;
   document.getElementById('profil-tempat-lahir').value = o.tempatLahir;
   document.getElementById('profil-tanggal-lahir').value = o.tanggalLahir;
+  document.getElementById('profil-jenis-kelamin').value = o.jenisKelamin;
   document.getElementById('profil-agama').value = o.agama;
   document.getElementById('profil-pendidikan').value = o.pendidikanTerakhir;
   document.getElementById('profil-status-pernikahan').value = o.statusPernikahan;
@@ -902,6 +912,7 @@ SIKAP.ProfilPegawai.handleSave = function(event) {
     nik: document.getElementById('profil-nik').value.trim(),
     tempatLahir: document.getElementById('profil-tempat-lahir').value.trim(),
     tanggalLahir: document.getElementById('profil-tanggal-lahir').value,
+    jenisKelamin: document.getElementById('profil-jenis-kelamin').value,
     agama: document.getElementById('profil-agama').value,
     pendidikanTerakhir: document.getElementById('profil-pendidikan').value,
     statusPernikahan: document.getElementById('profil-status-pernikahan').value,
@@ -920,7 +931,7 @@ SIKAP.ProfilPegawai.handleSave = function(event) {
 
   // Strict completeness validation
   var requiredFields = {
-    nik: 'NIK', tempatLahir: 'Tempat Lahir', tanggalLahir: 'Tanggal Lahir',
+    nik: 'NIK', tempatLahir: 'Tempat Lahir', tanggalLahir: 'Tanggal Lahir', jenisKelamin: 'Jenis Kelamin',
     agama: 'Agama', pendidikanTerakhir: 'Pendidikan Terakhir', statusPernikahan: 'Status Pernikahan',
     golonganDarah: 'Golongan Darah', statusKepegawaian: 'Status Kepegawaian', pangkatGolongan: 'Pangkat / Golongan',
     tmtPangkat: 'TMT Pangkat', jenisJabatan: 'Jenis Jabatan', jabatan: 'Jabatan',
