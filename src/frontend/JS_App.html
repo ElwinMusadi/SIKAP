@@ -331,6 +331,11 @@ SIKAP.UI.onViewEnter = function(viewId) {
         SIKAP.LogAktivitas.init();
       }
       break;
+    case 'view-pengaturan-sistem':
+      if (SIKAP.PengaturanSistem && SIKAP.PengaturanSistem.init) {
+        SIKAP.PengaturanSistem.init();
+      }
+      break;
   }
 };
 

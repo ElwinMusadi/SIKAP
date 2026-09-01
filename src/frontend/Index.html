@@ -199,9 +199,14 @@
           <?!= include('View_LogAktivitas'); ?>
         </div>
 
-        <!-- Pengaturan -->
+        <!-- Pengaturan (Keamanan Akun) -->
         <div id="view-pengaturan" class="hidden view-container">
           <?!= include('View_Pengaturan'); ?>
+        </div>
+
+        <!-- Pengaturan Sistem -->
+        <div id="view-pengaturan-sistem" class="hidden view-container">
+          <?!= include('View_PengaturanSistem'); ?>
         </div>
       </main>
     </div>
@@ -227,6 +232,7 @@
   <?!= include('JS_VerifikasiDokumen'); ?>
   <?!= include('JS_LogAktivitas'); ?>
   <?!= include('JS_Pengaturan'); ?>
+  <?!= include('JS_PengaturanSistem'); ?>
 
 </body>
 </html>
