@@ -62,7 +62,9 @@ function doPost(e) {
       adminSaveMetaConfig: adminSaveMetaConfig,
       adminGetWaProvider: adminGetWaProvider,
       adminSetWaProvider: adminSetWaProvider,
-      adminTestMetaMessage: adminTestMetaMessage
+      adminTestMetaMessage: adminTestMetaMessage,
+      adminGetNotifSettings: adminGetNotifSettings,
+      adminSaveNotifSettings: adminSaveNotifSettings
     };
 
     // 4. Validate action against whitelist
@@ -108,7 +110,9 @@ function doPost(e) {
       adminSaveMetaConfig: ['token', 'metaToken', 'metaPhoneId'],
       adminGetWaProvider: ['token'],
       adminSetWaProvider: ['token', 'provider'],
-      adminTestMetaMessage: ['token']
+      adminTestMetaMessage: ['token'],
+      adminGetNotifSettings: ['token'],
+      adminSaveNotifSettings: ['token', 'settings']
     };
 
     var paramNames = payloadMap[action] || [];

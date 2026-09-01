@@ -142,8 +142,13 @@ SIKAP.Settings.confirmLogout = function() {
 SIKAP.Settings._checkAdminSections = function(role) {
   var backupSection = document.getElementById('settings-backup-section');
   var waSection = document.getElementById('settings-whatsapp-section');
+  var notifSection = document.getElementById('settings-notif-section');
   if (role === 'Admin') {
     if (backupSection) backupSection.classList.remove('hidden');
+    if (notifSection) {
+      notifSection.classList.remove('hidden');
+      SIKAP.Settings.loadNotifSettings();
+    }
     if (waSection) {
       waSection.classList.remove('hidden');
       SIKAP.Settings.loadFonnteStatus();
@@ -381,6 +386,82 @@ SIKAP.Settings.testMetaMessage = function() {
     .finally(function() {
       if (btn) btn.disabled = false;
       if (textEl) textEl.textContent = 'Kirim Pesan Uji (Meta)';
+    });
+};
+
+// ============================================================
+// Notification Toggle Settings
+// ============================================================
+
+/**
+ * Loads notification toggle states from the backend and sets checkbox states.
+ */
+SIKAP.Settings.loadNotifSettings = function() {
+  SIKAP.Api.call('adminGetNotifSettings', { token: SIKAP.state.token })
+    .then(function(result) {
+      if (result && result.success && result.data) {
+        var d = result.data;
+        var elBaru = document.getElementById('notif-toggle-baru');
+        var elApproved = document.getElementById('notif-toggle-approved');
+        var elRejected = document.getElementById('notif-toggle-rejected');
+        if (elBaru) elBaru.checked = !!d.dokumenBaru;
+        if (elApproved) elApproved.checked = !!d.dokumenApproved;
+        if (elRejected) elRejected.checked = !!d.dokumenRejected;
+      }
+    })
+    .catch(function() {
+      // Silent failure — toggles will default to unchecked
+    });
+};
+
+/**
+ * Reads the current toggle states from the UI and saves them to the backend.
+ * Called automatically on checkbox change.
+ */
+SIKAP.Settings.saveNotifToggle = function() {
+  var elBaru = document.getElementById('notif-toggle-baru');
+  var elApproved = document.getElementById('notif-toggle-approved');
+  var elRejected = document.getElementById('notif-toggle-rejected');
+  var statusEl = document.getElementById('notif-save-status');
+
+  var settings = {
+    dokumenBaru: elBaru ? elBaru.checked : true,
+    dokumenApproved: elApproved ? elApproved.checked : true,
+    dokumenRejected: elRejected ? elRejected.checked : true
+  };
+
+  if (statusEl) {
+    statusEl.textContent = 'Menyimpan...';
+    statusEl.style.opacity = '1';
+  }
+
+  SIKAP.Api.call('adminSaveNotifSettings', { token: SIKAP.state.token, settings: settings })
+    .then(function(result) {
+      if (result && result.success) {
+        if (statusEl) {
+          statusEl.textContent = '✓ Pengaturan notifikasi tersimpan.';
+          statusEl.classList.remove('text-error');
+          statusEl.classList.add('text-emerald-600');
+        }
+      } else {
+        if (statusEl) {
+          statusEl.textContent = '✗ Gagal menyimpan: ' + ((result && result.message) || 'Kesalahan tidak diketahui.');
+          statusEl.classList.remove('text-emerald-600');
+          statusEl.classList.add('text-error');
+        }
+      }
+      // Fade out after 3 seconds
+      setTimeout(function() {
+        if (statusEl) statusEl.style.opacity = '0';
+      }, 3000);
+    })
+    .catch(function() {
+      if (statusEl) {
+        statusEl.textContent = '✗ Gagal menyimpan pengaturan.';
+        statusEl.classList.remove('text-emerald-600');
+        statusEl.classList.add('text-error');
+        statusEl.style.opacity = '1';
+      }
     });
 };
 </script>

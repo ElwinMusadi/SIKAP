@@ -214,6 +214,76 @@
   </div>
 
   <!-- ======================================== -->
+  <!-- SECTION: Pengaturan Notifikasi           -->
+  <!-- Admin-only: shown via JS role check      -->
+  <!-- ======================================== -->
+  <div id="settings-notif-section" class="hidden">
+    <div class="h-px bg-outline-variant w-full my-8"></div>
+    <h2 class="text-on-surface text-[22px] font-bold leading-tight tracking-[-0.015em] pb-2">Pengaturan Notifikasi</h2>
+    <p class="text-on-surface-variant font-body-md mb-6">
+      Aktifkan atau nonaktifkan notifikasi WhatsApp untuk setiap jenis event dokumen. Perubahan berlaku langsung.
+    </p>
+
+    <div class="max-w-[560px] flex flex-col gap-4">
+
+      <!-- Toggle: Dokumen Baru -->
+      <div class="flex items-center justify-between p-4 bg-surface-container rounded-xl border border-outline-variant/30">
+        <div class="flex items-start gap-3 flex-1 min-w-0">
+          <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-[20px]">upload_file</span>
+          </div>
+          <div class="min-w-0">
+            <p class="font-label-md text-on-surface">Dokumen Baru / Diperbarui</p>
+            <p class="font-body-sm text-on-surface-variant mt-0.5">Kirim notifikasi ke <strong>Admin</strong> saat pegawai mengunggah atau memperbarui dokumen.</p>
+          </div>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
+          <input type="checkbox" id="notif-toggle-baru" class="sr-only peer" onchange="SIKAP.Settings.saveNotifToggle()">
+          <div class="w-11 h-6 bg-outline/30 rounded-full peer peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5 shadow-inner"></div>
+        </label>
+      </div>
+
+      <!-- Toggle: Dokumen Terverifikasi -->
+      <div class="flex items-center justify-between p-4 bg-surface-container rounded-xl border border-outline-variant/30">
+        <div class="flex items-start gap-3 flex-1 min-w-0">
+          <div class="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-[20px]">check_circle</span>
+          </div>
+          <div class="min-w-0">
+            <p class="font-label-md text-on-surface">Dokumen Disetujui</p>
+            <p class="font-body-sm text-on-surface-variant mt-0.5">Kirim notifikasi ke <strong>Pegawai</strong> saat dokumen mereka telah diverifikasi/disetujui.</p>
+          </div>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
+          <input type="checkbox" id="notif-toggle-approved" class="sr-only peer" onchange="SIKAP.Settings.saveNotifToggle()">
+          <div class="w-11 h-6 bg-outline/30 rounded-full peer peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5 shadow-inner"></div>
+        </label>
+      </div>
+
+      <!-- Toggle: Dokumen Ditolak -->
+      <div class="flex items-center justify-between p-4 bg-surface-container rounded-xl border border-outline-variant/30">
+        <div class="flex items-start gap-3 flex-1 min-w-0">
+          <div class="w-9 h-9 rounded-lg bg-error/10 text-error flex items-center justify-center shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-[20px]">cancel</span>
+          </div>
+          <div class="min-w-0">
+            <p class="font-label-md text-on-surface">Dokumen Ditolak</p>
+            <p class="font-body-sm text-on-surface-variant mt-0.5">Kirim notifikasi ke <strong>Pegawai</strong> saat dokumen mereka ditolak beserta alasan penolakan.</p>
+          </div>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
+          <input type="checkbox" id="notif-toggle-rejected" class="sr-only peer" onchange="SIKAP.Settings.saveNotifToggle()">
+          <div class="w-11 h-6 bg-outline/30 rounded-full peer peer-checked:bg-error after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5 shadow-inner"></div>
+        </label>
+      </div>
+
+      <!-- Status indicator -->
+      <p id="notif-save-status" class="font-body-sm text-on-surface-variant h-5 transition-opacity"></p>
+
+    </div>
+  </div>
+
+  <!-- ======================================== -->
   <!-- SECTION 5: Notifikasi WhatsApp           -->
   <!-- Admin-only: shown via JS role check      -->
   <!-- ======================================== -->

@@ -16,8 +16,30 @@ var META_PHONE_ID_KEY = 'META_WA_PHONE_ID';
 // ---- Provider selector ----
 var WA_PROVIDER_KEY = 'WA_PROVIDER'; // 'fonnte' or 'meta'
 
+// ---- Notification Toggle Keys ----
+var NOTIF_KEY_DOKUMEN_BARU = 'NOTIF_DOKUMEN_BARU';       // notify admins when pegawai uploads doc
+var NOTIF_KEY_DOKUMEN_APPROVED = 'NOTIF_DOKUMEN_APPROVED'; // notify pegawai when doc approved
+var NOTIF_KEY_DOKUMEN_REJECTED = 'NOTIF_DOKUMEN_REJECTED'; // notify pegawai when doc rejected
+
 // ---- Shared ----
 var SIKAP_APP_URL = 'https://sikap.uptdpenda-kupang.web.id';
+
+/**
+ * Checks whether a specific notification type is enabled.
+ * Defaults to true (enabled) if the key hasn't been set yet.
+ * @param {string} key - One of NOTIF_KEY_* constants.
+ * @returns {boolean}
+ */
+function _isNotifEnabled(key) {
+  try {
+    var val = PropertiesService.getScriptProperties().getProperty(key);
+    // null means never set => default enabled; 'false' means explicitly disabled
+    return val !== 'false';
+  } catch (e) {
+    Logger.log('_isNotifEnabled error: ' + e);
+    return true; // fail-open: send notifications if unsure
+  }
+}
 
 function _getFonnteToken() {
   try { return PropertiesService.getScriptProperties().getProperty(FONNTE_TOKEN_KEY); }
@@ -191,6 +213,8 @@ function sendWhatsApp(target, message, templateData) {
 
 function notifyDokumenApproved(targetNip, namaDokumen, namaLengkap) {
   try {
+    if (!_isNotifEnabled(NOTIF_KEY_DOKUMEN_APPROVED)) return 'Notifikasi dinonaktifkan';
+
     var pegawai = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, targetNip);
     if (!pegawai) return 'Pegawai tidak ditemukan';
 
@@ -229,6 +253,8 @@ function notifyDokumenApproved(targetNip, namaDokumen, namaLengkap) {
 
 function notifyDokumenRejected(targetNip, namaDokumen, namaLengkap, alasan) {
   try {
+    if (!_isNotifEnabled(NOTIF_KEY_DOKUMEN_REJECTED)) return 'Notifikasi dinonaktifkan';
+
     var pegawai = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, targetNip);
     if (!pegawai) return 'Pegawai tidak ditemukan';
 
@@ -269,6 +295,8 @@ function notifyDokumenRejected(targetNip, namaDokumen, namaLengkap, alasan) {
 
 function notifyAdminsNewDocument(namaPegawai, namaDokumen) {
   try {
+    if (!_isNotifEnabled(NOTIF_KEY_DOKUMEN_BARU)) return 'Notifikasi dinonaktifkan';
+
     var pegawaiSheet = getSheet(SHEET_NAMES.DATA_PEGAWAI);
     if (!pegawaiSheet) return 'Sheet Data_Pegawai tidak ditemukan';
 
@@ -444,3 +472,65 @@ function adminTestMetaMessage(token) {
 }
 
 function _forceAuth() { UrlFetchApp.fetch("https://google.com"); }
+
+// ============================================================
+// NOTIFICATION SETTINGS API (Admin)
+// ============================================================
+
+/**
+ * Returns current notification toggle states.
+ * @param {string} token - Admin session token.
+ * @returns {Object} Result with data: { dokumenBaru, dokumenApproved, dokumenRejected }
+ */
+function adminGetNotifSettings(token) {
+  try {
+    var auth = authorize(token, [ROLES.ADMIN], false);
+    if (!auth.authorized) return { success: false, message: auth.error };
+    return {
+      success: true,
+      data: {
+        dokumenBaru: _isNotifEnabled(NOTIF_KEY_DOKUMEN_BARU),
+        dokumenApproved: _isNotifEnabled(NOTIF_KEY_DOKUMEN_APPROVED),
+        dokumenRejected: _isNotifEnabled(NOTIF_KEY_DOKUMEN_REJECTED)
+      }
+    };
+  } catch (e) {
+    return { success: false, message: 'Gagal memuat pengaturan notifikasi: ' + e.message };
+  }
+}
+
+/**
+ * Saves notification toggle states.
+ * @param {string} token - Admin session token.
+ * @param {Object} settings - { dokumenBaru: bool, dokumenApproved: bool, dokumenRejected: bool }
+ * @returns {Object} Result object.
+ */
+function adminSaveNotifSettings(token, settings) {
+  try {
+    var auth = authorize(token, [ROLES.ADMIN], false);
+    if (!auth.authorized) return { success: false, message: auth.error };
+
+    if (!settings || typeof settings !== 'object') {
+      return { success: false, message: 'Data pengaturan tidak valid.' };
+    }
+
+    var props = PropertiesService.getScriptProperties();
+    if (settings.dokumenBaru !== undefined)
+      props.setProperty(NOTIF_KEY_DOKUMEN_BARU, String(!!settings.dokumenBaru));
+    if (settings.dokumenApproved !== undefined)
+      props.setProperty(NOTIF_KEY_DOKUMEN_APPROVED, String(!!settings.dokumenApproved));
+    if (settings.dokumenRejected !== undefined)
+      props.setProperty(NOTIF_KEY_DOKUMEN_REJECTED, String(!!settings.dokumenRejected));
+
+    var changes = [];
+    if (settings.dokumenBaru !== undefined) changes.push('Dokumen Baru: ' + (settings.dokumenBaru ? 'ON' : 'OFF'));
+    if (settings.dokumenApproved !== undefined) changes.push('Dokumen Disetujui: ' + (settings.dokumenApproved ? 'ON' : 'OFF'));
+    if (settings.dokumenRejected !== undefined) changes.push('Dokumen Ditolak: ' + (settings.dokumenRejected ? 'ON' : 'OFF'));
+    logActivity(auth.session.nip, auth.session.role, 'CONFIG_UPDATE', 'SYSTEM', 'NOTIF_SETTINGS',
+      'Pengaturan notifikasi diperbarui: ' + changes.join(', '), 'SUCCESS');
+
+    return { success: true, message: 'Pengaturan notifikasi berhasil disimpan.' };
+  } catch (e) {
+    return { success: false, message: 'Gagal menyimpan pengaturan: ' + e.message };
+  }
+}
