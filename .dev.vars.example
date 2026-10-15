@@ -1,0 +1,4 @@
+# Copy to .dev.vars for local development (never commit .dev.vars).
+# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+PASSWORD_PEPPER=change-me-local-dev-pepper-at-least-32-bytes
+SETTINGS_ENC_KEY=change-me-local-dev-settings-key-32-bytes

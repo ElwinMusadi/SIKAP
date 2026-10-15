@@ -1,6 +1,15 @@
 node_modules/
-gas-dist/
 dist/
-.dev.vars
 .wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+*.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+
+# Legacy GAS build outputs
+gas-dist/
 .clasprc.json

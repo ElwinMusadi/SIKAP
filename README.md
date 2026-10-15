@@ -1,129 +1,69 @@
-# SIKAP — Sistem Informasi Kepegawaian
+# SIKAP — Sistem Informasi Kepegawaian dan Arsip Pegawai
 
-SIKAP adalah aplikasi Sistem Informasi Kepegawaian berskala _enterprise_ tingkat lanjut yang menerapkan **Unified Architecture**. Sistem ini mengintegrasikan pengiriman Frontend modern super cepat (Cloudflare Pages) dengan keandalan Backend tanpa peladen (Google Apps Script).
+Aplikasi internal UPTD Pendapatan Daerah Wilayah Kota Kupang untuk mengelola data pegawai (PNS, CPNS, PPPK), arsip dokumen kepegawaian, dan verifikasi dokumen oleh Admin TU.
 
----
+> **Status:** migrasi dari Google Apps Script ke Cloudflare sedang berjalan di branch `feat/cloudflare-migration`.
+> Kode lama (GAS + Google Sheets + Drive) dipindahkan ke [`legacy-gas/`](legacy-gas/) dan tetap menjadi sistem produksi sampai cutover.
 
-## 1. Project Overview
+| Dokumen | Isi |
+|---|---|
+| [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) | Analisa, review, dan audit sistem lama |
+| [`MIGRATION_PLAN.md`](MIGRATION_PLAN.md) | Keputusan pemilik produk, arsitektur target, skema D1, API, redesign UI, fase, dan rencana cutover |
 
-Aplikasi ini dikembangkan untuk UPTD Pendapatan Daerah Wilayah Kota Kupang. SIKAP mengelola data master pegawai, pengarsipan dokumen elektronik, validasi persetujuan berjenjang, dan tata kelola sesi pengguna yang sangat aman.
+## Stack
 
-## 2. Architecture
+- **Frontend:** React 19 + TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), TanStack Query, React Router
+- **Backend:** Cloudflare Pages Functions (`functions/api/[[route]].ts`) dengan Hono (`server/`)
+- **Database:** Cloudflare D1 (SQLite) — `migrations/`
+- **File:** Cloudflare R2 (privat; disajikan hanya lewat API terotorisasi)
+- **Kontrak bersama:** `shared/` (enum, schema zod, tipe API) dipakai frontend dan backend
 
-Proyek ini mengadopsi pemisahan lapisan (Decoupled Layers):
-
-- **Frontend Layer**: Cloudflare Pages (Menyajikan HTML, Tailwind CSS v4, JavaScript Statis).
-- **Gateway Layer**: Cloudflare Pages Functions (`/api/gas`) sebagai _reverse proxy_ untuk menghindari pemblokiran CORS.
-- **Backend Layer**: Google Apps Script (GAS) bertindak sebagai prosesor JSON murni (`doPost`).
-- **Database Layer**: Google Sheets (Relasional CRUD) dan Google Drive (Binary Blob Storage).
-
-_(Lihat [ARCHITECTURE.md](ARCHITECTURE.md) untuk diagram sistem visual)._
-
-## 3. Directory Structure
+## Struktur
 
 ```text
-SIKAP/
-├── .github/workflows/    # Konfigurasi CI/CD otomatis (gas-deploy.yml)
-├── functions/api/        # Cloudflare Pages Functions (Gateway backend)
-├── scripts/              # Skrip pendukung build (build-cloudflare.js)
-├── src/
-│   ├── backend/          # Google Apps Script (.gs) source code
-│   └── frontend/         # Frontend UI (.html) source code (komponen terpisah)
-├── wrangler.toml         # Konfigurasi identitas & variabel Cloudflare
-├── package.json          # Manajemen dependensi Node.js & build scripts
-└── .clasp.json           # Konfigurasi integrasi Google Apps Script
+src/            React app (features/, components/, lib/)
+server/         Hono API (routes/, services/, db/, lib/, middleware/)
+functions/      Entry Pages Functions → server/
+shared/         Enum, validator, kontrak API
+migrations/     Skema & seed referensi D1
+test/           Test API (Vitest + Workers runtime)
+legacy-gas/     Sistem lama (referensi, tidak dideploy dari branch ini)
 ```
 
-## 4. Development Workflow
+## Menjalankan secara lokal
 
-SIKAP memiliki repositori tunggal (Single Source of Truth). Seluruh pengembangan Frontend maupun Backend dilakukan terpusat pada _branch_ `main`. Proses _build_ akan mengekstrak kode yang relevan ke tujuan masing-masing secara otomatis.
+Prasyarat: Node.js ≥ 20.19.
 
-## 5. Frontend Development
+```powershell
+npm install
+Copy-Item .dev.vars.example .dev.vars   # isi PASSWORD_PEPPER & SETTINGS_ENC_KEY (acak, ≥ 32 byte)
+npm run db:migrate:local                # buat skema D1 lokal
+npm run db:seed:dev                     # akun contoh (DEV ONLY)
+npm run dev:api                         # Pages Functions + Vite di http://localhost:8788
+```
 
-Frontend ditulis menggunakan Vanilla JS dan disuntikkan (_inject_) ke dalam satu file HTML (`Index.html`) pada saat _build time_.
+Akun contoh hanya untuk pengembangan lokal; password = 6 digit terakhir NIP (lihat `scripts/dev-seed.mjs`).
 
-- Lokasi: `src/frontend/*.html`
-- Gaya Visual: Tailwind CSS v4 CDN
-- Templating: Memanfaatkan tag `<?!= include('File'); ?>` yang diproses oleh _regex_ saat _build_.
+## Perintah
 
-## 6. GAS Development
+| Perintah | Fungsi |
+|---|---|
+| `npm run dev` | Vite saja (proxy `/api` ke :8788) |
+| `npm run dev:api` | Pages Functions + D1/R2 lokal + Vite |
+| `npm run build` | Typecheck + build produksi ke `dist/` |
+| `npm run typecheck` / `npm run lint` / `npm test` | Kualitas kode |
+| `npm run db:migrate:local` | Terapkan migrasi D1 lokal |
 
-Kode Google Apps Script menggunakan pola V8 standar.
+## Deployment (Cloudflare Pages)
 
-- Lokasi: `src/backend/*.gs`
-- Fungsi sentral `API.gs` bertindak sebagai pengontrol (Controller) yang menerima lalu lintas JSON dan memetakannya ke modul fungsi lainnya (`Auth.gs`, `Dokumen.gs`, dll).
+1. Buat resource: `wrangler d1 create sikap-db`, `wrangler r2 bucket create sikap-files` (ulangi dengan sufiks `-preview`), lalu isi `database_id` di `wrangler.toml`.
+2. Secrets per environment: `wrangler pages secret put PASSWORD_PEPPER` dan `SETTINGS_ENC_KEY`.
+3. Hubungkan repo ke Cloudflare Pages: build command `npm run build`, output `dist`.
+4. Terapkan migrasi ke remote: `wrangler d1 migrations apply sikap-db --remote`.
+5. Tambahkan aturan WAF Rate Limiting untuk `/api/auth/login`.
 
-## 7. Cloudflare Development
+## Kebijakan akun
 
-Cloudflare bertugas melayani seluruh antarmuka web dan menjembatani panggilan API. File `functions/api/gas.js` bekerja sebagai fungsi tanpa peladen (Serverless Edge Function) yang meneruskan Payload secara utuh ke GAS.
-
-## 8. Build Commands
-
-Repositori ini memanfaatkan `npm` scripts:
-
-- `npm run build:gas` : Mengekstrak `src/` ke dalam folder `gas-dist/` untuk dipublikasikan ke Google Apps Script.
-- `npm run build:cloudflare` : Menggabungkan (flatten) kode `src/frontend/` menjadi satu `dist/index.html` statis yang dapat diluncurkan ke Cloudflare.
-- `npm run dev` : Membuka server lokal (_Live Preview_) Cloudflare Pages via Wrangler di `http://127.0.0.1:8788`.
-
-## 9. GAS Deployment
-
-Deployment GAS diotomatisasi melalui **GitHub Actions**.
-Setiap ada _push_ ke cabang `main`, GitHub akan menjalankan `npm run build:gas` lalu mengeksekusi `clasp push` untuk mengunggah versi _Development/HEAD_ terbaru.
-_(Catatan: Anda masih perlu melakukan versi rilis manual `clasp deploy` jika ingin memublikasikan Web App `.../exec` untuk digunakan publik)._
-
-## 10. Cloudflare Deployment
-
-Deployment Cloudflare diotomatisasi secara bawaan oleh **Cloudflare Pages GitHub Integration**.
-Begitu mendeteksi _push_ ke `main`, mesin Cloudflare akan menjalankan `npm run build:cloudflare` dan merilis hasilnya secara global seketika.
-
-## 11. Environment Variables
-
-- `GAS_WEB_APP_URL` : Didefinisikan dalam `wrangler.toml` agar _Gateway_ Cloudflare mengetahui ke mana harus meneruskan (_proxy_) _request_. (URL Publik).
-- `CLASPRC_JSON` : Token OAuth Rahasia yang disimpan di dalam **GitHub Secrets**. Digunakan oleh GitHub Actions untuk mendapatkan hak akses melakukan `clasp push`.
-
-## 12. Git Workflow
-
-Sistem ini mematuhi standar _Git Branching_:
-
-- **Sumber Utama**: `main`
-- **Fitur Baru**: `feature/nama-fitur`
-- **Perbaikan**: `fix/nama-bug`
-  Pengembang harus bekerja pada _branch_ terpisah, mengujinya secara lokal (`npm run dev`), lalu mengajukan _Pull Request_ (PR) atau menggabungkannya ke `main`.
-
-## 13. API Architecture
-
-API SIKAP adalah antarmuka JSON murni. Setiap _request_ yang masuk ke `POST /api/gas` harus memiliki _body_ JSON yang mendefinisikan parameter `action` (misalnya `"action": "login"`). Argumen fungsi dipetakan dengan rapi di dalam `API_HANDLERS` (_Whitelist_), sehingga injeksi fungsi jahat menjadi mustahil.
-
-## 14. Authentication Architecture
-
-Sistem tidak menggunakan Cookie, melainkan menggunakan pola **Stateless Token-Based Authentication**.
-Token dibuat menggunakan UUID, disimpan di Google Sheets, dan memiliki kedaluwarsa 12 jam. Token ini wajib diselipkan di dalam setiap _payload request_ (misal: `"token": "123-abc-..."`).
-
-## 15. Google Sheets Architecture
-
-Digunakan sebagai basis data relasional primitif dengan performa sangat andal. Pengambilan data dioptimalkan menggunakan Array 2D (`getValues()`), kemudian diubah ke dalam struktur Objek/JSON menggunakan Indeks Kolom (`Database.gs`) agar kodenya tidak rentan terhadap pergeseran kolom di Sheets.
-
-## 16. Google Drive Architecture
-
-Digunakan semata-mata sebagai penyimpanan Biner (_Binary Blob Storage_). Fungsi unggah (_upload_) menerima _string_ Base64 (dibatasi 5 MB), lalu disandikan (_decode_) menjadi _blob_ PDF/JPG/PNG. ID Berkas (File ID) yang dihasilkan oleh Google Drive kemudian ditautkan kembali ke tabel `Arsip_Dokumen` di Google Sheets.
-
-## 17. Troubleshooting
-
-- **Layar Kosong saat Lokal**: Pastikan `wrangler` bekerja dengan baik (beberapa versi Windows membuat `npm run dev` hang). Jika iya, lakukan _deploy_ sementara ke _Preview Branch_ Cloudflare.
-- **Error 500 saat Login**: Periksa `wrangler.toml` dan pastikan `GAS_WEB_APP_URL` berisi tautan publik `/exec` GAS Anda yang valid.
-- **Dokumen Ditolak**: Pastikan tipe file adalah PDF, JPG, atau PNG dan berukuran di bawah 5 MB.
-
-## 18. Security Notes
-
-Aplikasi SIKAP telah lulus _Final Security Review_.
-
-- Dilindungi dari serangan _Insecure Direct Object Reference_ (IDOR) karena pemeriksaan Kepemilikan NIP dan `Role` (Admin) dilakukan secara ketat (_Server-Side_).
-- Anti _Cross-Site Request Forgery_ (CSRF) berkat kewajiban penyertaan Token.
-- Aman dari _Formula Injection_ berkat _filter_ sanitasi `escapeFormula()` di `Utils.gs`.
-- **Saran:** Opsional, enkripsi kata sandi dapat diperkuat dengan _Salting_ jika dirasa perlu di masa mendatang.
-
-## 19. Command
-
-npm run deploy:gas && clasp deploy -i AKfycbxgtqzd0pU96Z7MChma9GwfW-ESy-7PDPAlsUSPMl6-oh78m1aVJ5BRl5cdyWnhfgue -d "SIKAP v1.2"
-
-npm run build:cloudflare
+- Password default = 6 digit terakhir NIP. Pengguna **tidak dipaksa** mengganti, tetapi aplikasi menampilkan banner rekomendasi.
+- Password disimpan sebagai PBKDF2-SHA256 (10.000 iterasi) + pepper rahasia; akun terkunci 15 menit setelah 5 kali gagal login.
+- Sesi memakai cookie HttpOnly, berlaku 12 jam (sliding).

@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [feat/cloudflare-migration]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # API tests set their own test-only bindings (fake pepper) in vitest.config.ts.
+      - name: Test API (Workers runtime, local D1/R2)
+        run: npm run test:api
+
+      - name: Test web (pure client logic)
+        run: npm run test:web
+
+      - name: Build
+        run: npx vite build

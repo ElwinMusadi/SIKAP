@@ -1,6 +1,60 @@
+# SIKAP — Cloudflare Pages project (React SPA + Pages Functions /api/*)
+# Docs: MIGRATION_PLAN.md §1.2
 name = "sikap"
-compatibility_date = "2026-08-15"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
 [vars]
-GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxgtqzd0pU96Z7MChma9GwfW-ESy-7PDPAlsUSPMl6-oh78m1aVJ5BRl5cdyWnhfgue/exec"
+APP_URL = "http://localhost:8788"
+SESSION_TTL_HOURS = "12"
+
+# Local dev bindings. For remote envs replace database_id with real IDs
+# (`wrangler d1 create sikap-db`, `wrangler r2 bucket create sikap-files`).
+[[d1_databases]]
+binding = "DB"
+database_name = "sikap-db"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "sikap-files"
+
+# ---------------------------------------------------------------------------
+# Preview environment (separate DB + bucket — never test against production)
+# ---------------------------------------------------------------------------
+[env.preview.vars]
+APP_URL = "https://preview.sikap.pages.dev"
+SESSION_TTL_HOURS = "12"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "sikap-db-preview"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[[env.preview.r2_buckets]]
+binding = "FILES"
+bucket_name = "sikap-files-preview"
+
+# ---------------------------------------------------------------------------
+# Production
+# ---------------------------------------------------------------------------
+[env.production.vars]
+APP_URL = "https://sikap.uptdpenda-kupang.web.id"
+SESSION_TTL_HOURS = "12"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "sikap-db"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[[env.production.r2_buckets]]
+binding = "FILES"
+bucket_name = "sikap-files"
+
+# Secrets (set with `wrangler pages secret put <NAME>`; locally in .dev.vars):
+#   PASSWORD_PEPPER   — HMAC key mixed into every password hash (>= 32 random bytes, base64)
+#   SETTINGS_ENC_KEY  — AES-GCM key for WhatsApp tokens (phase 5)

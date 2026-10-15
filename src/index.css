@@ -1,0 +1,189 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-primary-container: var(--primary-container);
+    --color-primary-container-foreground: var(--primary-container-foreground);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+
+    /* Document status (MIGRATION_PLAN §4.1). Use e.g. `bg-status-pending-muted text-status-pending`. */
+    --color-status-missing: var(--status-missing);
+    --color-status-missing-muted: var(--status-missing-muted);
+    --color-status-pending: var(--status-pending);
+    --color-status-pending-muted: var(--status-pending-muted);
+    --color-status-verified: var(--status-verified);
+    --color-status-verified-muted: var(--status-verified-muted);
+    --color-status-rejected: var(--status-rejected);
+    --color-status-rejected-muted: var(--status-rejected-muted);
+
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * SIKAP brand (Material 3 tokens from UIUX Stitch, PROJECT_CONTEXT §9):
+ * primary #00236f, primary-container #1e3a8a, surface #f8f9ff, error #ba1a1a,
+ * on-surface #0b1c30. All text/background pairs below meet WCAG AA (≥ 4.5:1).
+ */
+:root {
+    --background: oklch(0.983 0.008 278.6);            /* #f8f9ff */
+    --foreground: oklch(0.223 0.045 253.8);            /* #0b1c30 */
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.223 0.045 253.8);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.223 0.045 253.8);
+    --primary: oklch(0.295 0.137 262);                 /* #00236f — 14.3:1 with white */
+    --primary-foreground: oklch(1 0 0);
+    --primary-container: oklch(0.379 0.138 265.5);     /* #1e3a8a */
+    --primary-container-foreground: oklch(1 0 0);
+    --secondary: oklch(0.947 0.025 263.3);             /* #e5eeff */
+    --secondary-foreground: oklch(0.379 0.138 265.5);  /* #1e3a8a — 8.9:1 */
+    --muted: oklch(0.967 0.016 266.3);                 /* #eff4ff */
+    --muted-foreground: oklch(0.503 0.034 266.1);      /* #5b6478 — 5.4:1 on muted */
+    --accent: oklch(0.947 0.025 263.3);
+    --accent-foreground: oklch(0.295 0.137 262);
+    --destructive: oklch(0.506 0.193 27.7);            /* #ba1a1a — 6.2:1 on background */
+    --border: oklch(0.916 0.016 270);                  /* #dfe3ee */
+    --input: oklch(0.652 0.026 272.6);                 /* #8a8fa0 — 3.2:1 non-text contrast */
+    --ring: oklch(0.379 0.138 265.5);
+    --chart-1: oklch(0.295 0.137 262);
+    --chart-2: oklch(0.527 0.137 150.1);
+    --chart-3: oklch(0.476 0.103 61.9);
+    --chart-4: oklch(0.553 0.174 38.4);
+    --chart-5: oklch(0.505 0.19 27.5);
+    --radius: 0.5rem;
+
+    /* Navy sidebar, like the legacy app. */
+    --sidebar: oklch(0.379 0.138 265.5);               /* #1e3a8a */
+    --sidebar-foreground: oklch(1 0 0);                /* 10.4:1 */
+    --sidebar-primary: oklch(1 0 0);
+    --sidebar-primary-foreground: oklch(0.295 0.137 262);
+    --sidebar-accent: oklch(0.436 0.141 266.3);        /* #2d4a9e — white 8.1:1 */
+    --sidebar-accent-foreground: oklch(1 0 0);
+    --sidebar-border: oklch(0.47 0.12 266);
+    --sidebar-ring: oklch(0.83 0.084 274.1);           /* #b6c4ff */
+
+    /* Document status: foreground ≥ 5.9:1 on its own muted background. */
+    --status-missing: oklch(0.505 0.19 27.5);          /* red-700 */
+    --status-missing-muted: oklch(0.971 0.013 17.4);   /* red-50 */
+    --status-pending: oklch(0.476 0.103 61.9);         /* amber/yellow-800 */
+    --status-pending-muted: oklch(0.962 0.058 95.6);   /* amber-100 */
+    --status-verified: oklch(0.448 0.108 151.3);       /* green-800 */
+    --status-verified-muted: oklch(0.962 0.043 156.7); /* green-100 */
+    --status-rejected: oklch(0.47 0.143 37.3);         /* orange-800 */
+    --status-rejected-muted: oklch(0.954 0.037 75.2);  /* orange-100 */
+}
+
+/* Not used (light theme only); kept so shadcn components stay valid. */
+.dark {
+    --background: oklch(0.2 0.03 262);
+    --foreground: oklch(0.97 0.01 270);
+    --card: oklch(0.25 0.04 262);
+    --card-foreground: oklch(0.97 0.01 270);
+    --popover: oklch(0.25 0.04 262);
+    --popover-foreground: oklch(0.97 0.01 270);
+    --primary: oklch(0.83 0.084 274.1);
+    --primary-foreground: oklch(0.295 0.137 262);
+    --primary-container: oklch(0.379 0.138 265.5);
+    --primary-container-foreground: oklch(1 0 0);
+    --secondary: oklch(0.3 0.05 262);
+    --secondary-foreground: oklch(0.97 0.01 270);
+    --muted: oklch(0.3 0.05 262);
+    --muted-foreground: oklch(0.75 0.03 270);
+    --accent: oklch(0.3 0.05 262);
+    --accent-foreground: oklch(0.97 0.01 270);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.83 0.084 274.1);
+    --chart-1: oklch(0.83 0.084 274.1);
+    --chart-2: oklch(0.72 0.15 150);
+    --chart-3: oklch(0.8 0.13 80);
+    --chart-4: oklch(0.72 0.16 45);
+    --chart-5: oklch(0.7 0.19 25);
+    --sidebar: oklch(0.25 0.06 262);
+    --sidebar-foreground: oklch(0.97 0.01 270);
+    --sidebar-primary: oklch(0.83 0.084 274.1);
+    --sidebar-primary-foreground: oklch(0.295 0.137 262);
+    --sidebar-accent: oklch(0.32 0.08 264);
+    --sidebar-accent-foreground: oklch(0.97 0.01 270);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.83 0.084 274.1);
+    --status-missing: oklch(0.75 0.15 25);
+    --status-missing-muted: oklch(0.3 0.08 25);
+    --status-pending: oklch(0.82 0.13 80);
+    --status-pending-muted: oklch(0.3 0.06 80);
+    --status-verified: oklch(0.78 0.14 150);
+    --status-verified-muted: oklch(0.3 0.06 150);
+    --status-rejected: oklch(0.78 0.14 45);
+    --status-rejected-muted: oklch(0.3 0.07 45);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
