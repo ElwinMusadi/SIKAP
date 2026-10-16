@@ -85,7 +85,14 @@ const router = createBrowserRouter([
                 path: 'admin',
                 element: <RequireRole role="Admin" />,
                 children: [
-                  comingSoon('pegawai', 'Master Data Pegawai', 'Fase 6'),
+                  {
+                    path: 'pegawai',
+                    lazy: async () => ({ Component: (await import('./features/pegawai/pegawai-list-page')).default }),
+                  },
+                  {
+                    path: 'pegawai/:id',
+                    lazy: async () => ({ Component: (await import('./features/pegawai/pegawai-detail-page')).default }),
+                  },
                   {
                     path: 'verifikasi',
                     lazy: async () => ({ Component: (await import('./features/verifikasi/verifikasi-page')).default }),

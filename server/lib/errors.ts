@@ -58,7 +58,12 @@ export const errors = {
   forbidden: () => new ApiError(403, 'FORBIDDEN', MESSAGES.forbidden),
   csrf: () => new ApiError(403, 'CSRF_REJECTED', MESSAGES.csrf),
   notFound: (message: string = MESSAGES.notFound) => new ApiError(404, 'NOT_FOUND', message),
-  conflict: (message: string) => new ApiError(409, 'CONFLICT', message),
+  /**
+   * `field` names the conflicting form field (e.g. 'nip', 'nik') or a machine-readable reason
+   * (e.g. 'stale'), so clients never have to match on message text.
+   */
+  conflict: (message: string, field?: string) =>
+    new ApiError(409, 'CONFLICT', message, field ? { fields: { [field]: message } } : {}),
   rateLimited: (retryAfterSeconds: number) =>
     new ApiError(429, 'RATE_LIMITED', MESSAGES.rateLimited, { retryAfterSeconds }),
 };

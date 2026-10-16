@@ -7,7 +7,7 @@ import {
   Clock,
   FileClock,
   FilePen,
-  Info,
+  KeyRound,
   PartyPopper,
   RefreshCw,
   Settings,
@@ -29,9 +29,10 @@ import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle }
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMe } from '@/features/auth/queries';
+import { useAdminDashboard } from '@/features/pegawai/queries';
 import { useAdminPengajuan, useDashboard } from '@/features/profil/queries';
 import { errorMessage } from '@/lib/api';
-import { formatRelative } from '@/lib/format';
+import { formatDateTimeWITA, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /** Leading academic/religious titles that should not be used as a greeting name. */
@@ -124,11 +125,218 @@ function AdminSection() {
           </li>
         ))}
       </ul>
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Info aria-hidden="true" className="size-4 shrink-0" />
-        Dashboard administrator lengkap tersedia pada Fase 6.
-      </p>
+      <AdminDashboard />
     </section>
+  );
+}
+
+const RESULT_TONE: Record<string, string> = {
+  SUCCESS: 'bg-status-verified',
+  FAILURE: 'bg-status-rejected',
+  WARNING: 'bg-status-pending',
+  PARTIAL: 'bg-status-pending',
+};
+
+function AdminDashboard() {
+  const query = useAdminDashboard();
+
+  if (query.isPending) {
+    return (
+      <div className="flex flex-col gap-4" aria-busy="true" aria-label="Memuat dashboard administrator">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24 rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-56 rounded-xl" />
+      </div>
+    );
+  }
+  if (query.isError) {
+    return (
+      <Alert variant="destructive" role="alert">
+        <TriangleAlert />
+        <AlertTitle>Gagal memuat dashboard administrator</AlertTitle>
+        <AlertDescription>
+          <p>{errorMessage(query.error)}</p>
+          <Button size="sm" variant="outline" className="mt-2" onClick={() => void query.refetch()}>
+            <RefreshCw data-icon="inline-start" />
+            Coba lagi
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  const { pegawai, dokumen, pengajuanMenunggu, aktivitasTerbaru } = query.data;
+  const statusParts = (['PNS', 'CPNS', 'PPPK', 'Belum diisi'] as const)
+    .map((key) => ({ key, value: pegawai.perStatus[key] ?? 0 }))
+    .filter((part) => part.key !== 'Belum diisi' || part.value > 0);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <h2 className="text-sm font-semibold text-muted-foreground">Ringkasan instansi</h2>
+      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan instansi">
+        <li>
+          <Card size="sm" className="h-full">
+            <CardHeader>
+              <CardDescription>Pegawai aktif</CardDescription>
+              <CardTitle className="text-2xl font-semibold tabular-nums">{pegawai.aktif}</CardTitle>
+              <CardAction>
+                <Users aria-hidden="true" className="size-4 text-muted-foreground" />
+              </CardAction>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-1.5">
+              {statusParts.map((part) => (
+                <Badge key={part.key} variant={part.key === 'Belum diisi' ? 'outline' : 'secondary'} className="tabular-nums">
+                  {part.key} {part.value}
+                </Badge>
+              ))}
+              {pegawai.nonaktif > 0 ? (
+                <Badge variant="outline" className="text-muted-foreground tabular-nums">
+                  Nonaktif {pegawai.nonaktif}
+                </Badge>
+              ) : null}
+            </CardContent>
+          </Card>
+        </li>
+        <li>
+          <KpiLink
+            to="/admin/verifikasi"
+            label="Antrean verifikasi"
+            value={dokumen.menunggu}
+            icon={ClipboardCheck}
+            hint={dokumen.menunggu > 0 ? 'dokumen menunggu diperiksa' : 'Tidak ada antrean'}
+            tone={dokumen.menunggu > 0 ? 'text-status-pending' : undefined}
+          />
+        </li>
+        <li>
+          <KpiLink
+            to="/admin/pengajuan"
+            label="Pengajuan menunggu"
+            value={pengajuanMenunggu}
+            icon={FilePen}
+            hint={pengajuanMenunggu > 0 ? 'perubahan data perlu ditinjau' : 'Tidak ada pengajuan'}
+            tone={pengajuanMenunggu > 0 ? 'text-status-pending' : undefined}
+          />
+        </li>
+        <li>
+          <Card size="sm" className="h-full">
+            <CardHeader>
+              <CardDescription>Kelengkapan dokumen instansi</CardDescription>
+              <CardTitle className="text-2xl font-semibold tabular-nums">{dokumen.persenKelengkapan}%</CardTitle>
+              <CardAction>
+                <CircleCheck aria-hidden="true" className="size-4 text-muted-foreground" />
+              </CardAction>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Progress
+                value={dokumen.persenKelengkapan}
+                className={cn('h-1.5', dokumen.persenKelengkapan === 100 && '*:bg-status-verified')}
+                aria-label={`Kelengkapan dokumen wajib instansi ${dokumen.persenKelengkapan} persen`}
+              />
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {dokumen.perKelengkapan.Lengkap ?? 0} lengkap · {dokumen.perKelengkapan['Perlu Revisi'] ?? 0} perlu revisi
+              </p>
+            </CardContent>
+          </Card>
+        </li>
+      </ul>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Aktivitas terbaru</CardTitle>
+            <CardDescription>7 aktivitas terakhir di SIKAP.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {aktivitasTerbaru.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Belum ada aktivitas tercatat.</p>
+            ) : (
+              <ol className="flex flex-col divide-y">
+                {aktivitasTerbaru.map((entry) => (
+                  <li key={entry.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <span
+                      aria-hidden="true"
+                      className={cn('mt-1.5 size-2 shrink-0 rounded-full', RESULT_TONE[entry.result] ?? 'bg-muted-foreground')}
+                    />
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <p className="text-sm">
+                        <span className="font-medium">{entry.actorNama ?? 'Sistem'}</span>{' '}
+                        <span className="text-muted-foreground">{entry.description ?? entry.action}</span>
+                      </p>
+                      <time dateTime={entry.ts} title={formatDateTimeWITA(entry.ts)} className="text-xs text-muted-foreground">
+                        {formatRelative(entry.ts)}
+                        {entry.result !== 'SUCCESS' ? ` · ${entry.result}` : ''}
+                      </time>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Keamanan akun</CardTitle>
+            <CardDescription>Akun yang masih memakai password default.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col gap-3">
+            <p className="flex items-baseline gap-2">
+              <span className="text-2xl font-semibold tabular-nums">{pegawai.passwordDefault}</span>
+              <span className="text-sm text-muted-foreground">dari {pegawai.total} akun</span>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Password default (6 digit terakhir NIP) mudah ditebak. Ingatkan pegawai untuk menggantinya.
+            </p>
+            {pegawai.passwordDefault > 0 ? (
+              <Button asChild variant="outline" size="sm" className="mt-auto w-fit">
+                <Link to="/admin/pegawai?passwordDefault=true">
+                  <KeyRound data-icon="inline-start" />
+                  Lihat daftar
+                </Link>
+              </Button>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function KpiLink({
+  to,
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone,
+}: {
+  to: string;
+  label: string;
+  value: number;
+  hint: string;
+  icon: LucideIcon;
+  tone?: string;
+}) {
+  return (
+    <Link to={to} className="group block h-full rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+      <Card size="sm" className="h-full transition-colors group-hover:bg-muted/50">
+        <CardHeader>
+          <CardDescription>{label}</CardDescription>
+          <CardTitle className={cn('text-2xl font-semibold tabular-nums', tone)}>{value}</CardTitle>
+          <CardAction>
+            <Icon aria-hidden="true" className="size-4 text-muted-foreground" />
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+            {hint}
+            <ChevronRight aria-hidden="true" className="size-3.5 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 

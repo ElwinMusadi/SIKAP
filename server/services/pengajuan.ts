@@ -61,8 +61,49 @@ function sameValue(a: unknown, b: unknown): boolean {
   return norm(a) === norm(b);
 }
 
-function asnFamily(status: StatusKepegawaian): 'PNS' | 'PPPK' {
+export function asnFamily(status: StatusKepegawaian): 'PNS' | 'PPPK' {
   return status === 'PPPK' ? 'PPPK' : 'PNS';
+}
+
+export const PANGKAT_ISSUE_MESSAGES = {
+  mismatch: MSG_PANGKAT_MISMATCH,
+  required: MSG_PANGKAT_REQUIRED,
+} as const;
+
+/**
+ * Pangkat family vs status kepegawaian (CPNS/PNS → PNS list, PPPK → PPPK list), shared by
+ * pengajuan and the admin Master Data form.
+ *  - `desiredPangkat` string: its (active) reference must exist and fit the effective status
+ *    (desired status, else current) → otherwise 'mismatch'.
+ *  - `desiredPangkat` undefined while the status changes ASN family: the current pangkat must
+ *    fit the new status → otherwise 'required' (the user must pick a new pangkat).
+ *  - `desiredPangkat` null (clearing it) is always fine.
+ */
+export function pangkatStatusIssue(input: {
+  desiredStatus: StatusKepegawaian | undefined;
+  desiredPangkat: string | null | undefined;
+  currentStatus: StatusKepegawaian | null;
+  /** Active reference row for `desiredPangkat` (null when missing/inactive or not requested). */
+  pangkatRef: { jenis_asn: 'PNS' | 'PPPK' } | null;
+  /** Reference row of the CURRENT pangkat (null when none). */
+  currentPangkat: { jenis_asn: 'PNS' | 'PPPK' } | null;
+}): keyof typeof PANGKAT_ISSUE_MESSAGES | null {
+  const { desiredStatus, desiredPangkat, currentStatus, pangkatRef, currentPangkat } = input;
+  const effectiveStatus = desiredStatus ?? currentStatus;
+  if (desiredPangkat !== null && desiredPangkat !== undefined) {
+    if (!pangkatRef || (effectiveStatus && pangkatRef.jenis_asn !== asnFamily(effectiveStatus))) return 'mismatch';
+    return null;
+  }
+  if (
+    desiredStatus !== undefined &&
+    desiredPangkat === undefined &&
+    (currentStatus === null || asnFamily(currentStatus) !== asnFamily(desiredStatus)) &&
+    currentPangkat &&
+    currentPangkat.jenis_asn !== asnFamily(desiredStatus)
+  ) {
+    return 'required';
+  }
+  return null;
 }
 
 function currentValue(row: Record<string, unknown>, field: KepegawaianField): KepegawaianValue {
@@ -129,22 +170,15 @@ export async function createPengajuan(
   const pangkatRef = pangkatKode !== null ? first<{ kode: string; jenis_asn: 'PNS' | 'PPPK' }>(results[3]) : null;
   const unitRef = unitId !== null ? first<{ id: number }>(results[pangkatKode !== null ? 4 : 3]) : null;
 
-  const effectiveStatus: StatusKepegawaian | null = desired.statusKepegawaian ?? row.status_kepegawaian;
   const fieldErrors: Record<string, string> = {};
-  if (pangkatKode !== null) {
-    if (!pangkatRef || (effectiveStatus && pangkatRef.jenis_asn !== asnFamily(effectiveStatus))) {
-      fieldErrors['perubahan.pangkatKode'] = MSG_PANGKAT_MISMATCH;
-    }
-  } else if (
-    desired.statusKepegawaian !== undefined &&
-    desired.pangkatKode === undefined &&
-    (row.status_kepegawaian === null ||
-      asnFamily(row.status_kepegawaian) !== asnFamily(desired.statusKepegawaian)) &&
-    currentPangkat &&
-    currentPangkat.jenis_asn !== asnFamily(desired.statusKepegawaian)
-  ) {
-    fieldErrors['perubahan.pangkatKode'] = MSG_PANGKAT_REQUIRED;
-  }
+  const pangkatIssue = pangkatStatusIssue({
+    desiredStatus: desired.statusKepegawaian,
+    desiredPangkat: desired.pangkatKode,
+    currentStatus: row.status_kepegawaian,
+    pangkatRef,
+    currentPangkat,
+  });
+  if (pangkatIssue) fieldErrors['perubahan.pangkatKode'] = PANGKAT_ISSUE_MESSAGES[pangkatIssue];
   if (unitId !== null && !unitRef) fieldErrors['perubahan.unitId'] = 'Unit organisasi tidak valid.';
   if (Object.keys(fieldErrors).length) throw errors.validation(fieldErrors);
 

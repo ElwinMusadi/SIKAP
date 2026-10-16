@@ -289,7 +289,7 @@ function ProfilContent({ data, refData, refLoading }: ProfilContentProps) {
           if (firstField) setTab(tabForField(firstField));
           return;
         }
-        if (isApiError(error, 'CONFLICT')) {
+        if (isApiError(error, 'CONFLICT') && error.fields?.nik) {
           form.setError('nik', { message: error.message || 'NIK sudah digunakan oleh pegawai lain.' }, { shouldFocus: true });
           setTab('identitas');
           return;

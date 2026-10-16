@@ -599,9 +599,16 @@ Deploy remote Fase 5 dan pengiriman WhatsApp sungguhan masih belum dilakukan.
 - [ ] Terapkan migrasi `0005_outbox_leases.sql` ke D1 preview sebelum deploy Fase 5; pasang secret cron sama dengan Pages per environment. Uji pengiriman riil membutuhkan provider valid dan nomor admin.
 
 ### Fase 6 — Admin Master Data (4–5 hari)
-- [ ] CRUD pegawai (akun dibuat dengan password default 6 digit terakhir NIP, `is_default_password=1`), status (cabut sesi), reset password ke default, soft delete 7 hari + restore + purge cron (D1 + R2), foto, dokumen pegawai.
-- [ ] Query list dengan agregat kelengkapan dalam satu SQL (CTE), filter "belum unggah X", paging dan sorting server-side.
-- [ ] UI tabel + Sheet form + AlertDialog + halaman detail.
+Validasi (16 Okt 2026): **262 test API, 90 test web**, typecheck/lint/build lulus; e2e API asli
+22/22 dan browser Chromium 11/11 (termasuk hapus dari halaman detail dan pulihkan dari tab
+Terhapus). Review: APPROVE WITH CHANGES, 0 Critical/High; 2 Medium + 4 Low diperbaiki.
+
+- [x] CRUD pegawai (akun dibuat dengan password default 6 digit terakhir NIP, `is_default_password=1`), status (cabut sesi), reset password ke default, buka kunci, soft delete 7 hari + restore, dokumen pegawai (lihat saja). Aturan admin aktif terakhir dijaga atomik di SQL.
+- [x] Query list dengan agregat kelengkapan dalam satu SQL (CTE), filter "belum unggah X" dan "masih password default", paging dan sorting server-side (whitelist).
+- [x] UI tabel + Sheet form + AlertDialog + halaman detail; dashboard admin di Beranda.
+- [x] Error 409 membawa kunci `fields` (`nip` | `nik` | `stale`); klien tidak lagi mencocokkan teks pesan.
+- [ ] Purge permanen pegawai (D1 + R2) setelah 7 hari → cron Fase 7. NIP/NIK pegawai terhapus tetap terkunci sampai purge.
+- [ ] Upload foto pegawai oleh admin (belum dicakup; pegawai mengunggah sendiri dari Profil).
 
 ### Fase 7 — Log, Pengaturan, Referensi, Backup (3 hari)
 - [ ] Log cursor + filter. Halaman pengaturan (WA terenkripsi, notifikasi, referensi, jenis dokumen + matriks wajib).

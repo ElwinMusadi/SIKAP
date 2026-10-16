@@ -318,18 +318,26 @@ export interface Pengajuan {
  * pangkat vs status (PPPK ↔ PPPK list) and references. 409 CONFLICT if a pending
  * request already exists. 400 if nothing actually changes.
  */
+/**
+ * Employment fields (one definition, shared by pengajuan and the admin Master Data form
+ * in shared/pegawai.ts so both sides validate identically).
+ */
+export const kepegawaianFieldsSchema = z.object({
+  statusKepegawaian: z.enum(STATUS_KEPEGAWAIAN),
+  pangkatKode: z.string().trim().min(1).max(16).nullable(),
+  tmtPangkat: isoDate.nullable(),
+  jabatan: z.string().trim().min(1, 'Jabatan wajib diisi.').max(150).nullable(),
+  jenisJabatan: z.enum(JENIS_JABATAN).nullable(),
+  tmtJabatan: isoDate.nullable(),
+  unitId: z.number().int().positive().nullable(),
+});
+
+/** Personal + contact fields (the employee-editable whitelist), reused by the admin form. */
+export const profilFieldsSchema = updateProfileRequestSchema;
+
 export const createPengajuanRequestSchema = z
   .object({
-    perubahan: z
-      .object({
-        statusKepegawaian: z.enum(STATUS_KEPEGAWAIAN),
-        pangkatKode: z.string().trim().min(1).max(16).nullable(),
-        tmtPangkat: isoDate.nullable(),
-        jabatan: z.string().trim().min(1, 'Jabatan wajib diisi.').max(150).nullable(),
-        jenisJabatan: z.enum(JENIS_JABATAN).nullable(),
-        tmtJabatan: isoDate.nullable(),
-        unitId: z.number().int().positive().nullable(),
-      })
+    perubahan: kepegawaianFieldsSchema
       .partial()
       .strict()
       .refine((v) => Object.keys(v).length > 0, 'Pilih minimal satu data yang ingin diubah.'),

@@ -21,7 +21,7 @@ export type ApiErrorCode =
   | 'FORBIDDEN' // 403 — authenticated but role/ownership denies access
   | 'CSRF_REJECTED' // 403 — Origin header mismatch on unsafe method
   | 'NOT_FOUND' // 404
-  | 'CONFLICT' // 409
+  | 'CONFLICT' // 409 — `fields` may name the conflicting field ('nip' | 'nik') or reason ('stale')
   | 'RATE_LIMITED' // 429
   | 'INTERNAL_ERROR'; // 500 — never leaks internals
 

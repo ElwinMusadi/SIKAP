@@ -2,6 +2,13 @@ import { Hono, type Context } from 'hono';
 import type { AdminPengajuanListResponse, PengajuanResponse } from '../../shared/profile';
 import type { DokumenListResponse } from '../../shared/dokumen';
 import type {
+  AccountActionResponse,
+  AdminDashboardResponse,
+  DeletePegawaiResponse,
+  PegawaiDetailResponse,
+  PegawaiListResponse,
+} from '../../shared/pegawai';
+import type {
   DecisionResponse,
   NotifSettings,
   TestWhatsAppResponse,
@@ -15,6 +22,7 @@ import { readJson } from '../lib/validation';
 import { getAuth, requireRole, requireSession } from '../middleware/session';
 import * as dokumenService from '../services/dokumen';
 import { deferBackground, flushOutbox } from '../services/notifikasi';
+import * as pegawaiService from '../services/pegawai';
 import * as pengajuanService from '../services/pengajuan';
 import * as pengaturanService from '../services/pengaturan';
 import * as verifikasiService from '../services/verifikasi';
@@ -30,6 +38,64 @@ async function readOptionalJson(c: Context<AppEnv>): Promise<unknown> {
   if (len === '0' || (!len && !c.req.header('Content-Type'))) return {};
   return readJson(c.req);
 }
+
+// ---------------------------------------------------------------------------
+// Phase 6: Master Data Pegawai (contract: shared/pegawai.ts)
+// ---------------------------------------------------------------------------
+
+adminRoutes.get('/pegawai', async (c) => {
+  return c.json<PegawaiListResponse>(await pegawaiService.listPegawai(c.env, c.req.query(), requestMeta(c)));
+});
+
+adminRoutes.post('/pegawai', async (c) => {
+  const body = await readJson(c.req);
+  return c.json<PegawaiDetailResponse>(await pegawaiService.createPegawai(c.env, getAuth(c), body, requestMeta(c)), 201);
+});
+
+adminRoutes.get('/pegawai/:id', async (c) => {
+  return c.json<PegawaiDetailResponse>(await pegawaiService.getPegawaiDetail(c.env, c.req.param('id'), requestMeta(c)));
+});
+
+adminRoutes.patch('/pegawai/:id', async (c) => {
+  const body = await readJson(c.req);
+  return c.json<PegawaiDetailResponse>(
+    await pegawaiService.updatePegawai(c.env, getAuth(c), c.req.param('id'), body, requestMeta(c)),
+  );
+});
+
+adminRoutes.post('/pegawai/:id/status', async (c) => {
+  const body = await readJson(c.req);
+  return c.json<AccountActionResponse>(
+    await pegawaiService.setStatusAkun(c.env, getAuth(c), c.req.param('id'), body, requestMeta(c)),
+  );
+});
+
+adminRoutes.post('/pegawai/:id/reset-password', async (c) => {
+  return c.json<AccountActionResponse>(
+    await pegawaiService.resetPassword(c.env, getAuth(c), c.req.param('id'), requestMeta(c)),
+  );
+});
+
+adminRoutes.post('/pegawai/:id/unlock', async (c) => {
+  return c.json<AccountActionResponse>(
+    await pegawaiService.unlockAccount(c.env, getAuth(c), c.req.param('id'), requestMeta(c)),
+  );
+});
+
+adminRoutes.delete('/pegawai/:id', async (c) => {
+  return c.json<DeletePegawaiResponse>(
+    await pegawaiService.softDelete(c.env, getAuth(c), c.req.param('id'), requestMeta(c)),
+  );
+});
+
+adminRoutes.post('/pegawai/:id/restore', async (c) => {
+  return c.json<AccountActionResponse>(await pegawaiService.restore(c.env, getAuth(c), c.req.param('id'), requestMeta(c)));
+});
+
+adminRoutes.get('/dashboard', async (c) => {
+  // Cache-Control: no-store is the app-wide default for API responses.
+  return c.json<AdminDashboardResponse>(await pegawaiService.getAdminDashboard(c.env));
+});
 
 adminRoutes.get('/pegawai/:id/documents', async (c) => {
   const id = dokumenService.parseId(c.req.param('id'));

@@ -146,7 +146,7 @@ export async function updateProfile(
     if (input.pendidikanKode != null && !results[i++]?.results?.length) {
       throw errors.validation({ pendidikanKode: 'Pendidikan tidak valid.' });
     }
-    if (input.nik != null && results[i]?.results?.length) throw errors.conflict(nikConflict);
+    if (input.nik != null && results[i]?.results?.length) throw errors.conflict(nikConflict, 'nik');
   }
 
   const nowIso = toIso(meta.nowMs);
@@ -179,7 +179,7 @@ export async function updateProfile(
   try {
     results = await db.batch([update, audit, selectPegawaiById(db, id), selectPendingPengajuan(db, id)]);
   } catch (err) {
-    if (isUniqueNikError(err)) throw errors.conflict(nikConflict);
+    if (isUniqueNikError(err)) throw errors.conflict(nikConflict, 'nik');
     throw err;
   }
   const row = (results[2]?.results?.[0] as PegawaiRow | undefined) ?? null;
