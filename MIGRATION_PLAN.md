@@ -37,7 +37,7 @@
 | Limit (Free) | Nilai | Dampak dan mitigasi |
 |---|---|---|
 | Request Functions | 100.000/hari | Aset statis tidak dihitung. ±200 pegawai × ±100 request/hari masih jauh di bawah limit |
-| **CPU time** | **10 ms/request** | PBKDF2-SHA256 **10k iterasi** (keputusan #2) + HMAC pepper. Ukur di preview deploy untuk memastikan login < 10 ms CPU. Hindari parsing JSON besar dan PDF di server |
+| **CPU time** | **10 ms/request** | PBKDF2-SHA256 **10k iterasi** (keputusan #2) + HMAC pepper. **Terukur di edge Cloudflare (16 Okt 2026, colo SIN, Worker sementara)**: 1 hash = **3–4 ms CPU**, 2 hash = **6–7 ms** (sesekali 11–13 ms), 4 hash = 11 ms, 8 hash = 19–36 ms — semua request tetap sukses karena Workers memberi kelonggaran untuk lonjakan sesekali. Login (1 hash) aman; ganti password (2 hash) mendekati batas tapi tetap lolos. Jangan menambah hash ketiga dalam satu request. Hindari parsing JSON besar dan PDF di server |
 | Subrequest / query D1 | 50/request | Gunakan `db.batch()`, hindari N+1 |
 | D1 | 500 MB/DB, 5 juta baris dibaca/hari, 100.000 baris ditulis/hari, Time Travel 7 hari | Wajib pakai indeks. Log harus di-paginate. Backup tambahan ke R2 |
 | R2 | 10 GB, 1 juta Class A, 10 juta Class B per bulan, egress gratis | Estimasi 200 pegawai × 11 dokumen × ±1 MB ≈ 2,2 GB. Kompres gambar di client |
@@ -554,22 +554,24 @@ Sistem lama tetap berjalan beberapa minggu, sehingga celah kritis harus ditutup 
 - [ ] Buat salinan manual spreadsheet sebelum hotfix.
 
 ### Fase 1 — Fondasi (3–4 hari)
-- [ ] Pindahkan kode lama ke `legacy-gas/`. Init Vite React 19 TS, Tailwind v4, `shadcn init`, ESLint + Prettier, path alias `@/`.
-- [ ] Hono di `functions/api/[[route]].ts`, middleware error handler, `GET /api/health`.
-- [ ] Buat D1 `sikap-db` + `sikap-db-preview`, R2 `sikap-files` (+preview, +backup). `migrations/0001_init.sql`, `0002_seed_ref.sql` (referensi + jenis dokumen).
-- [ ] `shared/` berisi enum dan schema zod.
-- [ ] Verifikasi CPU login (PBKDF2 10k + pepper) di preview deploy < 10 ms (Workers Logs).
-- [ ] CI GitHub Actions: `typecheck`, `lint`, `vitest`, `vite build`. Cloudflare Pages Git integration (preview per PR). Hapus workflow `gas-deploy.yml` setelah cutover.
+- [x] Pindahkan kode lama ke `legacy-gas/`. Init Vite React 19 TS, Tailwind v4, `shadcn init`, ESLint, path alias `@/`.
+- [x] Hono di `functions/api/[[route]].ts`, middleware error handler, `GET /api/health`.
+- [x] `migrations/0001_init.sql`, `0002_seed_reference.sql` (referensi + jenis dokumen + matriks wajib).
+- [x] `shared/` berisi enum dan schema zod.
+- [x] Verifikasi CPU login (PBKDF2 10k + pepper) di edge: 3–4 ms/hash (lihat §0.2).
+- [ ] **Prasyarat pemilik akun:** aktifkan R2 di dashboard Cloudflare (akun saat ini mengembalikan error `10042 Please enable R2`). Diperlukan sebelum deploy preview Fase 3 (foto) dan Fase 4 (dokumen).
+- [ ] Buat project Pages **baru** untuk preview (mis. `sikap-v2`) — project `sikap` yang ada melayani produksi GAS di `sikap.uptdpenda-kupang.web.id` dan tidak boleh disentuh sampai cutover. D1 Free: 6 dari 10 database terpakai; SIKAP butuh 2 (`sikap-db`, `sikap-db-preview`).
+- [x] CI GitHub Actions: `typecheck`, `lint`, `vitest`, `vite build`. *(Belum: Pages Git integration — menunggu project preview baru.)* Cloudflare Pages Git integration (preview per PR). Hapus workflow `gas-deploy.yml` setelah cutover.
 
 ### Fase 2 — Auth & Shell (3–4 hari)
-- [ ] API `auth/*`, middleware sesi, `requireRole`, cek Origin, lockout, audit login.
-- [ ] UI: Login, AppShell (sidebar/drawer/bottom-nav), guard route per role, banner password default, halaman Akun (ganti password, sesi aktif).
-- [ ] Test: login sukses/gagal/terkunci/nonaktif, sesi kedaluwarsa (401 → redirect), pencabutan sesi.
+- [x] API `auth/*`, middleware sesi, `requireRole`, cek Origin, lockout, audit login.
+- [x] UI: Login, AppShell (sidebar/drawer/bottom-nav), guard route per role, banner password default, halaman Akun (ganti password, sesi aktif).
+- [x] Test: login sukses/gagal/terkunci/nonaktif, sesi kedaluwarsa (401 → redirect), pencabutan sesi.
 
 ### Fase 3 — Profil & Dashboard Pegawai (3–4 hari)
-- [ ] `GET/PATCH /me/profile` (whitelist), `PUT /me/photo` (sniff, resize di client), `GET /ref`, `GET /me/dashboard`.
-- [ ] UI Profil bertab + DatePicker + crop foto + dirty guard. Dashboard pegawai.
-- [ ] Pengajuan perubahan data kepegawaian: `POST/GET/DELETE /me/pengajuan` + Dialog di tab Kepegawaian; antrean admin `/admin/pengajuan` (approve menerapkan perubahan atomik).
+- [x] `GET/PATCH /me/profile` (whitelist), `PUT /me/photo` (sniff, resize di client), `GET /ref`, `GET /me/dashboard`.
+- [x] UI Profil bertab + DatePicker + crop foto + dirty guard. Dashboard pegawai.
+- [x] Pengajuan perubahan data kepegawaian: `POST/GET/DELETE /me/pengajuan` + Dialog di tab Kepegawaian; antrean admin `/admin/pengajuan` (approve menerapkan perubahan atomik).
 
 ### Fase 4 — Dokumen & R2 (4–5 hari)
 - [ ] Upload multipart (magic bytes, SHA-256, nama otomatis, versi, urutan tulis yang aman), `GET` metadata/stream, delete (soft, 3 hari), riwayat.

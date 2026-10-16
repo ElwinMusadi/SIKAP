@@ -67,7 +67,10 @@ const router = createBrowserRouter([
                 index: true,
                 lazy: async () => ({ Component: (await import('./features/beranda/beranda-page')).default }),
               },
-              comingSoon('profil', 'Profil Pegawai', 'Fase 3'),
+              {
+                path: 'profil',
+                lazy: async () => ({ Component: (await import('./features/profil/profil-page')).default }),
+              },
               comingSoon('dokumen', 'Arsip Dokumen', 'Fase 4'),
               {
                 path: 'akun',
@@ -79,7 +82,12 @@ const router = createBrowserRouter([
                 children: [
                   comingSoon('pegawai', 'Master Data Pegawai', 'Fase 6'),
                   comingSoon('verifikasi', 'Verifikasi Dokumen', 'Fase 5'),
-                  comingSoon('pengajuan', 'Pengajuan Perubahan', 'Fase 3'),
+                  {
+                    path: 'pengajuan',
+                    lazy: async () => ({
+                      Component: (await import('./features/pengajuan/admin-pengajuan-page')).default,
+                    }),
+                  },
                   comingSoon('log', 'Log Aktivitas', 'Fase 7'),
                   comingSoon('jenis-dokumen', 'Jenis Dokumen', 'Fase 7'),
                   comingSoon('pengaturan', 'Pengaturan Sistem', 'Fase 7'),

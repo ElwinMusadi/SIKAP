@@ -161,6 +161,98 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   throw error;
 }
 
+// ---------------------------------------------------------------------------
+// Multipart upload (XHR for upload progress)
+// ---------------------------------------------------------------------------
+
+interface UploadOptions {
+  method?: 'POST' | 'PUT';
+  signal?: AbortSignal;
+  /** Upload progress 0..100. */
+  onProgress?: (percent: number) => void;
+}
+
+function parseJson(text: string): unknown {
+  if (!text) return undefined;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
+
+/** Sends FormData (browser sets the multipart boundary). Same error envelope and session handling as api(). */
+export function apiUpload<T>(path: string, formData: FormData, options: UploadOptions = {}): Promise<T> {
+  const { method = 'PUT', signal, onProgress } = options;
+
+  return new Promise<T>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, API_BASE + path);
+    xhr.withCredentials = false; // same-origin: cookies are sent automatically
+    xhr.setRequestHeader('Accept', 'application/json');
+
+    const onAbort = () => xhr.abort();
+    signal?.addEventListener('abort', onAbort, { once: true });
+    const cleanup = () => signal?.removeEventListener('abort', onAbort);
+
+    if (onProgress) {
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+      });
+    }
+
+    xhr.addEventListener('abort', () => {
+      cleanup();
+      reject(new DOMException('Aborted', 'AbortError'));
+    });
+    xhr.addEventListener('error', () => {
+      cleanup();
+      reject(new ApiError({ status: 0, code: 'NETWORK_ERROR', message: FALLBACK_MESSAGES.NETWORK_ERROR, path }));
+    });
+    xhr.addEventListener('load', () => {
+      cleanup();
+      const type = xhr.getResponseHeader('content-type') ?? '';
+      const data = type.includes('application/json') ? parseJson(xhr.responseText) : undefined;
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve((xhr.status === 204 ? undefined : data) as T);
+        return;
+      }
+
+      const retryAfter = parseRetryAfter(xhr.getResponseHeader('retry-after'));
+      const fallbackCode = codeFromStatus(xhr.status);
+      const error = isErrorBody(data)
+        ? new ApiError({
+            status: xhr.status,
+            code: data.error.code,
+            message: data.error.message || FALLBACK_MESSAGES[data.error.code],
+            path,
+            fields: data.error.fields,
+            retryAfterSeconds: data.error.retryAfterSeconds ?? retryAfter,
+          })
+        : new ApiError({
+            status: xhr.status,
+            code: fallbackCode,
+            message: FALLBACK_MESSAGES[fallbackCode],
+            path,
+            retryAfterSeconds: retryAfter,
+          });
+
+      if (error.code === 'SESSION_EXPIRED' && !SESSION_PROBE_PATHS.has(path)) {
+        sessionExpiredListener?.(error);
+      }
+      reject(error);
+    });
+
+    xhr.send(formData);
+  });
+}
+
 /** User-facing message for any thrown value. Never exposes non-API internals. */
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message || FALLBACK_MESSAGES[error.code];

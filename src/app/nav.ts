@@ -18,6 +18,8 @@ export interface NavItem {
   to: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  /** Live count rendered as a SidebarMenuBadge (resolved in app-shell). */
+  badgeKey?: 'pengajuanMenunggu';
 }
 
 export interface NavGroup {
@@ -41,7 +43,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Master Data Pegawai', to: '/admin/pegawai', icon: Users },
       { label: 'Verifikasi Dokumen', to: '/admin/verifikasi', icon: ClipboardCheck },
-      { label: 'Pengajuan Perubahan', to: '/admin/pengajuan', icon: FilePen },
+      { label: 'Pengajuan Perubahan', to: '/admin/pengajuan', icon: FilePen, badgeKey: 'pengajuanMenunggu' },
       { label: 'Log Aktivitas', to: '/admin/log', icon: ScrollText },
       { label: 'Jenis Dokumen', to: '/admin/jenis-dokumen', icon: FileStack },
     ],

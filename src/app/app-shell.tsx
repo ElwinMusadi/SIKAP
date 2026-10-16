@@ -4,7 +4,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import type { SessionUser } from '@shared/api';
 import logoNtt from '@/assets/logo-ntt.webp';
-import { isNavItemActive, navGroupsForRole, titleForPath } from '@/app/nav';
+import { isNavItemActive, navGroupsForRole, titleForPath, type NavItem } from '@/app/nav';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -46,6 +46,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
@@ -54,6 +55,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Spinner } from '@/components/ui/spinner';
 import { useLogout, useMe } from '@/features/auth/queries';
+import { useAdminPengajuan } from '@/features/profil/queries';
 import { errorMessage } from '@/lib/api';
 import { initials } from '@/lib/format';
 
@@ -76,6 +78,11 @@ function UserAvatar({ user, className }: { user: SessionUser; className?: string
 function AppSidebar({ user }: { user: SessionUser }) {
   const { pathname } = useLocation();
   const groups = navGroupsForRole(user.role);
+  const isAdmin = user.role === 'Admin';
+  const pengajuanQuery = useAdminPengajuan('Menunggu', isAdmin);
+  const badges: Record<NonNullable<NavItem['badgeKey']>, number> = {
+    pengajuanMenunggu: pengajuanQuery.data?.counts.Menunggu ?? 0,
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -103,14 +110,21 @@ function AppSidebar({ user }: { user: SessionUser }) {
               <SidebarMenu>
                 {group.items.map((item) => {
                   const active = isNavItemActive(item.to, pathname);
+                  const badge = item.badgeKey ? badges[item.badgeKey] : 0;
                   return (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
                         <NavLink to={item.to} end={item.to === '/'} aria-current={active ? 'page' : undefined}>
                           <item.icon />
                           <span>{item.label}</span>
+                          {badge > 0 ? <span className="sr-only">({badge} menunggu)</span> : null}
                         </NavLink>
                       </SidebarMenuButton>
+                      {badge > 0 ? (
+                        <SidebarMenuBadge aria-hidden="true" className="bg-primary text-primary-foreground peer-data-active/menu-button:text-primary-foreground peer-hover/menu-button:text-primary-foreground">
+                          {badge > 99 ? '99+' : badge}
+                        </SidebarMenuBadge>
+                      ) : null}
                     </SidebarMenuItem>
                   );
                 })}

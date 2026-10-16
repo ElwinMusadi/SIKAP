@@ -1,5 +1,6 @@
 import type { SessionUser } from '../../shared/api';
 import type { AuthUser } from '../env';
+import { photoUrl } from '../lib/photo-url';
 
 interface UserLikeRow {
   id: number;
@@ -34,7 +35,7 @@ export function toSessionUser(user: AuthUser): SessionUser {
     role: user.role,
     statusKepegawaian: user.statusKepegawaian,
     jabatan: user.jabatan,
-    fotoUrl: user.fotoR2Key ? `/api/pegawai/${user.id}/photo` : null,
+    fotoUrl: user.fotoR2Key ? photoUrl(user.id, user.fotoR2Key) : null,
     isDefaultPassword: user.isDefaultPassword,
   };
 }

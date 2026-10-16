@@ -43,7 +43,7 @@ describe('POST /api/auth/login', () => {
       role: 'Pegawai',
       statusKepegawaian: 'PNS',
       jabatan: 'Penguji',
-      fotoUrl: `/api/pegawai/${user.id}/photo`,
+      fotoUrl: `/api/pegawai/${user.id}/photo?v=x.webp`,
       isDefaultPassword: true,
     });
 

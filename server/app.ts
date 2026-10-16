@@ -4,8 +4,12 @@ import type { AppEnv } from './env';
 import { errors } from './lib/errors';
 import { csrfProtection } from './middleware/csrf';
 import { notFound, onError } from './middleware/error-handler';
+import { adminRoutes } from './routes/admin';
 import { authRoutes } from './routes/auth';
 import { healthRoutes } from './routes/health';
+import { meRoutes } from './routes/me';
+import { pegawaiRoutes } from './routes/pegawai';
+import { refRoutes } from './routes/ref';
 
 export const AUTH_BODY_LIMIT_BYTES = 16 * 1024;
 
@@ -18,23 +22,30 @@ export function createApp() {
 
   app.use('*', async (c, next) => {
     await next();
-    // API responses are per-user and must never be cached by browsers or proxies.
-    c.header('Cache-Control', 'no-store');
+    // API responses are per-user and must never be cached by browsers or proxies,
+    // unless a route opted into a private cache explicitly (ref data, photos).
+    if (!c.res.headers.has('Cache-Control')) c.header('Cache-Control', 'no-store');
     c.header('X-Content-Type-Options', 'nosniff');
   });
   app.use('*', csrfProtection);
-  // Auth payloads are tiny; reject oversized bodies before parsing. Reported as
+  // JSON payloads are tiny; reject oversized bodies before parsing. Reported as
   // 400 VALIDATION_ERROR to stay within the shared ApiErrorCode contract.
-  app.use(
-    '/auth/*',
-    bodyLimit({
-      maxSize: AUTH_BODY_LIMIT_BYTES,
-      onError: (c) => c.json(errors.validation(undefined, 'Ukuran permintaan terlalu besar.').toBody(), 400),
-    }),
-  );
+  const smallBody = bodyLimit({
+    maxSize: AUTH_BODY_LIMIT_BYTES,
+    onError: (c) => c.json(errors.validation(undefined, 'Ukuran permintaan terlalu besar.').toBody(), 400),
+  });
+  app.use('/auth/*', smallBody);
+  app.use('/me/profile', smallBody);
+  app.use('/me/pengajuan', smallBody);
+  app.use('/me/pengajuan/*', smallBody);
+  app.use('/admin/*', smallBody);
 
   app.route('/health', healthRoutes);
   app.route('/auth', authRoutes);
+  app.route('/ref', refRoutes);
+  app.route('/me', meRoutes);
+  app.route('/pegawai', pegawaiRoutes);
+  app.route('/admin', adminRoutes);
 
   app.notFound(notFound);
   app.onError(onError);
