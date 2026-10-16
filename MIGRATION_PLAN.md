@@ -557,11 +557,13 @@ Sistem lama tetap berjalan beberapa minggu, sehingga celah kritis harus ditutup 
 - [x] Pindahkan kode lama ke `legacy-gas/`. Init Vite React 19 TS, Tailwind v4, `shadcn init`, ESLint, path alias `@/`.
 - [x] Hono di `functions/api/[[route]].ts`, middleware error handler, `GET /api/health`.
 - [x] `migrations/0001_init.sql`, `0002_seed_reference.sql` (referensi + jenis dokumen + matriks wajib).
+- [x] Buat D1 `sikap-db` + `sikap-db-preview` (lokasi APAC), R2 `sikap-files`, `sikap-files-preview`, `sikap-backup` (privat, akses publik r2.dev nonaktif) — 16 Okt 2026. Migrasi sudah diterapkan ke `sikap-db-preview`; `sikap-db` (produksi) masih kosong sampai cutover.
 - [x] `shared/` berisi enum dan schema zod.
 - [x] Verifikasi CPU login (PBKDF2 10k + pepper) di edge: 3–4 ms/hash (lihat §0.2).
-- [ ] **Prasyarat pemilik akun:** aktifkan R2 di dashboard Cloudflare (akun saat ini mengembalikan error `10042 Please enable R2`). Diperlukan sebelum deploy preview Fase 3 (foto) dan Fase 4 (dokumen).
-- [ ] Buat project Pages **baru** untuk preview (mis. `sikap-v2`) — project `sikap` yang ada melayani produksi GAS di `sikap.uptdpenda-kupang.web.id` dan tidak boleh disentuh sampai cutover. D1 Free: 6 dari 10 database terpakai; SIKAP butuh 2 (`sikap-db`, `sikap-db-preview`).
-- [x] CI GitHub Actions: `typecheck`, `lint`, `vitest`, `vite build`. *(Belum: Pages Git integration — menunggu project preview baru.)* Cloudflare Pages Git integration (preview per PR). Hapus workflow `gas-deploy.yml` setelah cutover.
+- [x] R2 diaktifkan pemilik akun (16 Okt 2026).
+- [x] Project Pages **baru** `sikap-v2` dibuat; preview `https://feat-cloudflare-migration.sikap-v2.pages.dev` (D1/R2 preview + secret per environment). CPU nyata di edge: login 4 ms (13 ms saat cold start), ganti password 7–12 ms, dashboard 2–3 ms. Catatan asal: buat project Pages **baru** untuk preview (mis. `sikap-v2`) — project `sikap` yang ada melayani produksi GAS di `sikap.uptdpenda-kupang.web.id` dan tidak boleh disentuh sampai cutover. D1 Free: 6 dari 10 database terpakai; SIKAP butuh 2 (`sikap-db`, `sikap-db-preview`).
+- [x] CI GitHub Actions: `typecheck`, `lint`, `vitest`, `vite build`.
+- [ ] Deploy preview saat ini manual (`npm run deploy:preview`, Direct Upload). Opsional: hubungkan Git integration di `sikap-v2` untuk preview otomatis per branch/PR. Hapus workflow `gas-deploy.yml` setelah cutover.
 
 ### Fase 2 — Auth & Shell (3–4 hari)
 - [x] API `auth/*`, middleware sesi, `requireRole`, cek Origin, lockout, audit login.

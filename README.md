@@ -53,14 +53,30 @@ Akun contoh hanya untuk pengembangan lokal; password = 6 digit terakhir NIP (lih
 | `npm run build` | Typecheck + build produksi ke `dist/` |
 | `npm run typecheck` / `npm run lint` / `npm test` | Kualitas kode |
 | `npm run db:migrate:local` | Terapkan migrasi D1 lokal |
+| `npm run db:migrate:preview` | Terapkan migrasi ke D1 preview (remote) |
+| `npm run deploy:preview` | Build + deploy ke preview `sikap-v2` |
 
 ## Deployment (Cloudflare Pages)
 
-1. Buat resource: `wrangler d1 create sikap-db`, `wrangler r2 bucket create sikap-files` (ulangi dengan sufiks `-preview`), lalu isi `database_id` di `wrangler.toml`.
-2. Secrets per environment: `wrangler pages secret put PASSWORD_PEPPER` dan `SETTINGS_ENC_KEY`.
-3. Hubungkan repo ke Cloudflare Pages: build command `npm run build`, output `dist`.
-4. Terapkan migrasi ke remote: `wrangler d1 migrations apply sikap-db --remote`.
-5. Tambahkan aturan WAF Rate Limiting untuk `/api/auth/login`.
+Project Pages: **`sikap-v2`** (bukan `sikap` — project `sikap` masih melayani sistem GAS produksi sampai cutover).
+
+| Environment | URL | D1 | R2 |
+|---|---|---|---|
+| Preview (branch `feat/cloudflare-migration`) | https://feat-cloudflare-migration.sikap-v2.pages.dev | `sikap-db-preview` | `sikap-files-preview` |
+| Production (branch `main`, setelah cutover) | https://sikap.uptdpenda-kupang.web.id | `sikap-db` | `sikap-files` |
+
+Backup: bucket R2 `sikap-backup`. Semua bucket privat (akses publik `r2.dev` nonaktif).
+
+Langkah deploy preview:
+
+1. `npm run db:migrate:preview` bila ada migrasi baru.
+2. `npm run deploy:preview`.
+
+Secrets per environment (`PASSWORD_PEPPER`, `SETTINGS_ENC_KEY`) diatur dengan
+`wrangler pages secret bulk <file.json> --project-name sikap-v2 --env preview|production`.
+Simpan nilai `PASSWORD_PEPPER` produksi di tempat aman — kehilangan nilai ini membuat semua password tidak valid.
+
+Sebelum produksi: tambahkan aturan WAF Rate Limiting untuk `/api/auth/login`.
 
 ## Kebijakan akun
 

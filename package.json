@@ -18,9 +18,11 @@
     "test:api": "vitest run",
     "test:web": "vitest run -c vitest.web.config.ts",
     "test:watch": "vitest",
-    "db:migrate:local": "wrangler d1 migrations apply sikap-db --local",
-    "db:migrate:preview": "wrangler d1 migrations apply sikap-db --remote --env preview",
-    "db:seed:dev": "node scripts/dev-seed.mjs && wrangler d1 execute sikap-db --local --file .wrangler/dev-seed.sql",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:preview": "wrangler d1 migrations apply DB --remote --env preview",
+    "db:migrate:production": "wrangler d1 migrations apply DB --remote --env production",
+    "db:seed:dev": "node scripts/dev-seed.mjs && wrangler d1 execute DB --local --file .wrangler/dev-seed.sql",
+    "deploy:preview": "npm run build && wrangler pages deploy dist --project-name sikap-v2 --branch feat/cloudflare-migration",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings server/worker-configuration.d.ts"
   },
   "repository": {
