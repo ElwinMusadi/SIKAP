@@ -183,7 +183,21 @@ function parseJson(text: string): unknown {
 
 /** Sends FormData (browser sets the multipart boundary). Same error envelope and session handling as api(). */
 export function apiUpload<T>(path: string, formData: FormData, options: UploadOptions = {}): Promise<T> {
-  const { method = 'PUT', signal, onProgress } = options;
+  return xhrSend<T>(path, formData, options);
+}
+
+interface RawUploadOptions extends UploadOptions {
+  /** Extra request headers (e.g. Content-Type, X-File-Name). Content-Length is set by the browser. */
+  headers?: Record<string, string>;
+}
+
+/** Sends a Blob/File as the raw request body (no multipart), with upload progress. */
+export function apiUploadRaw<T>(path: string, body: Blob, options: RawUploadOptions = {}): Promise<T> {
+  return xhrSend<T>(path, body, options);
+}
+
+function xhrSend<T>(path: string, body: XMLHttpRequestBodyInit, options: RawUploadOptions): Promise<T> {
+  const { method = 'PUT', signal, onProgress, headers } = options;
 
   return new Promise<T>((resolve, reject) => {
     if (signal?.aborted) {
@@ -195,6 +209,7 @@ export function apiUpload<T>(path: string, formData: FormData, options: UploadOp
     xhr.open(method, API_BASE + path);
     xhr.withCredentials = false; // same-origin: cookies are sent automatically
     xhr.setRequestHeader('Accept', 'application/json');
+    for (const [name, value] of Object.entries(headers ?? {})) xhr.setRequestHeader(name, value);
 
     const onAbort = () => xhr.abort();
     signal?.addEventListener('abort', onAbort, { once: true });
@@ -249,7 +264,7 @@ export function apiUpload<T>(path: string, formData: FormData, options: UploadOp
       reject(error);
     });
 
-    xhr.send(formData);
+    xhr.send(body);
   });
 }
 

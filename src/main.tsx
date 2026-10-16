@@ -71,7 +71,10 @@ const router = createBrowserRouter([
                 path: 'profil',
                 lazy: async () => ({ Component: (await import('./features/profil/profil-page')).default }),
               },
-              comingSoon('dokumen', 'Arsip Dokumen', 'Fase 4'),
+              {
+                path: 'dokumen',
+                lazy: async () => ({ Component: (await import('./features/dokumen/dokumen-page')).default }),
+              },
               {
                 path: 'akun',
                 lazy: async () => ({ Component: (await import('./features/akun/akun-page')).default }),

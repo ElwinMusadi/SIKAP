@@ -22,3 +22,14 @@ export function sniffImage(head: Uint8Array): SniffedType | null {
   if (startsWith(head, RIFF) && startsWith(head, WEBP, 8)) return { mime: 'image/webp', ext: 'webp' };
   return null;
 }
+
+const PDF = [0x25, 0x50, 0x44, 0x46, 0x2d] as const; // '%PDF-'
+
+/**
+ * Detect an archive document: PDF (strict `%PDF-` at offset 0) or one of the
+ * images accepted by `sniffImage`. Anything else (HTML, SVG, ZIP, …) is null.
+ */
+export function sniffDocument(head: Uint8Array): SniffedType | null {
+  if (startsWith(head, PDF)) return { mime: 'application/pdf', ext: 'pdf' };
+  return sniffImage(head);
+}

@@ -1,9 +1,12 @@
 import { Hono, type Context } from 'hono';
 import type { AdminPengajuanListResponse, PengajuanResponse } from '../../shared/profile';
+import type { DokumenListResponse } from '../../shared/dokumen';
 import type { AppEnv } from '../env';
+import { errors } from '../lib/errors';
 import { requestMeta } from '../lib/request';
 import { readJson } from '../lib/validation';
 import { getAuth, requireRole, requireSession } from '../middleware/session';
+import * as dokumenService from '../services/dokumen';
 import * as pengajuanService from '../services/pengajuan';
 
 export const adminRoutes = new Hono<AppEnv>();
@@ -17,6 +20,12 @@ async function readOptionalJson(c: Context<AppEnv>): Promise<unknown> {
   if (len === '0' || (!len && !c.req.header('Content-Type'))) return {};
   return readJson(c.req);
 }
+
+adminRoutes.get('/pegawai/:id/documents', async (c) => {
+  const id = dokumenService.parseId(c.req.param('id'));
+  if (id === null) throw errors.notFound('Pegawai tidak ditemukan.');
+  return c.json<DokumenListResponse>(await dokumenService.listDocuments(c.env, getAuth(c).user, id));
+});
 
 adminRoutes.get('/pengajuan', async (c) => {
   return c.json<AdminPengajuanListResponse>(await pengajuanService.listAdminPengajuan(c.env, c.req.query()));

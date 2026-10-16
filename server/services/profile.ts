@@ -43,6 +43,11 @@ import { toIso } from '../lib/time';
 import { zodFieldErrors } from '../lib/validation';
 import type { RequestMeta } from './auth';
 import { photoUrl } from '../lib/photo-url';
+import { deleteUnreferencedObject } from '../lib/r2';
+
+function fotoKeyReferenced(db: D1Database, key: string): D1PreparedStatement {
+  return db.prepare(`SELECT 1 AS ok FROM pegawai WHERE foto_r2_key = ?1 LIMIT 1`).bind(key);
+}
 
 function actorOf(auth: AuthContext): AuditActor {
   const u = auth.user;
@@ -238,11 +243,12 @@ export async function uploadPhoto(
     ]);
     changed = upd?.meta.changes ?? 0;
   } catch (err) {
-    await env.FILES.delete(key).catch(() => undefined);
+    // The batch may have committed despite the error: only delete an unreferenced key.
+    await deleteUnreferencedObject(env.FILES, key, fotoKeyReferenced(env.DB, key));
     throw err;
   }
   if (changed !== 1) {
-    await env.FILES.delete(key).catch(() => undefined);
+    await deleteUnreferencedObject(env.FILES, key, fotoKeyReferenced(env.DB, key));
     const still = await selectFotoKey(env.DB, id);
     if (!still) throw errors.notFound('Pegawai tidak ditemukan.');
     throw errors.conflict('Foto sedang diperbarui dari perangkat lain. Coba lagi.');

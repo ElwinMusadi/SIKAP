@@ -6,6 +6,7 @@ import { csrfProtection } from './middleware/csrf';
 import { notFound, onError } from './middleware/error-handler';
 import { adminRoutes } from './routes/admin';
 import { authRoutes } from './routes/auth';
+import { documentRoutes } from './routes/documents';
 import { healthRoutes } from './routes/health';
 import { meRoutes } from './routes/me';
 import { pegawaiRoutes } from './routes/pegawai';
@@ -46,6 +47,7 @@ export function createApp() {
   app.route('/me', meRoutes);
   app.route('/pegawai', pegawaiRoutes);
   app.route('/admin', adminRoutes);
+  app.route('/documents', documentRoutes);
 
   app.notFound(notFound);
   app.onError(onError);

@@ -66,11 +66,13 @@ export interface CallOptions {
   headers?: Record<string, string>;
   /** Multipart body; the runtime sets the Content-Type boundary. */
   formData?: FormData;
+  /** Raw request body (e.g. a document upload); headers are passed as given. */
+  rawBody?: BodyInit;
 }
 
 /** Call the Hono app in-process with the test bindings. */
 export function call(pathname: string, opts: CallOptions = {}): Promise<Response> {
-  const method = opts.method ?? (opts.body !== undefined || opts.formData ? 'POST' : 'GET');
+  const method = opts.method ?? (opts.body !== undefined || opts.formData || opts.rawBody ? 'POST' : 'GET');
   const base = opts.base ?? ORIGIN;
   const headers: Record<string, string> = { ...opts.headers };
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
@@ -84,7 +86,7 @@ export function call(pathname: string, opts: CallOptions = {}): Promise<Response
       {
         method,
         headers,
-        body: opts.formData ?? (opts.body === undefined ? undefined : JSON.stringify(opts.body)),
+        body: opts.rawBody ?? opts.formData ?? (opts.body === undefined ? undefined : JSON.stringify(opts.body)),
       },
       env,
     ),

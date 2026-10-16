@@ -8,11 +8,13 @@ import {
   type PhotoResponse,
   type ProfileResponse,
 } from '../../shared/profile';
+import type { DokumenItemResponse, DokumenListResponse } from '../../shared/dokumen';
 import type { AppEnv } from '../env';
 import { errors } from '../lib/errors';
 import { requestMeta } from '../lib/request';
 import { readJson } from '../lib/validation';
 import { getAuth, requireSession } from '../middleware/session';
+import * as dokumenService from '../services/dokumen';
 import * as pengajuanService from '../services/pengajuan';
 import * as profileService from '../services/profile';
 
@@ -49,6 +51,26 @@ meRoutes.put(
     return c.json<PhotoResponse>(await profileService.uploadPhoto(c.env, getAuth(c), file, requestMeta(c)));
   },
 );
+
+// Document archive (Phase 4). Upload is owner-only; per-jenis size is checked in the service.
+meRoutes.get('/documents', async (c) => {
+  const auth = getAuth(c);
+  return c.json<DokumenListResponse>(await dokumenService.listDocuments(c.env, auth.user, auth.user.id));
+});
+
+// Raw-body upload (contract M5). Deliberately NO bodyLimit here: it would buffer the
+// body. The service checks Content-Length against the per-type limit before reading,
+// and FixedLengthStream enforces that the body really has that length.
+meRoutes.put('/documents/:jenisId', async (c) => {
+  const { item, created } = await dokumenService.uploadDocument(
+    c.env,
+    getAuth(c),
+    c.req.param('jenisId'),
+    { headers: c.req.raw.headers, body: c.req.raw.body },
+    requestMeta(c),
+  );
+  return c.json<DokumenItemResponse>({ item }, created ? 201 : 200);
+});
 
 meRoutes.get('/dashboard', async (c) => {
   return c.json<DashboardResponse>(await profileService.getDashboard(c.env, getAuth(c)));

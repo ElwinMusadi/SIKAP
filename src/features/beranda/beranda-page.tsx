@@ -394,7 +394,7 @@ function PrioritasCard({ data }: { data: DashboardResponse }) {
           <ItemGroup className="gap-2">
             {items.map((doc) => (
               <Item key={doc.jenisDokumenId} variant="outline" size="sm" asChild>
-                <Link to="/dokumen">
+                <Link to={`/dokumen?jenis=${encodeURIComponent(doc.jenisDokumenId)}`}>
                   <ItemContent>
                     <ItemTitle className="flex-wrap">
                       {doc.nama}

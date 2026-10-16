@@ -576,10 +576,10 @@ Sistem lama tetap berjalan beberapa minggu, sehingga celah kritis harus ditutup 
 - [x] Pengajuan perubahan data kepegawaian: `POST/GET/DELETE /me/pengajuan` + Dialog di tab Kepegawaian; antrean admin `/admin/pengajuan` (approve menerapkan perubahan atomik).
 
 ### Fase 4 — Dokumen & R2 (4–5 hari)
-- [ ] Upload multipart (magic bytes, SHA-256, nama otomatis, versi, urutan tulis yang aman), `GET` metadata/stream, delete (soft, 3 hari), riwayat.
-- [ ] Versi sebelumnya 3 hari: `arsip_dokumen_versi`, `rollback`, `restore`; cron purge harian.
-- [ ] Prasyarat upload: profil lengkap, akun aktif, tidak `Menunggu`. Response `422 PROFILE_INCOMPLETE {fields}`.
-- [ ] UI Arsip: tabs, dropzone + progress, Sheet preview, dialog alasan penolakan, upload ulang.
+- [x] Upload (magic bytes, SHA-256, nama otomatis, versi, urutan tulis yang aman), `GET` metadata/stream, delete (soft, 3 hari), riwayat. **Upload memakai `PUT` raw body** (bukan multipart): diukur di edge, multipart 5 MB = 21–31 ms CPU dan loop JS = 62–70 ms; raw + `pipeTo` ke R2 dengan `put({ sha256 })` dari browser = **5–6 ms CPU** (lihat `shared/dokumen.ts`).
+- [x] Versi sebelumnya 3 hari: `arsip_dokumen_versi`, `rollback`, `restore`. Upload di atas dokumen yang dihapus diizinkan (file terhapus jadi versi). Dokumen Terverifikasi yang dihapus admin hanya dapat dipulihkan admin (restore & rollback). *(Cron purge → Fase 7; aturan guard ada di `server/db/dokumen.ts`.)*
+- [x] Prasyarat upload: profil lengkap, akun aktif, tidak `Menunggu` — diperiksa **sebelum** body dibaca. Response `400 VALIDATION_ERROR {_form, profile}`.
+- [x] UI Arsip: tabs, dropzone + progress (hash SHA-256 di browser), Sheet preview + versi sebelumnya + riwayat, upload ulang, hapus/pulihkan.
 
 ### Fase 5 — Verifikasi & Notifikasi (3–4 hari)
 - [ ] Antrean (`status='Menunggu' ORDER BY uploaded_at`), approve/reject atomik (`UPDATE … WHERE status='Menunggu' AND versi=?`).

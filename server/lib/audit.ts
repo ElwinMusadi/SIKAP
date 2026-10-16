@@ -29,13 +29,20 @@ export interface AuditOptions {
    * row (SQLite `changes()`; D1 runs a batch sequentially on one connection).
    */
   onlyIfPreviousChanged?: boolean;
+  /**
+   * Use the rowid inserted by the PREVIOUS statement in the same batch as target_id
+   * (SQLite `last_insert_rowid()`), for targets whose id is unknown before the batch.
+   * The statement must directly follow that INSERT. `entry.targetId` is ignored.
+   */
+  targetIdFromLastInsert?: boolean;
 }
 
 const MAX_DESCRIPTION = 500;
 
 export function auditStatement(db: D1Database, entry: AuditEntry, opts: AuditOptions = {}): D1PreparedStatement {
   const a = entry.actor;
-  const values = '?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11';
+  const targetExpr = opts.targetIdFromLastInsert ? 'CAST(last_insert_rowid() AS TEXT)' : '?8';
+  const values = `?1, ?2, ?3, ?4, ?5, ?6, ?7, ${targetExpr}, ?9, ?10, ?11`;
   const source = opts.onlyIfPreviousChanged ? `SELECT ${values} WHERE changes() > 0` : `VALUES (${values})`;
   return db
     .prepare(
@@ -51,7 +58,7 @@ export function auditStatement(db: D1Database, entry: AuditEntry, opts: AuditOpt
       a?.role ?? null,
       entry.action,
       entry.targetType ?? null,
-      entry.targetId == null ? null : String(entry.targetId),
+      entry.targetId == null || opts.targetIdFromLastInsert ? null : String(entry.targetId),
       entry.description == null ? null : entry.description.slice(0, MAX_DESCRIPTION),
       entry.result,
       entry.ip ?? null,
