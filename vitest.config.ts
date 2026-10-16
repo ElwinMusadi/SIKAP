@@ -22,7 +22,8 @@ export default defineConfig(async () => {
             APP_URL: 'https://sikap.test',
             SESSION_TTL_HOURS: '12',
             PASSWORD_PEPPER: 'test-pepper-not-a-secret-0123456789abcdef',
-            SETTINGS_ENC_KEY: 'test-settings-key-not-a-secret-0123456789',
+            // base64 of 32 bytes (AES-GCM-256), test-only value.
+            SETTINGS_ENC_KEY: 'dGVzdC1zZXR0aW5ncy1rZXktbm90LWEtc2VjcmV0LTA=',
             TEST_MIGRATIONS: migrations,
           },
         },

@@ -56,6 +56,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { useLogout, useMe } from '@/features/auth/queries';
 import { useAdminPengajuan } from '@/features/profil/queries';
+import { useVerifikasiCount } from '@/features/verifikasi/queries';
 import { errorMessage } from '@/lib/api';
 import { initials } from '@/lib/format';
 
@@ -80,8 +81,10 @@ function AppSidebar({ user }: { user: SessionUser }) {
   const groups = navGroupsForRole(user.role);
   const isAdmin = user.role === 'Admin';
   const pengajuanQuery = useAdminPengajuan('Menunggu', isAdmin);
+  const verifikasiQuery = useVerifikasiCount(isAdmin);
   const badges: Record<NonNullable<NavItem['badgeKey']>, number> = {
     pengajuanMenunggu: pengajuanQuery.data?.counts.Menunggu ?? 0,
+    verifikasiMenunggu: verifikasiQuery.data ?? 0,
   };
 
   return (

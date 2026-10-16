@@ -46,7 +46,9 @@ import { sniffDocument } from '../lib/file-sniff';
 import { deleteUnreferencedObject } from '../lib/r2';
 import { toIso } from '../lib/time';
 import { parseWith } from '../lib/validation';
+import { normalizePhone } from '../../shared/validators';
 import type { RequestMeta } from './auth';
+import { insertedIds, outboxStatements, selectAdminRecipients, uploadGuard } from './notifikasi';
 
 const DAY_MS = 86_400_000;
 const VERSION_RETENTION_MS = DOCUMENT_POLICY.versionRetentionDays * DAY_MS;
@@ -371,19 +373,21 @@ export async function uploadDocument(
   jenisId: string,
   req: RawUpload,
   meta: RequestMeta,
-): Promise<{ item: DokumenItem; created: boolean }> {
+): Promise<{ item: DokumenItem; created: boolean; outboxIds: number[] }> {
   if (!jenisId || jenisId.length > 64) throw errors.notFound(MSG.jenisNotFound);
   const db = env.DB;
   const pegawaiId = auth.user.id;
 
   // Round trip 1, BEFORE touching the body: pegawai (profile), jenis (active only)
-  // and the existing arsip row, so every cheap gate fails fast.
-  const [pRes, jRes, aRes] = await db.batch([
+  // and the existing arsip row, so every cheap gate fails fast. Also the admins to
+  // notify (Phase 5; empty when notif.dokumen_baru is off), so no extra round trip.
+  const [pRes, jRes, aRes, adminRes] = await db.batch([
     selectPegawaiById(db, pegawaiId),
     db.prepare(`SELECT id, nama, max_size_bytes FROM jenis_dokumen WHERE id = ?1 AND aktif = 1`).bind(jenisId),
     db
       .prepare(`SELECT * FROM arsip_dokumen WHERE pegawai_id = ?1 AND jenis_dokumen_id = ?2`)
       .bind(pegawaiId, jenisId),
+    selectAdminRecipients(db, pegawaiId),
   ]);
   const pegawai = (pRes?.results?.[0] as PegawaiRow | undefined) ?? null;
   if (!pegawai) throw errors.notFound(MSG.pegawaiNotFound);
@@ -518,6 +522,24 @@ export async function uploadDocument(
       { onlyIfPreviousChanged: true, targetIdFromLastInsert: arsipId === null },
     );
   const reads = itemReads(db, pegawaiId, jenis.id, nowIso);
+  // Phase 5: one "dokumen_baru_admin" outbox row per recipient, appended AFTER the
+  // item reads (offsets unchanged) and guarded by the upload's post-condition (the
+  // arsip now holds the new unique R2 key, status Menunggu): see services/notifikasi.ts.
+  const recipients = new Set<string>();
+  for (const a of (adminRes?.results ?? []) as { no_hp: string | null }[]) {
+    const phone = a.no_hp ? normalizePhone(a.no_hp) : null;
+    if (phone) recipients.add(phone);
+  }
+  const outbox = outboxStatements(
+    db,
+    [...recipients].map((target) => ({
+      target,
+      template: 'dokumen_baru_admin' as const,
+      params: { namaPegawai: pegawai.nama, namaDokumen: jenis.nama },
+    })),
+    uploadGuard(pegawaiId, jenis.id, newFile.r2Key),
+    nowIso,
+  );
 
   // Step 2 (contract): one batch = one transaction; each step runs only if the
   // previous one changed a row. Step 3: compensation on failure.
@@ -533,6 +555,7 @@ export async function uploadDocument(
         audit('DOKUMEN_UPLOAD', `Unggah ${what}, versi 1`, null),
         riwayatAfterChange(db, 'UPLOAD', null, actorId, nowIso, { pegawaiId, jenisId: jenis.id }),
         ...reads,
+        ...outbox,
       ]);
     } else {
       changeIndex = 1;
@@ -555,6 +578,7 @@ export async function uploadDocument(
         riwayatAfterChange(db, 'REUPLOAD', null, actorId, nowIso, { arsipId: existing.id }),
         audit('DOKUMEN_REUPLOAD', `Unggah ulang ${what}, versi ${existing.versi + 1}`, existing.id),
         ...reads,
+        ...outbox,
       ]);
     }
   } catch (err) {
@@ -568,7 +592,11 @@ export async function uploadDocument(
     throw errors.conflict(MSG.concurrent);
   }
   const offset = existing ? 4 : 3;
-  return { item: itemFromResults(auth.user, results, offset, nowIso), created: !existing };
+  return {
+    item: itemFromResults(auth.user, results, offset, nowIso),
+    created: !existing,
+    outboxIds: insertedIds(results.slice(offset + reads.length)),
+  };
 }
 
 // ---------------------------------------------------------------------------

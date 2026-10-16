@@ -41,7 +41,7 @@
 | Subrequest / query D1 | 50/request | Gunakan `db.batch()`, hindari N+1 |
 | D1 | 500 MB/DB, 5 juta baris dibaca/hari, 100.000 baris ditulis/hari, Time Travel 7 hari | Wajib pakai indeks. Log harus di-paginate. Backup tambahan ke R2 |
 | R2 | 10 GB, 1 juta Class A, 10 juta Class B per bulan, egress gratis | Estimasi 200 pegawai × 11 dokumen × ±1 MB ≈ 2,2 GB. Kompres gambar di client |
-| Request body | 100 MB | Upload 5 MB aman, dikirim sebagai `multipart/form-data` (bukan base64) |
+| Request body | 100 MB | Dokumen maksimal 5 MB dikirim sebagai `PUT` raw body dengan SHA-256 dari browser, diteruskan native ke R2; foto profil tetap multipart |
 | `waitUntil()` | ±30 detik setelah response | Notifikasi WhatsApp dikirim di sini, tidak memblokir response |
 | **Cron** | Pages Functions **tidak** mendukung cron | Buat 1 **Worker companion kecil** (`workers/cron`) dengan binding D1/R2 yang sama: bersihkan sesi, retry outbox WA, backup harian |
 
@@ -411,7 +411,7 @@ Konvensi:
 | `PUT /api/me/photo` (multipart) | login | `uploadFotoProfil` |
 | `GET /api/me/dashboard` | Pegawai | `getMyDashboard` |
 | `GET /api/me/documents` | login | `getArsipDokumenPegawai` |
-| `POST /api/me/documents/:jenisId` (multipart) | login | `uploadDokumen` |
+| `PUT /api/me/documents/:jenisId` (raw body + `X-Content-SHA256`) | login | `uploadDokumen` |
 | `DELETE /api/documents/:id` | pemilik (jika bukan `Terverifikasi`) / Admin | `hapusDokumen` |
 | `GET /api/documents/:id` | pemilik / Admin | `getDokumenPreview` (metadata + riwayat) |
 | `GET /api/documents/:id/file[?download=1]` | pemilik / Admin | stream dari R2, `Content-Disposition`, `Cache-Control: private, no-store` |
@@ -582,10 +582,21 @@ Sistem lama tetap berjalan beberapa minggu, sehingga celah kritis harus ditutup 
 - [x] UI Arsip: tabs, dropzone + progress (hash SHA-256 di browser), Sheet preview + versi sebelumnya + riwayat, upload ulang, hapus/pulihkan.
 
 ### Fase 5 — Verifikasi & Notifikasi (3–4 hari)
-- [ ] Antrean (`status='Menunggu' ORDER BY uploaded_at`), approve/reject atomik (`UPDATE … WHERE status='Menunggu' AND versi=?`).
-- [ ] Outbox + sender Fonnte/Meta (template `dokumen_baru_admin`, `dokumen_terverifikasi`, `dokumen_ditolak`), `waitUntil`, toggle notifikasi.
-- [ ] UI split-view + pintasan keyboard.
-- [ ] `workers/cron`: retry outbox (setiap 10 menit), hapus sesi kedaluwarsa (harian).
+Validasi integrasi (16 Okt 2026): browser Chromium **11/11 skenario desktop/mobile** lulus
+pada build dengan perbaikan draft token, serta **17/17 pemeriksaan end-to-end** terhadap
+Pages Functions + D1/R2 lokal terisolasi (tanpa mock API). Penyedia WhatsApp tidak diaktifkan;
+pengiriman nyata tidak diuji. Worker cron sudah dibuat, `--dry-run`, tujuh test cron, dan
+dua invocation lokal `--test-scheduled` (retry + cleanup) lulus; seluruh trigger masih nonaktif.
+Review ulang menyatakan **PASS WITH NOTES**, tanpa blocker High/Medium setelah lease atomik,
+retry terjadwal, batas durasi pengiriman, dan pesan error penyedia yang terkontrol diterapkan.
+Suite final: **222 test API dan 77 test web**, typecheck/lint/build lulus, `npm audit --omit=dev` 0 kerentanan.
+Deploy remote Fase 5 dan pengiriman WhatsApp sungguhan masih belum dilakukan.
+
+- [x] Antrean (`status='Menunggu' ORDER BY uploaded_at`), approve/reject atomik (`UPDATE … WHERE status='Menunggu' AND versi=?`), aturan admin tidak memverifikasi dokumen sendiri.
+- [x] Outbox + sender Fonnte/Meta (template `dokumen_baru_admin`, `dokumen_terverifikasi`, `dokumen_ditolak`), `waitUntil`, toggle notifikasi, lease atomik dan backoff retry. Token AES-GCM, hanya penghapusan eksplisit yang menghapus token.
+- [x] UI split-view + pintasan keyboard, mobile Sheet, badge antrean, pengaturan provider dan pesan uji.
+- [x] Kode `workers/cron`: retry outbox setiap 10 menit, hapus sesi/counter kedaluwarsa harian; cleanup maksimal 500 baris/tabel. **Aktivasi/deploy trigger belum dilakukan.**
+- [ ] Terapkan migrasi `0005_outbox_leases.sql` ke D1 preview sebelum deploy Fase 5; pasang secret cron sama dengan Pages per environment. Uji pengiriman riil membutuhkan provider valid dan nomor admin.
 
 ### Fase 6 — Admin Master Data (4–5 hari)
 - [ ] CRUD pegawai (akun dibuat dengan password default 6 digit terakhir NIP, `is_default_password=1`), status (cabut sesi), reset password ke default, soft delete 7 hari + restore + purge cron (D1 + R2), foto, dokumen pegawai.

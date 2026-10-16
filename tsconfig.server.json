@@ -19,5 +19,5 @@
       "@shared/*": ["./shared/*"]
     }
   },
-  "include": ["server", "functions", "shared", "test"]
+  "include": ["server", "functions", "shared", "test", "workers/cron"]
 }

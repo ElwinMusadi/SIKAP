@@ -15,6 +15,7 @@ import { requestMeta } from '../lib/request';
 import { readJson } from '../lib/validation';
 import { getAuth, requireSession } from '../middleware/session';
 import * as dokumenService from '../services/dokumen';
+import { deferBackground, flushOutbox } from '../services/notifikasi';
 import * as pengajuanService from '../services/pengajuan';
 import * as profileService from '../services/profile';
 
@@ -62,13 +63,16 @@ meRoutes.get('/documents', async (c) => {
 // body. The service checks Content-Length against the per-type limit before reading,
 // and FixedLengthStream enforces that the body really has that length.
 meRoutes.put('/documents/:jenisId', async (c) => {
-  const { item, created } = await dokumenService.uploadDocument(
-    c.env,
+  const env = c.env;
+  const { item, created, outboxIds } = await dokumenService.uploadDocument(
+    env,
     getAuth(c),
     c.req.param('jenisId'),
     { headers: c.req.raw.headers, body: c.req.raw.body },
     requestMeta(c),
   );
+  // Phase 5: send the "dokumen baru" WhatsApp notifications after the response.
+  if (outboxIds.length) deferBackground(c, () => flushOutbox(env, outboxIds));
   return c.json<DokumenItemResponse>({ item }, created ? 201 : 200);
 });
 

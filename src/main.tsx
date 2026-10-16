@@ -5,6 +5,7 @@ import { createBrowserRouter, Outlet } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { RefreshCw, TriangleAlert } from 'lucide-react';
 import { ComingSoon } from '@/components/coming-soon';
+import { FullPageLoader } from '@/components/full-page-loader';
 import { NotFound } from '@/components/not-found';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -45,6 +46,7 @@ const router = createBrowserRouter([
   {
     element: <Outlet />,
     errorElement: <RouteError />,
+    hydrateFallbackElement: <FullPageLoader />,
     children: [
       {
         path: '/login',
@@ -84,7 +86,10 @@ const router = createBrowserRouter([
                 element: <RequireRole role="Admin" />,
                 children: [
                   comingSoon('pegawai', 'Master Data Pegawai', 'Fase 6'),
-                  comingSoon('verifikasi', 'Verifikasi Dokumen', 'Fase 5'),
+                  {
+                    path: 'verifikasi',
+                    lazy: async () => ({ Component: (await import('./features/verifikasi/verifikasi-page')).default }),
+                  },
                   {
                     path: 'pengajuan',
                     lazy: async () => ({
@@ -93,7 +98,10 @@ const router = createBrowserRouter([
                   },
                   comingSoon('log', 'Log Aktivitas', 'Fase 7'),
                   comingSoon('jenis-dokumen', 'Jenis Dokumen', 'Fase 7'),
-                  comingSoon('pengaturan', 'Pengaturan Sistem', 'Fase 7'),
+                  {
+                    path: 'pengaturan',
+                    lazy: async () => ({ Component: (await import('./features/pengaturan/pengaturan-page')).default }),
+                  },
                 ],
               },
             ],

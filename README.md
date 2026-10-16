@@ -75,8 +75,51 @@ Langkah deploy preview:
 Secrets per environment (`PASSWORD_PEPPER`, `SETTINGS_ENC_KEY`) diatur dengan
 `wrangler pages secret bulk <file.json> --project-name sikap-v2 --env preview|production`.
 Simpan nilai `PASSWORD_PEPPER` produksi di tempat aman — kehilangan nilai ini membuat semua password tidak valid.
+`SETTINGS_ENC_KEY` harus berupa base64 dari **32 byte acak** untuk AES-GCM-256.
+Kunci ini mengenkripsi token WhatsApp. Simpan cadangannya dengan aman; menggantinya tanpa
+migrasi ulang membuat token tersimpan tidak dapat dibaca. Worker cron pengirim notifikasi
+harus menggunakan nilai `SETTINGS_ENC_KEY` yang sama dengan Pages pada environment tersebut.
+Jangan menyalin kunci produksi ke preview atau menaruhnya di repo.
+
+## Verifikasi dokumen dan WhatsApp
+
+- Admin memverifikasi versi dokumen yang ditampilkan; keputusan ditolak jika versi atau status berubah.
+- Dokumen milik admin sendiri harus diverifikasi admin lain.
+- Penyedia WhatsApp diatur melalui **Pengaturan Sistem → WhatsApp**. Token tidak dikembalikan
+  ke browser; isian kosong yang tidak diubah mempertahankan token, sedangkan aksi hapus
+  menghapus token tersimpan. Penyedia tanpa konfigurasi lengkap tidak mengirim pesan.
+- Template Meta berbahasa Indonesia harus sudah disetujui: `dokumen_baru_admin`,
+  `dokumen_terverifikasi`, `dokumen_ditolak`. Pesan uji dikirim ke nomor HP admin yang meminta.
+- Notifikasi memakai outbox persisten dan diproses setelah respons, bukan menunggu penyedia
+  saat menyetujui/menolak dokumen. Pengiriman bersifat **at-least-once**: jika penyedia sudah
+  menerima pesan tetapi proses berhenti sebelum status terkirim disimpan, retry dapat
+  menghasilkan duplikasi. Jangan gunakan notifikasi sebagai sumber kebenaran status dokumen.
+
+### Worker cron pendamping
+
+`workers/cron/wrangler.toml` memisahkan database preview dan produksi. Semua trigger masih
+**nonaktif** dan Worker belum di-deploy. Tidak ada endpoint HTTP publik.
+
+- `npm run cron:check`: validasi bundle preview dengan `--dry-run` (tanpa deploy).
+- `npm run cron:dev`: simulasi lokal `--test-scheduled`. Gunakan database lokal terisolasi;
+  terapkan migrasi pada konfigurasi tersebut sebelum menguji.
+- Saat siap diaktifkan: `*/10 * * * *` untuk retry outbox, `0 18 * * *` untuk pembersihan
+  sesi/counter kedaluwarsa (02:00 WITA), maksimal 500 baris per tabel per invocation.
+- Sebelum deploy, pasang `SETTINGS_ENC_KEY` yang sama dengan Pages pada environment yang
+  sama, cek kuota 5 Cron Triggers/account pada Free plan, lalu aktifkan trigger secara sadar.
+- Pembersihan versi dokumen, retensi pegawai, dan backup **belum** termasuk Worker ini;
+  implementasinya mengikuti Fase 6–7.
 
 Sebelum produksi: tambahkan aturan WAF Rate Limiting untuk `/api/auth/login`.
+
+### Batas validasi Fase 5
+
+Uji browser lokal memakai Chromium dengan respons API terkontrol; test API memakai
+runtime Workers lokal dengan D1/R2 terisolasi dan penyedia WhatsApp yang dimock.
+Uji ini tidak membuktikan template Meta telah disetujui, koneksi perangkat Fonnte aktif,
+atau pesan benar-benar diterima. Uji pengiriman nyata tetap dilakukan melalui
+**Kirim Pesan Uji** setelah token dan nomor admin dipasang di environment yang dituju.
+Jangan menempelkan token ke chat atau memasukkan token nyata ke fixture test.
 
 ## Kebijakan akun
 
