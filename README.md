@@ -413,8 +413,10 @@ dengan rehearsal ini**. Jangan unggah ekspor, hash, file pegawai, maupun secret 
 ## Gerbang UAT privat (Fase 9 — parsial: app kosong + fixture sintetis, belum siap import)
 
 > Status 17 Oktober 2026: `readyForImport` belum pernah `true`. Preflight remote read-only
-> berakhir `TARGET_NOT_EMPTY` (sesuai harapan karena fixture). Penulisan/import remote belum
-> diimplementasikan; data nyata belum diimpor. Subbagian di bawah disusun kronologis.
+> berakhir `TARGET_NOT_EMPTY` (sesuai harapan karena fixture). Importer remote belum
+> diimplementasikan; dua run probe sintetis remote berhenti gagal-aman pada fase constraint
+> (exit 2). Run kedua memberi `MESSAGE_MISMATCH`. Bukti guard parsial, bukan bukti atomicity lengkap.
+> Data nyata belum diimpor ke remote. Subbagian di bawah disusun kronologis.
 
 Preview `feat-cloudflare-migration.sikap-v2.pages.dev` masih dapat menampilkan halaman login
 secara anonim pada pemeriksaan HEAD 17 Oktober 2026; API langsung menjawab 401 aplikasi.
@@ -664,8 +666,36 @@ https://developers.cloudflare.com/pages/platform/known-issues/#enable-access-on-
   WhatsApp nyata nonaktif, dan konfigurasi server `ACCESS_REQUIRED=1` pada deployment pertama.
 - Buat plan baru memakai pepper UAT yang sama dengan aplikasi target; plan ber-pepper latihan
   lokal tidak dapat dipakai begitu saja. Salt dan secret disimpan privat, bukan di chat.
-- Penulisan/import remote **belum diimplementasikan**; yang tersedia hanya preflight remote
-  read-only di atas. Jangan mengubah alat local-only menjadi remote, menjalankan SQL ekspor
+- Importer data remote **belum diimplementasikan**. Selain preflight read-only, kit dan
+  eksekutor probe transaksi sintetis tersedia dan telah dijalankan remote **dua kali**, masing-masing
+  dengan persetujuan operator terpisah. Kontrol positif serta guard-abort lulus; constraint-abort berhenti dengan
+  `UNEXPECTED_FAILURE`, exit `2`, tanpa retry/cleanup. Inspect independen read-only menemukan
+  tepat 2 tabel kit dan 3 baris positif, tanpa baris fase gagal atau objek asing. Error constraint
+  tidak terklasifikasi, sehingga **atomicity keseluruhan belum terbukti**. Residu awalnya
+  dibiarkan. Cleanup dua tabel kemudian disetujui terpisah dan selesai setelah verifikasi
+  identitas/kepemilikan ulang: data dihapus dahulu, inspeksi independen, lalu marker dihapus.
+  SELECT setelah cleanup pertama menemukan **0 objek pengguna dan 0 residu probe**. Run kedua
+  yang kemudian disetujui berhenti lagi pada constraint (`MESSAGE_MISMATCH`): respons API cocok
+  endpoint, kode `7500`, tetapi note tidak cocok pola SQL ketat. Ini bukan bukti UNIQUE atau
+  non-atomic. Inspect read-only nonce kedua menemukan kembali **2 tabel kit dan 3 baris positif**,
+  tanpa baris gagal/asing; database kini **tidak kosong**, residu dibiarkan tanpa cleanup kedua.
+  Akun D1 Free tetap **10/10 slot**. Detail UUID, nonce sintetis, pin config, dan bukti dicatat di
+  `MIGRATION_PLAN.md`. Jangan mengulang run identik atau memperlonggar classifier berdasarkan
+  tebakan. Analisis lokal menambahkan diagnostik schema v2: label bentuk pesan/suffix/wrapper
+  berasal dari 20 literal penuh yang diizinkan, bukan pesan mentah; classifier tetap identik.
+  Variasi prefix dan extended code masih hipotesis, bukan penyebab remote terkonfirmasi.
+  Percobaan reproduksi ad hoc awal gagal sebelum SQL. Harness berikutnya
+  (`node scripts/staging/d1-tx-probe-local.mjs --local-only`) memakai adapter opsi Miniflare
+  yang benar dan menjalankan seluruh fase di database in-memory. Batch constraint ditolak dan
+  state lokal tetap 3 baris positif. Bentuk lokal primary code + extended PRIMARYKEY kemudian
+  cocok whitelist literal penuh **khusus lokal** pada message/cause, sehingga hasil lokal
+  `LOCAL_ROLLBACK_OBSERVED`. Classifier dan 20 literal remote tidak diubah; ini bukan bukti
+  pesan atau atomicity remote. Diagnostik schema v3 sekarang dapat melabeli bentuk extended
+  lewat 4 literal terpisah di konteks APIError bersih/terikat target, tetapi tetap menghasilkan
+  `MESSAGE_MISMATCH` dan tidak mengubah penerimaan bukti. Tidak ada akses remote baru.
+  Run remote baru serta cleanup berikutnya memerlukan persetujuan baru. Diagnostik tidak memulihkan pesan lama
+  atau memberi izin retry, cleanup, atau import.
+  Jangan mengubah alat local-only menjadi remote, menjalankan SQL ekspor
   sembarangan, atau menambahkan endpoint import publik. Jalur penulisan remote perlu receipt
   terikat account/project/database/bucket/schema/pepper, pemeriksaan target kosong dan
   referensi aktual, transaksi checkpoint yang dibuktikan dengan uji sintetis rollback di

@@ -883,8 +883,169 @@ Persiapan 17 Oktober 2026 (tanpa membaca artefak pegawai atau menulis resource r
 - Baseline validasi working tree 17 Okt 2026: `npm test` **908 test** lulus (API 400, web 152,
   migrasi 196, staging 160); lint, typecheck dan build lulus. Review independen PASS WITH NOTES,
   hanya catatan Low.
-- Penulisan/import remote **belum diimplementasikan**. Alat lokal tetap menolak `--remote`, dan
-  tidak ada bukti atomisitas batch remote, import, atau deploy baru. Gerbang tersisa sebelum PII
+- Persiapan probe transaksi 17 Okt 2026: database D1 khusus `sikap-uat-tx-probe`
+  dibuat satu kali dengan izin operator (`--update-config=false`), UUID
+  `95f86a58-578b-44ac-9016-8472522e8be4`, pada account UAT yang dipatok.
+  Pembacaan control plane `list` dan `info` cocok pada nama/UUID; read replication `disabled`.
+  Setelah hash config lokal diperiksa, satu pembacaan remote SELECT-only terhadap `sqlite_schema`
+  mencatat **0 objek pengguna** (prefix internal `sqlite_`/`_cf_` dikecualikan). Ini observasi
+  kekosongan pada saat pemeriksaan, bukan bukti atomicity, izin probe tulis, atau kesiapan import.
+  Database ini memakai slot terakhir akun D1 Free (**10/10**). Jangan menghapus database lain
+  atau memakai probe sebagai target import untuk mengatasi kuota tanpa persetujuan eksplisit.
+  Config khusus `ops/tx-probe/wrangler.toml` hanya mengikat `PROBE_DB`; SHA-256 LF
+  `e1e7808f45fae903feb1f66da48bb45e6d169553c19dcd13c9d67972a1cc7ad3`
+  dipatok oleh `scripts/staging/d1-tx-probe-target.mjs`. Validasi lokal kit+pin **23/23** dan
+  staging **183/183** lulus; lint, typecheck, dan build lulus; review pin **PASS**.
+  Kit SQL sintetis dan implementasi eksekutor `scripts/staging/d1-tx-probe-run.mjs` tersedia
+  lokal; eksekutor memakai konfirmasi UUID eksplisit, pin account/config/versi, identitas control
+  plane, pemeriksaan kekosongan, receipt guard positif, dan pemeriksaan hasil tiap fase.
+  Sebelum eksekusi remote, tes eksekutor dengan transport tiruan
+  **14/14** dan suite staging berurutan **197/197** lulus. Eksekutor menjalankan `wrangler-dist/cli.js`
+  langsung (tanpa wrapper proses anak) dan memeriksa instalasi sebelum setiap spawn; smoke versi lokal
+  mengonfirmasi Wrangler `4.151.0`. Review akhir **PASS WITH NOTES**, tanpa temuan Medium/High.
+  Setelah pemulihan crash/OOM Windows, regresi API **400/400**, web **152/152**, migrasi offline
+  **196/196**, lint, typecheck, dan build lulus (total **945 tes**, eksekutor sudah termasuk staging).
+  Review/perbaikan dan tes transport tiruan tidak merupakan izin eksekusi. UUID dan nama bukan
+  kredensial; OAuth yang dipakai memiliki scope account-wide `d1:write`, bukan pembatasan per database.
+- Eksekusi remote sintetis satu kali 17 Okt 2026, dengan persetujuan operator: Wrangler `4.151.0`,
+  transport `wrangler-d1-execute-remote-command`, database probe di atas, nonce sintetis non-secret
+  `373262f0fdcf4df86d0fa1d1805ba5e2`. Identitas dan precondition kosong lulus; setup dan kontrol
+  positif lulus (receipt guard `1`, marker step `1`, 3 baris positif). `guard-abort` exit `1`
+  dikenali sebagai `EXPECTED_SQL_ERROR`, terikat endpoint target; inspect sesudahnya tetap identik
+  dengan baseline positif. Hash bukti inspect-guard:
+  `b6b4d1fdfb714221e7dcdd79b4734ea55dc38779ad6a9a6774fc56dcf157854c`.
+  `constraint-abort` exit `1` diklasifikasikan `UNEXPECTED_FAILURE`, sehingga eksekutor berhenti
+  exit **2**, `stateUncertain:true`, `observedTransportRollback:false`. Penyebab error constraint
+  belum diketahui karena output provider mentah sengaja tidak disimpan; **jangan** menganggap
+  error UNIQUE terbukti atau memperlonggar classifier berdasarkan tebakan.
+  Pembacaan independen SELECT-only setelah stop mengonfirmasi identitas dan skema tepat 2 tabel
+  milik kit; marker nonce/version cocok, step `1`, data total `3`, positive `3`, foreign `0`,
+  fail_guard `0`, fail_constraint `0`, trailing `0`. Ini konsisten dengan baseline positif,
+  tetapi tidak membuktikan fase constraint benar-benar dieksekusi lalu rollback.
+  Tidak ada retry tulis, DROP/cleanup, deploy, atau import. Kedua tabel dan 3 baris sintetis
+  **dibiarkan saat itu**; database pada saat stop tidak kosong (cleanup berikutnya dicatat di bawah).
+  Eksekutor tidak menjalankan DROP atau retry pada
+  level orkestrasi. Run baru dan cleanup memerlukan persetujuan eksplisit terpisah; jangan
+  menjalankan ulang otomatis. `transactionAtomicityVerified:false`, `readyForImport:false`,
+  `cleanupAuthorized:false`. Bukti guard bersifat parsial, spesifik transport/versi/run ini;
+  bukan bukti Worker `env.DB.batch()` atau import `--file`.
+- Diagnostik lokal pasca-stop ditambahkan pada eksekutor: `diagnoseFailure(result, kind)`
+  menghasilkan schema v1 dengan enum/boolean tetap (bentuk stream/payload, kecocokan target,
+  kategori kode allowlist, dan alasan penolakan). Tidak ada output provider mentah, nama key
+  asing, nilai arbitrer, hash pesan, atau secret yang disalin. Diagnostik hanya hipotesis;
+  `historicalCauseRecovered:false`, `evidenceAccepted:false`, `authorizesRetry:false`, dan
+  `cleanupAuthorized:false`. Fungsi classifier ketat tetap byte-identik (SHA-256
+  `1ea79c1fe5cbdeb88f4c3a767bae1902922e155fc5d6d8aeada4c35d95eeb753`);
+  kalkulasi bukti rollback tidak dilonggarkan. Tes eksekutor **17/17**, staging berurutan
+  **200/200**, API **400/400**, web **152/152**, migrasi offline **196/196** lulus (total
+  **948 tes**, eksekutor termasuk staging); lint, typecheck, dan build lulus. Review kode
+  **PASS WITH NOTES** (satu catatan Low: label keluarga SQL hanya kecocokan pola lokal,
+  bukan konfirmasi error remote); review dokumentasi **PASS**.
+  Tidak ada akses remote baru, retry, atau cleanup dalam tahap diagnostik. Penyebab error
+  historis tetap tidak diketahui; pada akhir tahap diagnostik residu masih dibiarkan dan
+  persetujuan run/cleanup terpisah masih diperlukan (cleanup yang disetujui berikutnya dicatat di bawah).
+- Cleanup terbatas 17 Okt 2026 dengan persetujuan operator khusus untuk dua tabel kit:
+  autentikasi dan scope `d1:write`, account, identitas nama/UUID, replication `disabled`, pin
+  config, skema persis dua tabel, marker nonce/version lama, dan isi tepat 3 baris positif
+  diperiksa ulang secara read-only. `__sikap_uat_tx_probe_data` di-DROP satu perintah;
+  inspeksi independen sesudahnya membuktikan hanya marker milik kit tersisa, step `1`, tanpa
+  objek asing. Sesudah verifikasi ulang identitas dan marker, `__sikap_uat_tx_probe_marker`
+  di-DROP satu perintah terpisah. SELECT final mencatat **0 objek pengguna, 0 residu probe**.
+  Database `95f86a58-578b-44ac-9016-8472522e8be4` tetap ada; kuota **10/10** tidak berubah.
+  Tidak ada retry, run probe baru, penghapusan database, deploy, import, atau commit. Bukti
+  atomicity tetap belum lengkap dan `readyForImport:false`; run ulang memerlukan persetujuan
+  baru setelah cleanup ini, bukan bagian dari persetujuan cleanup.
+- Run ulang kedua 17 Okt 2026 setelah cleanup, dengan persetujuan baru khusus satu run:
+  nonce sintetis `c1fbd5dba5e667f28987356368eb9b3f`, target dan transport/versi tetap sama.
+  Precondition kosong, setup, kontrol positif, guard-abort terikat target, dan inspect-guard
+  lulus. Hash bukti inspect-guard:
+  `9f57a96ca455252e6250a7116f6218494dd22526bc95f238fc14d3d65ba3f801`.
+  Constraint-abort kembali exit `1`, `UNEXPECTED_FAILURE`; eksekutor berhenti exit **2**
+  tanpa retry/cleanup. Diagnostik teredaksi: stdout `json`, stderr `empty`, payload `api-error`,
+  targetBinding `match`, providerCode `7500`, satu note, tanpa key tambahan/meta/location/retry,
+  sqlFamily `other`, reasonCodes `["MESSAGE_MISMATCH"]`. Artinya respons API cocok target tetapi
+  pesan tidak cocok pola constraint yang dipatok; **bukan** bukti UNIQUE, bukan bukti non-atomic,
+  dan bukan alasan otomatis memperlonggar classifier. Output pesan mentah tidak disimpan.
+  Inspect independen SELECT-only dengan nonce run kedua: marker cocok step `1`, total `3`,
+  positive `3`, foreign `0`, kedua fase gagal `0`, trailing `0`, skema persis 2 tabel kit.
+  Database kembali **tidak kosong**; dua tabel dan tiga baris sintetis dibiarkan, cleanup berikutnya
+  memerlukan persetujuan baru. `observedTransportRollback:false`, `transactionAtomicityVerified:false`,
+  `readyForImport:false`; kuota D1 tetap 10/10. Jangan mengulangi run identik tanpa hipotesis
+  lokal dan rencana bukti baru; tidak ada deploy, import, commit, atau perubahan classifier.
+- Analisis lokal taksonomi setelah run kedua: sumber Wrangler `4.151.0`
+  (`renderError`, `wrangler-dist/cli.js`) meneruskan pesan API dan menambahkan tag ` [code: N]`;
+  token SQLite tidak ditulis ulang oleh Wrangler. SQLite mendokumentasikan primary/extended
+  code berbeda (`SQLITE_CONSTRAINT`, `_PRIMARYKEY`, `_UNIQUE`), tetapi **belum diketahui**
+  token/prefix apa yang benar-benar dikirim pada dua run remote tersebut.
+  Diagnostik **schema v2** menambah `sqlMessageShape`, `sqliteSuffix`, `messageWrapper` lewat
+  whitelist 20 literal penuh (wrapper opsional `D1_ERROR: `, pesan tepat tabel/id kit, suffix
+  allowlist, dan tag opsional ` [code: 7500]`). Tidak ada trim/prefix stripping/case folding,
+  capture arbitrary text, atau pelonggaran pola penerimaan. Varian `: SQLITE_ERROR` hanya
+  hipotesis diagnostik, bukan observasi remote. Literal cocok tidak berarti error terkonfirmasi.
+  Label baru hanya diisi pada non-zero exit dan satu payload bersih; APIError harus cocok target,
+  tanpa key/metadata/account asing, kode none/7500. Input ambigu tetap `unknown`.
+  Riwayat schema v1 tidak ditulis ulang. Classifier tetap SHA-256
+  `1ea79c1fe5cbdeb88f4c3a767bae1902922e155fc5d6d8aeada4c35d95eeb753`.
+  Tes eksekutor **20/20**, staging **203/203**, API **400/400**, web **152/152**, migrasi offline
+  **196/196** lulus (total **951 tes**, eksekutor termasuk staging); lint, typecheck, build lulus.
+  Review kode taksonomi akhir **PASS**; tidak ada temuan material tersisa.
+  Percobaan reproduksi ad hoc in-memory gagal pada inisialisasi harness **sebelum SQL**;
+  tidak ada bukti suffix lokal baru atau hasil rollback dari percobaan itu. Tes semantik lokal
+  kit yang sudah ada tetap lulus. Tidak ada akses remote, cleanup, run baru, deploy, import,
+  atau commit pada tahap analisis ini; residu run kedua tetap dibiarkan.
+  Referensi: https://developers.cloudflare.com/d1/observability/debug-d1/ dan
+  https://www.sqlite.org/rescode.html#constraint_primarykey.
+- Perbaikan harness reproduksi lokal berikutnya: `scripts/staging/d1-tx-probe-local.mjs`
+  memakai `convertV4MiniflareOptions`, sesuai tes kit yang terbukti lulus. CLI hanya menerima
+  `--local-only`; database Miniflare baru di memori, loopback port acak, outbound ditolak 403,
+  tanpa persistence/migrasi/R2/credential. Satu eksekusi lokal berhasil menjalankan ketujuh
+  fase: precondition kosong, setup/inspect, kontrol positif + receipt `1`, inspect positif,
+  batch constraint yang ditolak, dan inspect sesudahnya. Marker step `1`, total/positive `3`,
+  foreign/fail_guard/fail_constraint/trailing `0`, DDL persis dua tabel; runtime berhasil disposed.
+  Run awal harness baru menemukan fitur token PRIMARYKEY tetapi belum cocok 20 literal umum,
+  sehingga status konservatif awalnya INCONCLUSIVE. Pemeriksaan lokal in-memory berikutnya
+  mengidentifikasi bentuk penuh `: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_PRIMARYKEY)`;
+  error.message membawa wrapper `D1_ERROR: `, cause tidak. Whitelist **khusus lokal** kemudian
+  memeriksa literal penuh bentuk tersebut; kedua sumber cocok, receipt positif terverifikasi,
+  semua fase selesai, skema/marker/3 baris tetap identik. Hasil aktual CLI berikutnya:
+  **LOCAL_ROLLBACK_OBSERVED**, `expectedConstraintMessageRecognized:true`,
+  `localRollbackObserved:true`, `disposed:true`, sementara `runTaxonomyMatched:false`.
+  Bentuk primary+extended itu observasi pada binding Miniflare `5.20261012.0-beta`/workerd lokal
+  (versi package terpasang diverifikasi), bukan konfirmasi
+  pesan D1 remote. Classifier dan 20 literal diagnostik remote tetap tidak berubah.
+  Tidak ada pesan mentah yang dicatat, tidak ada upgrade bukti remote atau perubahan classifier.
+  Remote tetap hanya dua run yang sudah dicatat; residu run kedua tidak disentuh.
+  Snapshot akhir harness lokal dipatok SHA-256 source
+  `421983c87e720ba4b060339790b3fa166f5eb6aaf2da3b843a72ef941852c295` dan test
+  `5bbd2e129d3c9c2abe570b60946a034d26e62ef178e8cfc41009112796bf8164`.
+  Tes harness **10/10**, staging berurutan **213/213**, API **400/400**, web **152/152**,
+  migrasi offline **196/196** lulus (total **961 tes**, harness termasuk staging); lint,
+  typecheck, dan build lulus. Receipt, urutan 7 fase, post-count non-null, constraint tertangkap,
+  state identik, dan kecocokan literal penuh wajib bersama-sama untuk klaim rollback lokal.
+  Review kode snapshot akhir **PASS WITH NOTES** (tanpa Medium/High); validasi independen
+  mengonfirmasi hash kedua file, tes 10/10, CLI exit 0, dan runtime disposed.
+- Diagnostik extended-code berikutnya tersedia lokal sebagai **schema v3**: field
+  `sqliteExtendedCode` berisi enum `unknown`/`none`/`SQLITE_CONSTRAINT_PRIMARYKEY`. Whitelist
+  20 literal schema v2 tetap; map terpisah berisi 4 literal primary+extended yang tepat
+  (dua wrapper × tag Wrangler opsional). Bentuk tanpa tag diamati pada binding lokal; bentuk
+  remote bertag masih hipotesis. Match baru hanya di konteks APIError bersih dan terikat target;
+  wrapper teks biasa tetap tidak cocok map extended sehingga pengenalan harness lokal tidak berubah.
+  Match hanya memperkaya diagnostik: `sqlFamily:other`, `MESSAGE_MISMATCH`, classifier/proof
+  tetap menolak, semua flag izin/bukti diagnostik tetap false. `none` berarti literal dikenal
+  tanpa extended code, bukan verifikasi ketiadaan code; input tak dikenal/ambigu tetap `unknown`.
+  Riwayat v1/v2 tidak diinterpretasi ulang; penyebab kedua error remote belum terkonfirmasi.
+  Snapshot test harness lokal memperbarui pin module run menjadi
+  `02c5c4882b50c995d79dbd793f495a9be1394993778cc1de5dd98d199782c6a3`
+  untuk perubahan diagnostik yang disengaja; pin fungsi classifier tetap
+  `1ea79c1fe5cbdeb88f4c3a767bae1902922e155fc5d6d8aeada4c35d95eeb753`.
+  Validasi: staging **216/216**, API **400/400**, web **152/152**, migrasi offline **196/196**
+  lulus (total **964 tes**, mencakup 23 tes eksekutor dan 10 harness lokal); lint, typecheck,
+  dan build lulus. Review kode **PASS WITH NOTES**, tanpa temuan Medium/High.
+  Tidak ada akses remote, cleanup, run baru, commit, deploy, atau import pada tahap schema v3;
+  residu remote run kedua tetap dibiarkan dan kuota tetap 10/10.
+- Importer data remote **belum diimplementasikan**. Alat migrasi offline tetap menolak
+  `--remote`; dua run probe sintetis terpisah berhenti gagal-aman seperti dicatat di atas.
+  Bukti atomisitas remote belum lengkap; tidak ada import atau deploy baru. Gerbang tersisa sebelum PII
   dipindahkan:
   1. Target UAT terpisah yang kosong (fixture saat ini sengaja membuat `TARGET_NOT_EMPTY`;
      jangan menghapus/menimpanya agar tampak kosong).
