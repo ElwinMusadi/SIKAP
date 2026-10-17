@@ -4,7 +4,6 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { createBrowserRouter, Outlet } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { RefreshCw, TriangleAlert } from 'lucide-react';
-import { ComingSoon } from '@/components/coming-soon';
 import { FullPageLoader } from '@/components/full-page-loader';
 import { NotFound } from '@/components/not-found';
 import { Button } from '@/components/ui/button';
@@ -36,11 +35,6 @@ function RouteError() {
     </div>
   );
 }
-
-const comingSoon = (path: string, title: string, phase: string) => ({
-  path,
-  element: <ComingSoon title={title} phase={phase} />,
-});
 
 const router = createBrowserRouter([
   {
@@ -103,8 +97,14 @@ const router = createBrowserRouter([
                       Component: (await import('./features/pengajuan/admin-pengajuan-page')).default,
                     }),
                   },
-                  comingSoon('log', 'Log Aktivitas', 'Fase 7'),
-                  comingSoon('jenis-dokumen', 'Jenis Dokumen', 'Fase 7'),
+                  {
+                    path: 'log',
+                    lazy: async () => ({ Component: (await import('./features/log/log-page')).default }),
+                  },
+                  {
+                    path: 'jenis-dokumen',
+                    lazy: async () => ({ Component: (await import('./features/jenis-dokumen/jenis-dokumen-page')).default }),
+                  },
                   {
                     path: 'pengaturan',
                     lazy: async () => ({ Component: (await import('./features/pengaturan/pengaturan-page')).default }),

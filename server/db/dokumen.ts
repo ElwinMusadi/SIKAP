@@ -105,9 +105,10 @@ export interface RiwayatRow {
 
 /**
  * Document types with this pegawai's arsip state. Without `jenisId`: all ACTIVE
- * types. With `jenisId`: exactly that type, even if inactive (so a mutation on an
+ * types plus inactive types that already have an archive (history must remain visible).
+ * With `jenisId`: exactly that type, even if inactive (so a mutation on an
  * arsip of a since-deactivated type can still return its item; `aktif` tells).
- * `wajib` uses the pegawai's current status (NULL status → never wajib).
+ * `wajib` uses the pegawai's current status; inactive types never count as mandatory.
  */
 export function selectDokumenRows(
   db: D1Database,
@@ -117,15 +118,15 @@ export function selectDokumenRows(
   return db
     .prepare(
       `SELECT j.id AS jenis_id, j.nama AS jenis_nama, j.kategori, j.aktif, j.max_size_bytes,
-              EXISTS(SELECT 1 FROM jenis_dokumen_wajib w
+               (j.aktif = 1 AND EXISTS(SELECT 1 FROM jenis_dokumen_wajib w
                       WHERE w.jenis_dokumen_id = j.id
-                        AND w.status_kepegawaian = (SELECT p.status_kepegawaian FROM pegawai p WHERE p.id = ?1)) AS wajib,
+                         AND w.status_kepegawaian = (SELECT p.status_kepegawaian FROM pegawai p WHERE p.id = ?1))) AS wajib,
               a.id AS arsip_id, a.status, a.file_name, a.mime_type, a.size_bytes, a.versi, a.catatan_admin,
               a.uploaded_at, a.verified_at, a.verified_by, vp.nama AS verifier_nama, a.deleted_at, a.purge_after
          FROM jenis_dokumen j
          LEFT JOIN arsip_dokumen a ON a.jenis_dokumen_id = j.id AND a.pegawai_id = ?1
          LEFT JOIN pegawai vp ON vp.id = a.verified_by
-        WHERE (?2 IS NULL AND j.aktif = 1) OR j.id = ?2
+         WHERE (?2 IS NULL AND (j.aktif = 1 OR a.id IS NOT NULL)) OR j.id = ?2
         ORDER BY j.urutan, j.nama, j.id`,
     )
     .bind(pegawaiId, jenisId);

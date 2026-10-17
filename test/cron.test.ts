@@ -5,7 +5,7 @@ import { createUser } from './helpers';
 
 afterEach(() => vi.restoreAllMocks());
 
-describe('Phase 5 scheduled companion', () => {
+describe('scheduled companion', () => {
   it('removes only expired sessions and rate windows', async () => {
     const user = await createUser();
     const now = Date.parse('2030-01-01T00:00:00.000Z');
@@ -65,7 +65,9 @@ describe('Phase 5 scheduled companion', () => {
     const ctx = createExecutionContext();
     scheduledWorker.scheduled(createScheduledController({ cron: CLEANUP_CRON, scheduledTime: Date.now() }), env, ctx);
     await waitOnExecutionContext(ctx);
-    expect(log).toHaveBeenCalledTimes(1);
+    expect(log.mock.calls.map((call) => JSON.parse(String(call[0])).event)).toEqual([
+      'session_cleanup', 'retention_purge', 'r2_purge_drain',
+    ]);
     expect(JSON.parse(String(log.mock.calls[0]?.[0]))).toMatchObject({ event: 'session_cleanup' });
   });
 
@@ -83,7 +85,9 @@ describe('Phase 5 scheduled companion', () => {
   it('scheduled cleanup emits only counts', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     await runScheduled(CLEANUP_CRON, env, Date.now());
-    expect(log).toHaveBeenCalledTimes(1);
+    expect(log.mock.calls.map((call) => JSON.parse(String(call[0])).event)).toEqual([
+      'session_cleanup', 'retention_purge', 'r2_purge_drain',
+    ]);
     const data = JSON.parse(String(log.mock.calls[0]?.[0]));
     expect(data).toEqual({ event: 'session_cleanup', sessions: expect.any(Number), rateWindows: expect.any(Number) });
   });
@@ -93,7 +97,18 @@ describe('Phase 5 scheduled companion', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     await runScheduled(RETRY_CRON, env, Date.now());
     expect(fetch).not.toHaveBeenCalled();
-    expect(log).toHaveBeenCalledTimes(1);
+    expect(log.mock.calls.map((call) => JSON.parse(String(call[0])).event)).toEqual([
+      'outbox_flush', 'r2_purge_drain',
+    ]);
     expect(JSON.parse(String(log.mock.calls[0]?.[0]))).toMatchObject({ event: 'outbox_flush' });
+  });
+
+  it('runs one bounded backup step on the retry schedule only when the bucket is configured', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const fetch = vi.spyOn(globalThis, 'fetch');
+    await runScheduled(RETRY_CRON, { ...env, BACKUPS: env.FILES }, Date.now());
+    expect(fetch).not.toHaveBeenCalled();
+    const events = log.mock.calls.map((call) => JSON.parse(String(call[0])).event);
+    expect(events).toEqual(['outbox_flush', 'r2_purge_drain', 'backup_step', 'backup_purge_drain']);
   });
 });

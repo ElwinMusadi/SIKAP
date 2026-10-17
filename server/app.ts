@@ -5,6 +5,8 @@ import { errors } from './lib/errors';
 import { csrfProtection } from './middleware/csrf';
 import { notFound, onError } from './middleware/error-handler';
 import { adminRoutes } from './routes/admin';
+import { administrasiRoutes } from './routes/administrasi';
+import { backupRoutes } from './routes/backup';
 import { authRoutes } from './routes/auth';
 import { documentRoutes } from './routes/documents';
 import { healthRoutes } from './routes/health';
@@ -47,6 +49,8 @@ export function createApp() {
   app.route('/me', meRoutes);
   app.route('/pegawai', pegawaiRoutes);
   app.route('/admin', adminRoutes);
+  app.route('/admin', administrasiRoutes);
+  app.route('/admin', backupRoutes);
   app.route('/documents', documentRoutes);
 
   app.notFound(notFound);

@@ -4,6 +4,8 @@ import type { Role, StatusKepegawaian } from '../shared/enums';
 export interface Bindings {
   DB: D1Database;
   FILES: R2Bucket;
+  /** Optional private logical-backup bucket; absence disables backup creation safely. */
+  BACKUPS?: R2Bucket;
   /** Public origin of the app, e.g. https://sikap.uptdpenda-kupang.web.id */
   APP_URL: string;
   /** Sliding session lifetime in hours (string var). */

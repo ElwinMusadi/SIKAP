@@ -30,6 +30,11 @@ migrations_dir = "migrations"
 binding = "FILES"
 bucket_name = "sikap-files-preview"
 
+# Local simulation only unless explicitly configured in a remote environment below.
+[[r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "sikap-backup-preview"
+
 # ---------------------------------------------------------------------------
 # Preview environment (separate DB + bucket — never test against production)
 # ---------------------------------------------------------------------------
@@ -47,6 +52,9 @@ migrations_dir = "migrations"
 binding = "FILES"
 bucket_name = "sikap-files-preview"
 
+# Provision a SEPARATE private preview bucket before adding env.preview BACKUPS.
+# Until then GET /admin/backup reports configured:false; never use the production bucket.
+
 # ---------------------------------------------------------------------------
 # Production (used only after cutover)
 # ---------------------------------------------------------------------------
@@ -63,6 +71,10 @@ migrations_dir = "migrations"
 [[env.production.r2_buckets]]
 binding = "FILES"
 bucket_name = "sikap-files"
+
+[[env.production.r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "sikap-backup"
 
 # Backups (cron Worker, phase 7): R2 bucket "sikap-backup" — private, no r2.dev URL.
 #

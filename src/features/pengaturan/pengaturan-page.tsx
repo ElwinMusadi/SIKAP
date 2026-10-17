@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type FormEvent } from 'react';
-import { Bell, Check, Eye, EyeOff, KeyRound, MessageCircle, RefreshCw, Send, TriangleAlert } from 'lucide-react';
+import { Bell, Check, Eye, EyeOff, KeyRound, ListTree, MessageCircle, RefreshCw, Send, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   WA_PROVIDERS,
@@ -22,6 +22,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ReferensiPanel } from '@/features/referensi/referensi-panel';
+import BackupPanel from '@/features/backup/backup-panel';
 import { errorMessage, isApiError } from '@/lib/api';
 import {
   useNotifSettings,
@@ -51,14 +53,18 @@ const PROVIDER_LABELS: Record<WaProvider, string> = { fonnte: 'Fonnte', meta: 'M
 export default function PengaturanPage() {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Pengaturan Sistem" description="Kelola notifikasi dan koneksi WhatsApp SIKAP." />
+      <PageHeader title="Pengaturan Sistem" description="Kelola notifikasi, koneksi WhatsApp, dan data referensi SIKAP." />
       <Tabs defaultValue="notifikasi" className="gap-6">
         <TabsList aria-label="Bagian pengaturan sistem">
           <TabsTrigger value="notifikasi"><Bell data-icon="inline-start" />Notifikasi</TabsTrigger>
           <TabsTrigger value="whatsapp"><MessageCircle data-icon="inline-start" />WhatsApp</TabsTrigger>
+          <TabsTrigger value="referensi"><ListTree data-icon="inline-start" />Referensi</TabsTrigger>
+          <TabsTrigger value="backup">Backup</TabsTrigger>
         </TabsList>
         <TabsContent value="notifikasi"><NotificationsTab /></TabsContent>
         <TabsContent value="whatsapp"><WhatsAppTab /></TabsContent>
+        <TabsContent value="referensi"><ReferensiPanel /></TabsContent>
+        <TabsContent value="backup"><BackupPanel /></TabsContent>
       </Tabs>
     </div>
   );

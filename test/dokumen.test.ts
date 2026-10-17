@@ -124,6 +124,25 @@ describe('sniffDocument', () => {
 });
 
 describe('GET /api/me/documents', () => {
+  it('keeps an inactive document type visible when it has an archive, but never mandatory/uploadable', async () => {
+    const { cookie } = await pegawai();
+    const jenis = `DOC-HIST-${crypto.randomUUID().replaceAll('-', '').toUpperCase()}`;
+    await env.DB.batch([
+      env.DB.prepare(`INSERT INTO jenis_dokumen(id,nama,kategori,urutan,aktif,max_size_bytes)
+        VALUES (?1,'Riwayat nonaktif','Pengujian',999,1,5242880)`).bind(jenis),
+      env.DB.prepare(`INSERT INTO jenis_dokumen_wajib(jenis_dokumen_id,status_kepegawaian) VALUES (?1,'PNS')`).bind(jenis),
+    ]);
+    const item = await uploadOk(cookie, jenis);
+    await env.DB.prepare('UPDATE jenis_dokumen SET aktif=0 WHERE id=?1').bind(jenis).run();
+    const list = await json<DokumenListResponse>(await call('/api/me/documents', { cookie }));
+    const historical = list.items.find((row) => row.jenisDokumenId === jenis);
+    expect(historical?.arsip?.id).toBe(item.arsip?.id);
+    expect(historical?.wajib).toBe(false);
+    expect(historical?.can.upload).toBe(false);
+    expect(historical?.uploadBlockedReason).toBe('Jenis dokumen tidak aktif.');
+    expect((await call(`/api/documents/${item.arsip?.id}/file`, { cookie })).status).toBe(200);
+  });
+
   it('lists all types with 9 wajib for PNS', async () => {
     const { user, cookie } = await pegawai({ complete: false });
     const res = await call('/api/me/documents', { cookie });

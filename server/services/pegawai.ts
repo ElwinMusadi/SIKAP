@@ -221,15 +221,45 @@ interface RefChecks {
   slots: Partial<Record<RefKind, number>>;
 }
 
-/** Only the checks the input needs, in a fixed order. */
+/**
+ * Pangkat reference that is active, OR is the pegawai's CURRENT (unchanged) pangkat even if the
+ * reference was deactivated since — existing values stay historically valid. `jenis_asn` is
+ * still returned so the family/status rule always applies. selfId 0 (create) = active only.
+ */
+function selectPangkatForPegawai(db: D1Database, kode: string, selfId: number): D1PreparedStatement {
+  if (selfId <= 0) return selectPangkat(db, kode);
+  return db
+    .prepare(
+      `SELECT g.kode, g.jenis_asn FROM ref_pangkat_golongan g
+        WHERE g.kode = ?1
+          AND (g.aktif = 1 OR EXISTS (SELECT 1 FROM pegawai p
+                                       WHERE p.id = ?2 AND p.deleted_at IS NULL AND p.pangkat_kode = g.kode))`,
+    )
+    .bind(kode, selfId);
+}
+
+/** Unit counterpart of {@link selectPangkatForPegawai}. */
+function selectUnitForPegawai(db: D1Database, unitId: number, selfId: number): D1PreparedStatement {
+  if (selfId <= 0) return selectUnit(db, unitId);
+  return db
+    .prepare(
+      `SELECT u.id FROM ref_unit_organisasi u
+        WHERE u.id = ?1
+          AND (u.aktif = 1 OR EXISTS (SELECT 1 FROM pegawai p
+                                       WHERE p.id = ?2 AND p.deleted_at IS NULL AND p.unit_id = u.id))`,
+    )
+    .bind(unitId, selfId);
+}
+
+/** Only the checks the input needs, in a fixed order. `selfId` 0 = create (active refs only). */
 function refChecks(db: D1Database, input: RefInput, selfId: number): RefChecks {
   const out: RefChecks = { stmts: [], slots: {} };
   const add = (kind: RefKind, s: D1PreparedStatement) => {
     out.slots[kind] = out.stmts.length;
     out.stmts.push(s);
   };
-  if (input.pangkatKode != null) add('pangkat', selectPangkat(db, input.pangkatKode));
-  if (input.unitId != null) add('unit', selectUnit(db, input.unitId));
+  if (input.pangkatKode != null) add('pangkat', selectPangkatForPegawai(db, input.pangkatKode, selfId));
+  if (input.unitId != null) add('unit', selectUnitForPegawai(db, input.unitId, selfId));
   if (input.pendidikanKode != null) add('pendidikan', pendidikanExists(db, input.pendidikanKode));
   if (input.nik != null) add('nik', nikUsedByOther(db, input.nik, selfId));
   return out;

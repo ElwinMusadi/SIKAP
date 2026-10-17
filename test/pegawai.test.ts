@@ -472,6 +472,89 @@ describe('PATCH /api/admin/pegawai/:id', () => {
     expect((await call('/api/auth/me', { cookie: target.cookie })).status).toBe(401);
   });
 
+  describe('deactivated references', () => {
+    let refSeq = 0;
+    /** Fresh reference rows (active at creation), so seeded data is never touched. */
+    async function mkRefs(jenis: 'PNS' | 'PPPK' = 'PNS'): Promise<{ kode: string; unitId: number }> {
+      refSeq += 1;
+      const t = tag();
+      const kode = `X${t}`.slice(0, 16);
+      await env.DB.prepare(
+        `INSERT INTO ref_pangkat_golongan (kode, nama, jenis_asn, urutan, aktif) VALUES (?1, ?2, ?3, ?4, 1)`,
+      )
+        .bind(kode, `Pangkat Uji ${t}`, jenis, 900 + refSeq)
+        .run();
+      const unit = await env.DB.prepare(`INSERT INTO ref_unit_organisasi (nama, aktif) VALUES (?1, 1) RETURNING id`)
+        .bind(`Unit Uji ${t}`)
+        .first<{ id: number }>();
+      return { kode, unitId: unit!.id };
+    }
+    async function deactivate(r: { kode: string; unitId: number }): Promise<void> {
+      await env.DB.batch([
+        env.DB.prepare(`UPDATE ref_pangkat_golongan SET aktif = 0 WHERE kode = ?1`).bind(r.kode),
+        env.DB.prepare(`UPDATE ref_unit_organisasi SET aktif = 0 WHERE id = ?1`).bind(r.unitId),
+      ]);
+    }
+    async function holding(r: { kode: string; unitId: number }, status: 'PNS' | 'PPPK' = 'PNS'): Promise<Fixture> {
+      const f = await mk({ nama: `RefHolder ${tag()}`, status });
+      expect((await patch(f.id, { pangkatKode: r.kode, unitId: r.unitId })).status).toBe(200);
+      return f;
+    }
+
+    it('create rejects an inactive pangkat or unit', async () => {
+      const r = await mkRefs();
+      await deactivate(r);
+      const base = { nama: 'Ref Nonaktif', statusKepegawaian: 'PNS' };
+      const p = await call('/api/admin/pegawai', { cookie: admin.cookie, body: { ...base, nip: uniqueNip(), pangkatKode: r.kode } });
+      expect(p.status).toBe(400);
+      expect(Object.keys(((await p.json()) as { error: { fields?: object } }).error.fields ?? {})).toEqual(['pangkatKode']);
+      const u = await call('/api/admin/pegawai', { cookie: admin.cookie, body: { ...base, nip: uniqueNip(), unitId: r.unitId } });
+      expect(u.status).toBe(400);
+      expect(Object.keys(((await u.json()) as { error: { fields?: object } }).error.fields ?? {})).toEqual(['unitId']);
+    });
+
+    it('accepts the current inactive pangkat/unit resent unchanged (whole-form PATCH)', async () => {
+      const r = await mkRefs();
+      const f = await holding(r);
+      await deactivate(r);
+      const res = await patch(f.id, { statusKepegawaian: 'PNS', pangkatKode: r.kode, unitId: r.unitId, jabatan: 'Tetap' });
+      expect(res.status).toBe(200);
+      expect((await json<PegawaiDetailResponse>(res)).pegawai).toMatchObject({ pangkatKode: r.kode, unitId: r.unitId, jabatan: 'Tetap' });
+    });
+
+    it('rejects assigning an inactive pangkat/unit the pegawai does not already hold', async () => {
+      const r = await mkRefs();
+      const other = await holding(r); // another pegawai holding it must not make it valid here
+      await deactivate(r);
+      const f = await mk({ nama: `RefNew ${tag()}` });
+      const p = await patch(f.id, { pangkatKode: r.kode });
+      expect(p.status).toBe(400);
+      expect(Object.keys(((await p.json()) as { error: { fields?: object } }).error.fields ?? {})).toEqual(['pangkatKode']);
+      const u = await patch(f.id, { unitId: r.unitId });
+      expect(u.status).toBe(400);
+      expect(Object.keys(((await u.json()) as { error: { fields?: object } }).error.fields ?? {})).toEqual(['unitId']);
+      expect(other.id).not.toBe(f.id);
+    });
+
+    it.each([
+      ['PNS', 'PPPK'],
+      ['PPPK', 'PNS'],
+    ] as const)('rejects changing %s to %s with an unchanged inactive pangkat', async (currentStatus, desiredStatus) => {
+      const r = await mkRefs(currentStatus);
+      const f = await holding(r, currentStatus);
+      await deactivate(r);
+      const resent = await patch(f.id, { statusKepegawaian: desiredStatus, pangkatKode: r.kode, unitId: r.unitId });
+      expect(resent.status).toBe(400);
+      expect(Object.keys(((await resent.json()) as { error: { fields?: object } }).error.fields ?? {})).toEqual(['pangkatKode']);
+      // Omitting the pangkat: the current (inactive) pangkat's family is still enforced.
+      expect((await patch(f.id, { statusKepegawaian: desiredStatus })).status).toBe(400);
+      const row = await env.DB.prepare(`SELECT status_kepegawaian, pangkat_kode FROM pegawai WHERE id = ?1`)
+        .bind(f.id)
+        .first<{ status_kepegawaian: string; pangkat_kode: string }>();
+      expect(row).toEqual({ status_kepegawaian: currentStatus, pangkat_kode: r.kode });
+    });
+  });
+
   it('409 on duplicate NIK; 404 for a soft-deleted target', async () => {
     const holder = await mk({ nama: `Holder ${tag()}` });
     const nik = uniqueNik();

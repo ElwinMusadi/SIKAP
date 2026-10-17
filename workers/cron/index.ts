@@ -1,8 +1,12 @@
 import type { Bindings } from '../../server/env';
 import { LOGIN_IP_LIMIT } from '../../server/services/auth';
-import { flushOutbox, FLUSH_LIMIT } from '../../server/services/notifikasi';
+import { flushOutbox } from '../../server/services/notifikasi';
+import { drainPurgeQueue, purgeExpired } from '../../server/services/purge';
+import { drainBackupPurgeQueue } from '../../server/services/backup-purge';
+import { createBackupJob, purgeBackupJobs, runBackupSteps } from '../../server/services/backup';
 
-export type CronBindings = Pick<Bindings, 'DB' | 'APP_URL' | 'SETTINGS_ENC_KEY'>;
+export type CronBindings = Pick<Bindings, 'DB' | 'APP_URL' | 'SETTINGS_ENC_KEY'> &
+  Partial<Pick<Bindings, 'FILES' | 'BACKUPS'>>;
 export const RETRY_CRON = '*/10 * * * *';
 export const CLEANUP_CRON = '0 18 * * *'; // 02:00 WITA
 
@@ -31,11 +35,45 @@ export async function cleanupExpired(db: D1Database, nowMs: number, batchSize = 
 export async function runScheduled(cron: string, env: CronBindings, nowMs: number): Promise<void> {
   if (cron === RETRY_CRON) {
     // Same bounded, leased sender used by Pages; no duplicate parallel claims.
-    const counts = await flushOutbox(env, 'pending', FLUSH_LIMIT, nowMs);
+    // One provider wave (3 x 8s concurrently) leaves room for bounded maintenance
+    // in the same invocation. HTTP-triggered flushes may still use the larger limit.
+    const counts = await flushOutbox(env, 'pending', 3, nowMs);
     console.log(JSON.stringify({ event: 'outbox_flush', ...counts }));
+    if (env.FILES) {
+      const deleted = await drainPurgeQueue({ ...env, FILES: env.FILES }, nowMs, 25);
+      console.log(JSON.stringify({ event: 'r2_purge_drain', ...deleted }));
+    }
+    if (env.BACKUPS) {
+      // A paused/manual export can continue in bounded chunks without a second schedule.
+      const backup = await runBackupSteps(env, nowMs, 1);
+      console.log(JSON.stringify({ event: 'backup_step', ...backup }));
+      const purged = await drainBackupPurgeQueue(env, nowMs, 25);
+      console.log(JSON.stringify({ event: 'backup_purge_drain', ...purged }));
+    }
   } else if (cron === CLEANUP_CRON) {
     const counts = await cleanupExpired(env.DB, nowMs);
     console.log(JSON.stringify({ event: 'session_cleanup', ...counts }));
+    if (env.FILES) {
+      // Conservative batches on Free (10 ms CPU); reruns catch up without an unbounded loop.
+      const purged = await purgeExpired(env.DB, nowMs, { versions: 25, documents: 10, employees: 2 });
+      console.log(JSON.stringify({ event: 'retention_purge', ...purged }));
+      const deleted = await drainPurgeQueue({ ...env, FILES: env.FILES }, nowMs, 25);
+      console.log(JSON.stringify({ event: 'r2_purge_drain', ...deleted }));
+    }
+    if (env.BACKUPS) {
+      const purged = await purgeBackupJobs(env, nowMs, 1);
+      console.log(JSON.stringify({ event: 'backup_retention', ...purged }));
+      // The unique RUNNING guard prevents duplicate daily/manual jobs. Handle only the
+      // expected conflict, never suppress storage/auth failures as "already running".
+      try { await createBackupJob(env, null, { nowMs }); }
+      catch (error) {
+        if (!(error instanceof Error && 'status' in error && error.status === 409)) throw error;
+      }
+      const backup = await runBackupSteps(env, nowMs, 1);
+      console.log(JSON.stringify({ event: 'backup_step', ...backup }));
+      const deleted = await drainBackupPurgeQueue(env, nowMs, 25);
+      console.log(JSON.stringify({ event: 'backup_purge_drain', ...deleted }));
+    }
   }
 }
 
