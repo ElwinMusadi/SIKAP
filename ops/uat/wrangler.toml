@@ -1,0 +1,31 @@
+# Isolated UAT project. Pages production branch "uat" is NOT system production.
+# Current deployment is an all-routes 503 holding worker, not the SIKAP app.
+# Do not reuse root wrangler.toml or point this at production/old preview resources.
+name = "sikap-uat"
+# Account verified by `wrangler whoami` before provisioning. Pages config cannot
+# contain account_id; deploy commands must explicitly set CLOUDFLARE_ACCOUNT_ID.
+compatibility_date = "2026-10-17"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "../../dist-uat"
+
+[vars]
+APP_URL = "https://sikap-uat.pages.dev"
+SESSION_TTL_HOURS = "12"
+ACCESS_REQUIRED = "1"
+# ACCESS_TEAM_DOMAIN and ACCESS_AUDIENCE intentionally absent until operator sets
+# the real Access application. The holding worker ignores all vars and always denies.
+# The full API would fail closed with 503 if those values remained missing.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sikap-uat-db"
+database_id = "9d6ca598-057e-4297-9b8c-3ce789c5ab14"
+migrations_dir = "../../migrations"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "sikap-uat-files"
+
+[[r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "sikap-uat-backup"

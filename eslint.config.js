@@ -8,6 +8,11 @@ export default tseslint.config(
     ignores: ['dist', 'legacy-gas', 'UIUX Stitch', 'Blueprint Product', '.wrangler', 'server/worker-configuration.d.ts'],
   },
   {
+    files: ['scripts/migrate/**/*.mjs', 'scripts/staging/**/*.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.node } },
+  },
+  {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
     languageOptions: {

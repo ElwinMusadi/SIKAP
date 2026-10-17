@@ -3,6 +3,7 @@ import { bodyLimit } from 'hono/body-limit';
 import type { AppEnv } from './env';
 import { errors } from './lib/errors';
 import { csrfProtection } from './middleware/csrf';
+import { accessProtection } from './middleware/access';
 import { notFound, onError } from './middleware/error-handler';
 import { adminRoutes } from './routes/admin';
 import { administrasiRoutes } from './routes/administrasi';
@@ -30,6 +31,9 @@ export function createApp() {
     if (!c.res.headers.has('Cache-Control')) c.header('Cache-Control', 'no-store');
     c.header('X-Content-Type-Options', 'nosniff');
   });
+  // Optional second boundary for private UAT. Edge Access must separately protect
+  // static pages and every deployment hostname; this API guard is not a substitute.
+  app.use('*', accessProtection);
   app.use('*', csrfProtection);
   // JSON payloads are tiny; reject oversized bodies before parsing. Reported as
   // 400 VALIDATION_ERROR to stay within the shared ApiErrorCode contract.

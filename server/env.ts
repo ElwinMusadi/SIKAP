@@ -14,6 +14,12 @@ export interface Bindings {
   PASSWORD_PEPPER: string;
   /** Secret AES-GCM key for encrypted settings (phase 5). */
   SETTINGS_ENC_KEY: string;
+  /** Optional private UAT API boundary. Set to '1' only with valid Access config. */
+  ACCESS_REQUIRED?: string;
+  /** Lowercase <team>.cloudflareaccess.com (no scheme/path). */
+  ACCESS_TEAM_DOMAIN?: string;
+  /** Expected Cloudflare Access application AUD tag. */
+  ACCESS_AUDIENCE?: string;
 }
 
 /** Authenticated principal resolved by the session middleware. */

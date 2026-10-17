@@ -40,5 +40,11 @@ jobs:
       - name: Test web (pure client logic)
         run: npm run test:web
 
+      - name: Test offline migration (synthetic data, local storage only)
+        run: npm run test:migrate
+
+      - name: Test staging guards (offline, no real credentials)
+        run: npm run test:staging
+
       - name: Build
         run: npx vite build
