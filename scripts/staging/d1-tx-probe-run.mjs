@@ -45,6 +45,18 @@ export const SQL_ERROR_PATTERNS = Object.freeze({
   guard: new RegExp(`^malformed JSON(?:: SQLITE_ERROR)?${CODE_TAG}$`),
   constraint: new RegExp(`^UNIQUE constraint failed: ${DATA_TABLE}\\.id(?:: SQLITE_CONSTRAINT)?${CODE_TAG}$`),
 });
+// Classifier compatibility policy v2 (legacy SQL_ERROR_PATTERNS above unchanged). Adds exactly ONE whole-string literal for
+// the constraint kind, accepted ONLY inside the clean pinned /query APIError (targetBound) whose own `code` is the number
+// 7500. Grounding is a RECONSTRUCTION, not a retained raw note: remote run 3 recorded only enum diagnostics (clean bound
+// APIError, providerCode 7500, owned-id-unique shape, suffix SQLITE_CONSTRAINT, extended SQLITE_CONSTRAINT_PRIMARYKEY,
+// wrapper none); raw output was discarded. The ' [code: 7500]' tail is INFERRED from installed Wrangler 4.151.0 renderError
+// (appends ' [code: N]' to the raw D1 message), not observed verbatim. No regex, prefix, trim, casefold or variant
+// fallback; the unbound {text} wrapper, a missing/string/other code and every other literal stay UNEXPECTED_FAILURE.
+// Older reports/receipts were produced under policy v1 and are never rewritten or reinterpreted by this policy.
+export const CLASSIFIER_POLICY = 'd1-query-constraint-extended-primarykey-v2';
+export const OBSERVED_CONSTRAINT_MESSAGES = Object.freeze([
+  `UNIQUE constraint failed: ${DATA_TABLE}.id: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_PRIMARYKEY) [code: 7500]`,
+]);
 // Own properties Wrangler 4.151.0 serializes for an APIError inside {"error": ...} (d1 execute --json).
 const API_ERROR_KEYS = ['name', 'text', 'notes', 'location', 'kind', 'telemetryMessage', 'code', 'accountTag', 'meta', 'retryAfterMs'];
 const WRANGLER_PARTS = [['bin'], ['bin', 'wrangler.js'], ['wrangler-dist'], ['wrangler-dist', 'cli.js'], ['package.json']];
@@ -163,6 +175,7 @@ function sqlMessage(e) {
  * other stream is empty after trim (any warning/auth/rate-limit text there fails closed), of a known shape whose
  * single SQL message matches the anchored pattern for `kind`, else UNEXPECTED_FAILURE. Never echoes.
  * Diagnostic only: EXPECTED_SQL_ERROR with targetBound:false is NOT accepted as run proof (see UNBOUND_SQL_ERROR).
+ * Policy v2 (CLASSIFIER_POLICY): additionally one OBSERVED_CONSTRAINT_MESSAGES literal, bound APIError with own code 7500 only.
  */
 export function classifyFailure(result, kind) {
   if (!Object.hasOwn(SQL_ERROR_PATTERNS, kind)) fail('CLASSIFIER_KIND_INVALID');
@@ -176,7 +189,10 @@ export function classifyFailure(result, kind) {
   const single = index !== -1 && payloads[1 - index] === undefined && (other === undefined || other === null
     || (typeof other === 'string' && other.trim() === ''));
   const parsed = single ? sqlMessage(payloads[index]) : null;
-  if (parsed && SQL_ERROR_PATTERNS[kind].test(parsed.message)) return Object.freeze({ class: 'EXPECTED_SQL_ERROR', targetBound: parsed.targetBound });
+  const legacyMatch = parsed !== null && SQL_ERROR_PATTERNS[kind].test(parsed.message);
+  const observedMatch = parsed !== null && kind === 'constraint' && parsed.targetBound === true
+    && Object.hasOwn(payloads[index], 'code') && payloads[index].code === 7500 && OBSERVED_CONSTRAINT_MESSAGES.includes(parsed.message);
+  if (legacyMatch || observedMatch) return Object.freeze({ class: 'EXPECTED_SQL_ERROR', targetBound: parsed.targetBound });
   return Object.freeze({ class: 'UNEXPECTED_FAILURE', targetBound: false });
 }
 
@@ -223,10 +239,15 @@ const DIAG_TAXONOMY = new Map([['', 'none'], ['D1_ERROR: ', 'D1_ERROR']].flatMap
 export const DIAGNOSTIC_TAXONOMY_LITERALS = Object.freeze([...DIAG_TAXONOMY.keys()]);
 // v3 extended literals (separate map; the 20 above are unchanged and report sqliteExtendedCode 'none'). LOCALITY EVIDENCE:
 // the local Miniflare 5.20261012.0-beta harness observed the exact tail ': SQLITE_CONSTRAINT (extended:
-// SQLITE_CONSTRAINT_PRIMARYKEY)' with and without 'D1_ERROR: '. REMOTE HYPOTHESIS ONLY: the remote D1/Wrangler text is
-// unknown; ' [code: 7500]' variants are the prospective Wrangler renderError form, never observed remotely. Diagnostic ONLY:
-// never feeds SQL_ERROR_PATTERNS/diagSql/sqlFamily/reasonCodes/classifyFailure (sqlFamily stays 'other' => MESSAGE_MISMATCH).
-// Exact whole-string Map lookup; no regex, trim, casefold, substrings or similar-variant fallback.
+// SQLITE_CONSTRAINT_PRIMARYKEY)' with and without 'D1_ERROR: '. Written as a REMOTE HYPOTHESIS; historically, remote run 3
+// diagnostics later matched the unprefixed ' [code: 7500]' shape (enum features only; the tag is still inferred from
+// Wrangler renderError, raw text not retained). Diagnostic ONLY: never feeds SQL_ERROR_PATTERNS/diagSql/sqlFamily/
+// reasonCodes/classifyFailure (sqlFamily stays 'other' => MESSAGE_MISMATCH). Exact whole-string Map lookup; no regex,
+// trim, casefold, substrings or similar-variant fallback.
+// Policy v2 note: classifyFailure separately accepts ONE of these literals (OBSERVED_CONSTRAINT_MESSAGES). This helper keeps
+// its legacy v3 view, so calling diagnoseFailure directly on that accepted result still reports sqlFamily 'other' +
+// MESSAGE_MISMATCH; that is not a rejection. Runs attach diagnostics only to failed aborts, historical reason codes are not
+// reinterpreted, and the classifier never calls diagnoseFailure.
 const DIAG_EXTENDED = new Map([['', 'none'], ['D1_ERROR: ', 'D1_ERROR']].flatMap(([pre, messageWrapper]) => ['', ' [code: 7500]']
   .map((tail) => [`${pre}UNIQUE constraint failed: ${DATA_TABLE}.id: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_PRIMARYKEY)${tail}`,
     Object.freeze({ sqlMessageShape: 'owned-id-unique', sqliteSuffix: 'SQLITE_CONSTRAINT', messageWrapper,
@@ -361,7 +382,7 @@ export async function runSyntheticProbe(confirmation, deps = {}) {
   await readSourceConfig(base);
 
   const report = { ok: false, exitCode: 2, nonce, nonceSynthetic: true, kitVersion: KIT_VERSION, transport: TRANSPORT,
-    wranglerVersion: null, target: { databaseName: PROBE_DATABASE_NAME, databaseId: PROBE_DATABASE_ID },
+    classifierPolicy: CLASSIFIER_POLICY, wranglerVersion: null, target: { databaseName: PROBE_DATABASE_NAME, databaseId: PROBE_DATABASE_ID },
     identityVerified: false, remoteExecutionAttempted: false, setupAttempted: false, stateUncertain: false,
     observedTransportRollback: false, steps: [], codes: [] };
 

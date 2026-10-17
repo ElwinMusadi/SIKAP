@@ -262,14 +262,23 @@ test('source: proven Miniflare 5 adapter, loopback/port 0/no persistence, no env
   assert.deepEqual([...LOCAL_SOURCES], ['message', 'cause']);
 });
 
-test('existing classifier/kit modules unchanged and run taxonomy still has 20 literals', async () => {
+test('existing classifier/kit modules pinned and run taxonomy still has 20 literals', async () => {
   const sha = async (name) => createHash('sha256').update((await readFile(new URL(name, import.meta.url), 'utf8')).replaceAll('\r\n', '\n')).digest('hex');
-  // Full run-module pin updated only for the intended v3 diagnostic (sqliteExtendedCode); classifier body pinned separately.
-  assert.equal(await sha('./d1-tx-probe-run.mjs'), '02c5c4882b50c995d79dbd793f495a9be1394993778cc1de5dd98d199782c6a3');
+  // Historical pins (commit c9eed3e, classifier policy v1), kept explicit but never expected anymore. Current pins are
+  // updated only for classifier policy 'd1-query-constraint-extended-primarykey-v2' (one exact bound literal); this local
+  // module and its diagnostics/recognition are unchanged.
+  const HISTORICAL_V1 = { module: '02c5c4882b50c995d79dbd793f495a9be1394993778cc1de5dd98d199782c6a3',
+    classifierBody: '1ea79c1fe5cbdeb88f4c3a767bae1902922e155fc5d6d8aeada4c35d95eeb753' };
+  const CURRENT_V2 = { module: '503432aa60ab6bb0d565be50dcc0f417eab58c972f942552bb4ca37cf2b9a147',
+    classifierBody: '5af4386a8fbc945d69e12b2f205eb8f4fde8e64f179f08a5e5f370c178ff8d6e' };
+  const runSha = await sha('./d1-tx-probe-run.mjs');
   const runSrc = (await readFile(new URL('./d1-tx-probe-run.mjs', import.meta.url), 'utf8')).replaceAll('\r\n', '\n');
   const start = runSrc.indexOf('export function classifyFailure');
-  assert.equal(createHash('sha256').update(runSrc.slice(start, runSrc.indexOf('\n}\n', start) + 3)).digest('hex'),
-    '1ea79c1fe5cbdeb88f4c3a767bae1902922e155fc5d6d8aeada4c35d95eeb753');
+  const bodySha = createHash('sha256').update(runSrc.slice(start, runSrc.indexOf('\n}\n', start) + 3)).digest('hex');
+  assert.deepEqual({ module: runSha, classifierBody: bodySha }, CURRENT_V2);
+  assert.notEqual(runSha, HISTORICAL_V1.module);
+  assert.notEqual(bodySha, HISTORICAL_V1.classifierBody);
+  assert.equal(await sha('./d1-tx-probe-local.mjs'), '421983c87e720ba4b060339790b3fa166f5eb6aaf2da3b843a72ef941852c295');
   assert.equal(await sha('./d1-tx-probe-kit.mjs'), 'c669cbc78942421bd24694dd2c8e18d11cd1b6baeda6fc42ce45debc842af29b');
   assert.equal(DIAGNOSTIC_TAXONOMY_LITERALS.length, 20);
 });

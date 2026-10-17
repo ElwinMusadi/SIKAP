@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  CLASSIFIER_POLICY, OBSERVED_CONSTRAINT_MESSAGES,
   classifyFailure, CONFIRM_FLAG, diagnoseFailure, DIAGNOSTIC_EXTENDED_LITERALS, DIAGNOSTIC_REASON_CODES, DIAGNOSTIC_TAXONOMY_LITERALS,
   EXECUTED_PHASES, main,
   parseArgs, RUN_FLAG, runSyntheticProbe, SPAWN_TIMEOUT_MS, SQL_ERROR_PATTERNS, STEPS,
@@ -623,10 +624,17 @@ const OWNED = `UNIQUE constraint failed: ${DATA_TABLE}.id`;
 const NEW_KEYS = ['sqlMessageShape', 'sqliteSuffix', 'messageWrapper'];
 const pick = (d) => NEW_KEYS.map((k) => d[k]);
 
-test('v2 taxonomy: exact 20-literal cross product, classifier body hash and patterns unchanged, never authority', () => {
+// classifyFailure body (LF, through closing brace) pins. V1 is historical (commit c9eed3e, before CLASSIFIER_POLICY v2);
+// receipts produced under V1 are never rewritten. V2 is the current body with the single exact observed-literal branch.
+const CLASSIFIER_BODY_SHA256_V1 = '1ea79c1fe5cbdeb88f4c3a767bae1902922e155fc5d6d8aeada4c35d95eeb753';
+const CLASSIFIER_BODY_SHA256_V2 = '5af4386a8fbc945d69e12b2f205eb8f4fde8e64f179f08a5e5f370c178ff8d6e';
+
+test('v2 taxonomy: exact 20-literal cross product, classifier body hash (policy v2) and patterns unchanged, never authority', () => {
   const src = readFileSync(path.join(here, 'd1-tx-probe-run.mjs'), 'utf8').replaceAll('\r\n', '\n');
   const start = src.indexOf('export function classifyFailure');
-  assert.equal(sha(src.slice(start, src.indexOf('\n}\n', start) + 3)), '1ea79c1fe5cbdeb88f4c3a767bae1902922e155fc5d6d8aeada4c35d95eeb753');
+  const bodySha = sha(src.slice(start, src.indexOf('\n}\n', start) + 3));
+  assert.equal(bodySha, CLASSIFIER_BODY_SHA256_V2);
+  assert.notEqual(bodySha, CLASSIFIER_BODY_SHA256_V1);
   assert.deepEqual(Object.keys(SQL_ERROR_PATTERNS), ['guard', 'constraint']);
   assert.equal(SQL_ERROR_PATTERNS.constraint.source, `^UNIQUE constraint failed: ${DATA_TABLE}\\.id(?:: SQLITE_CONSTRAINT)?(?: \\[code: 7500\\])?$`);
   assert.equal(SQL_ERROR_PATTERNS.guard.source, '^malformed JSON(?:: SQLITE_ERROR)?(?: \\[code: 7500\\])?$');
@@ -747,7 +755,7 @@ const EXT_TAIL = ': SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_PRIMARYKEY)';
 const EXT = [['', 'none'], ['D1_ERROR: ', 'D1_ERROR']].flatMap(([pre, w]) => ['', ' [code: 7500]'].map((t) => [`${pre}${OWNED}${EXT_TAIL}${t}`, w]));
 const pick4 = (d) => [...pick(d), d.sqliteExtendedCode];
 
-test('v3 extended: exact 4 literals separate from frozen 20; diagnostic only, classifier unchanged, never authority', () => {
+test('v3 extended: exact 4 literals separate from frozen 20; diagnostics unchanged, only the policy-v2 literal classifies', () => {
   assert.ok(Object.isFrozen(DIAGNOSTIC_TAXONOMY_LITERALS) && Object.isFrozen(DIAGNOSTIC_EXTENDED_LITERALS));
   assert.equal(DIAGNOSTIC_TAXONOMY_LITERALS.length, 20);
   assert.deepEqual([...DIAGNOSTIC_EXTENDED_LITERALS].sort(), EXT.map(([m]) => m).sort());
@@ -761,8 +769,13 @@ test('v3 extended: exact 4 literals separate from frozen 20; diagnostic only, cl
   }
   for (const [m, w] of EXT) {
     const r = res(apiError(m));
-    assert.deepEqual(classifyFailure(r, 'constraint'), { class: 'UNEXPECTED_FAILURE', targetBound: false }, m);
+    // Policy v2: exactly the unprefixed ' [code: 7500]' literal under the bound APIError (own code 7500) is accepted.
+    const compat = m === OBSERVED_CONSTRAINT_MESSAGES[0];
+    assert.deepEqual(classifyFailure(r, 'constraint'), compat ? { class: 'EXPECTED_SQL_ERROR', targetBound: true }
+      : { class: 'UNEXPECTED_FAILURE', targetBound: false }, m);
+    assert.equal(classifyFailure(r, 'guard').class, 'UNEXPECTED_FAILURE');
     assert.equal(SQL_ERROR_PATTERNS.constraint.test(m), false);
+    // Diagnostics (v3 hypothesis view) are unchanged even for the accepted literal: never authority.
     const d = diag(r, 'constraint');
     assert.deepEqual(pick4(d), ['owned-id-unique', 'SQLITE_CONSTRAINT', w, 'SQLITE_CONSTRAINT_PRIMARYKEY'], m);
     assert.deepEqual([d.sqlFamily, d.reasonCodes, d.evidenceAccepted, d.authorizesRetry, d.cleanupAuthorized, d.historicalCauseRecovered],
@@ -809,6 +822,133 @@ test('full run: actual-local extended format under bound APIError 7500 stays fai
   noSecret(report);
   const out = JSON.stringify(report);
   for (const bad of [': SQLITE', '(extended', 'constraint failed', '[code', 'D1_ERROR:', 'APIError']) assert.ok(!out.includes(bad), bad);
+});
+
+// Policy v2 compatibility: ONE exact literal, only in the clean pinned /query APIError with own numeric code 7500.
+const COMPAT = `${OWNED}${EXT_TAIL} [code: 7500]`;
+const FOREIGN_QUERY = QUERY_TEXT.replace(PROBE_DATABASE_ID, 'b8611b82-8067-4153-ae5e-d6a0b94be7a6');
+
+test('policy v2: constants, exact single accepted tuple, legacy acceptance unchanged', () => {
+  assert.equal(CLASSIFIER_POLICY, 'd1-query-constraint-extended-primarykey-v2');
+  assert.ok(Object.isFrozen(OBSERVED_CONSTRAINT_MESSAGES));
+  assert.deepEqual([...OBSERVED_CONSTRAINT_MESSAGES], [COMPAT]);
+  assert.equal(COMPAT, `UNIQUE constraint failed: ${DATA_TABLE}.id: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_PRIMARYKEY) [code: 7500]`);
+  assert.equal(SQL_ERROR_PATTERNS.constraint.test(COMPAT), false, 'legacy pattern not broadened');
+  assert.deepEqual(classifyFailure(res(apiError(COMPAT)), 'constraint'), { class: 'EXPECTED_SQL_ERROR', targetBound: true });
+  assert.deepEqual(classifyFailure(res('', apiError(COMPAT)), 'constraint'), { class: 'EXPECTED_SQL_ERROR', targetBound: true });
+  assert.deepEqual(classifyFailure(res(apiError(COMPAT), ' \n '), 'constraint'), { class: 'EXPECTED_SQL_ERROR', targetBound: true });
+  // Minimal own-key APIError (no kind/accountTag/telemetry) but own numeric code 7500 is still accepted.
+  const minimal = JSON.stringify({ error: { name: 'APIError', text: QUERY_TEXT, notes: [{ text: COMPAT }], code: 7500 } });
+  assert.deepEqual(classifyFailure(res(minimal), 'constraint'), { class: 'EXPECTED_SQL_ERROR', targetBound: true });
+  // Legacy acceptance (incl. code-absent and unbound diagnostic class) unchanged.
+  for (const m of [OWNED, `${OWNED}: SQLITE_CONSTRAINT`, `${OWNED} [code: 7500]`, GOOD_CONSTRAINT]) {
+    assert.deepEqual(classifyFailure(res(apiError(m)), 'constraint'), { class: 'EXPECTED_SQL_ERROR', targetBound: true }, m);
+    assert.deepEqual(classifyFailure(res(apiError(m, { code: undefined })), 'constraint'), { class: 'EXPECTED_SQL_ERROR', targetBound: true });
+    assert.deepEqual(classifyFailure(res(JSON.stringify({ error: { text: m } })), 'constraint'), { class: 'EXPECTED_SQL_ERROR', targetBound: false });
+  }
+  // Diagnostics for the accepted literal are unchanged (hypothesis only, never authority).
+  const d = diag(res(apiError(COMPAT)), 'constraint');
+  assert.deepEqual([d.sqlFamily, d.reasonCodes, d.sqliteExtendedCode, d.evidenceAccepted], ['other', ['MESSAGE_MISMATCH'], 'SQLITE_CONSTRAINT_PRIMARYKEY', false]);
+});
+
+test('policy v2: every context or single-field mutation of the accepted tuple fails closed', () => {
+  const contexts = [
+    [res(JSON.stringify({ error: { text: COMPAT } })), 'UNEXPECTED_FAILURE'], // unbound wrapper: never accepted
+    [res(apiError(COMPAT, { code: undefined })), 'UNEXPECTED_FAILURE'], // code absent
+    [res(apiError(COMPAT, { code: '7500' })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { code: 10000 })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { code: 7501 })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { code: null })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { text: FOREIGN_QUERY })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { text: `${QUERY_TEXT} ` })), 'UNEXPECTED_FAILURE'], // URL text suffix
+    [res(apiError(COMPAT, { text: QUERY_TEXT.replace('/query)', '/query?x=1)') })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { text: QUERY_TEXT.replace('/query)', '/raw)') })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { text: QUERY_TEXT.replace(PROBE_ACCOUNT_ID, 'f'.repeat(32)) })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { text: undefined })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { meta: {} })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { location: { line: 1 } })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { retryAfterMs: 1000 })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { kind: 'warning' })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { accountTag: 'f'.repeat(32) })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { telemetryMessage: true })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { extra: 1 })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { name: 'ParseError' })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { notes: [{ text: COMPAT }, { text: COMPAT }] })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { notes: [{ text: COMPAT, x: 1 }] })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT, { notes: [] })), 'UNEXPECTED_FAILURE'],
+    [res(JSON.stringify({ error: JSON.parse(apiError(COMPAT)).error, extra: 1 })), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT), 'Authentication error [code: 10000]'), 'UNEXPECTED_FAILURE'],
+    [res('Rate limit exceeded', apiError(COMPAT)), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT), apiError(COMPAT)), 'UNEXPECTED_FAILURE'],
+    [res(`prefix ${apiError(COMPAT)}`), 'UNEXPECTED_FAILURE'],
+    [res(`${apiError(COMPAT)}${' '.repeat(70000)}x`), 'UNEXPECTED_FAILURE'],
+    [res('{ malformed'), 'UNEXPECTED_FAILURE'],
+    [res(apiError(COMPAT), '', 0), 'UNEXPECTED_SUCCESS'],
+    [{ status: null, signal: 'SIGTERM', stdout: apiError(COMPAT), stderr: '' }, 'TRANSPORT_UNCERTAIN'],
+    [res(apiError(COMPAT), '', null, { error: Object.assign(new Error(SECRET), { code: 'ETIMEDOUT' }) }), 'TRANSPORT_UNCERTAIN'],
+    [res(apiError(COMPAT), '', 1.5), 'TRANSPORT_UNCERTAIN'],
+  ];
+  for (const [r, cls] of contexts) assert.deepEqual(classifyFailure(r, 'constraint'), { class: cls, targetBound: false }, cls);
+  assert.equal(classifyFailure(res(apiError(COMPAT)), 'guard').class, 'UNEXPECTED_FAILURE', 'kind-scoped');
+  const mutations = [`D1_ERROR: ${COMPAT}`, `${OWNED}${EXT_TAIL}`, COMPAT.replace('.id', '.ID'),
+    COMPAT.replace(DATA_TABLE, DATA_TABLE.toUpperCase()), COMPAT.replace(DATA_TABLE, MARKER_TABLE),
+    COMPAT.replace('PRIMARYKEY)', 'UNIQUE)'), COMPAT.replace(': SQLITE_CONSTRAINT (', ': SQLITE_ERROR ('),
+    COMPAT.replace(' (extended', '(extended'), `${COMPAT}\n`, `${COMPAT} `, ` ${COMPAT}`, `\u00a0${COMPAT}`,
+    COMPAT.replace('[code: 7500]', '[code: 10000]'), COMPAT.replace(' [code: 7500]', '\u00a0[code: 7500]'),
+    `${COMPAT} [code: 7500]`, `${OWNED}${EXT_TAIL}${EXT_TAIL} [code: 7500]`, COMPAT.toLowerCase(),
+    COMPAT.replace('UNIQUE', 'UNIQUЕ'), `${COMPAT}; DROP TABLE x`];
+  for (const m of mutations) {
+    assert.notEqual(m, COMPAT);
+    assert.deepEqual(classifyFailure(res(apiError(m)), 'constraint'), { class: 'UNEXPECTED_FAILURE', targetBound: false }, m);
+  }
+});
+
+test('full run policy v2: exact bound tuple executes all 11 steps; proof still needs exact post-reads', async () => {
+  const { report: base } = await runWith();
+  const { report, calls } = await runWith({ 'constraint-abort': () => sqlFail(COMPAT) });
+  assert.deepEqual(calls.map((c) => c.step), STEPS);
+  assert.equal(calls.filter((c) => c.step === 'constraint-abort').length, 1, 'no retry');
+  assert.deepEqual([report.ok, report.exitCode, report.observedTransportRollback, report.stateUncertain], [true, 0, true, false]);
+  assert.equal(report.classifierPolicy, CLASSIFIER_POLICY);
+  const abort = report.steps[9];
+  assert.deepEqual([abort.step, abort.class, abort.passed, abort.targetBound, 'diagnostics' in abort],
+    ['constraint-abort', 'EXPECTED_SQL_ERROR', true, true, false]);
+  const [guardInspect, last] = [report.steps[8], report.steps[10]];
+  assert.deepEqual([last.step, last.class, last.schemaExact], ['inspect-constraint', 'OK', true]);
+  assert.deepEqual(last.counts, countsRow(1, 3));
+  assert.deepEqual(last.counts, guardInspect.counts);
+  assert.equal(last.evidenceSha256, base.steps[10].evidenceSha256, 'same fixture => same post-read evidence');
+  for (const k of ['transactionAtomicityVerified', 'readyForImport', 'appliesToWorkerBatch', 'appliesToFileImport', 'cleanupAuthorized',
+    'globalAtomicityClaimed']) assert.equal(report[k], false, k);
+  assert.deepEqual(report.codes, []);
+  noSecret(report);
+  const out = JSON.stringify(report);
+  for (const bad of [': SQLITE', '(extended', 'constraint failed', '[code', 'APIError', '"notes']) assert.ok(!out.includes(bad), bad);
+  // Same accepted tuple, but post-read mismatch / partial rows / extra schema: never proof.
+  for (const [inspect, cls] of [[() => ok(sets([countsRow(1, 3, { data_fail_constraint: 1, data_total: 4 })], SCHEMA)), 'STATE_MISMATCH'],
+    [() => ok(sets([countsRow(1, 2, { data_positive: 2 })], SCHEMA)), 'STATE_MISMATCH'],
+    [() => ok(sets([countsRow(1, 3)], SCHEMA.slice(0, 1))), 'STATE_MISMATCH'],
+    [() => ok('{'), 'RESPONSE_INVALID'], [() => ({ status: null, signal: 'SIGTERM', stdout: '', stderr: '' }), 'TRANSPORT_UNCERTAIN']]) {
+    const r = await runWith({ 'constraint-abort': () => sqlFail(COMPAT), 'inspect-constraint': inspect });
+    assert.equal(r.calls.length, 11);
+    assert.equal(r.report.steps[9].class, 'EXPECTED_SQL_ERROR');
+    assert.deepEqual([r.report.steps[10].step, r.report.steps[10].class, r.report.steps[10].passed], ['inspect-constraint', cls, false]);
+    assert.ok(r.report.codes.includes('STEP_FAILED_INSPECT_CONSTRAINT'));
+    assert.deepEqual([r.report.ok, r.report.exitCode, r.report.observedTransportRollback, r.report.stateUncertain], [false, 2, false, true]);
+    assert.equal(r.report.classifierPolicy, CLASSIFIER_POLICY);
+  }
+  // Not accepted in the guard phase, without own code 7500, or unbound: stops, no post-inspect, no retry.
+  for (const [step, fn, n] of [['guard-abort', () => sqlFail(COMPAT), 8], ['constraint-abort', () => sqlFail(COMPAT, { code: undefined }), 10],
+    ['constraint-abort', () => sqlFail(COMPAT, { code: '7500' }), 10],
+    ['constraint-abort', () => ({ status: 1, signal: null, stdout: JSON.stringify({ error: { text: COMPAT } }), stderr: '' }), 10]]) {
+    const r = await runWith({ [step]: fn });
+    assert.equal(r.calls.length, n);
+    stopsAt(r.calls, step);
+    const s = r.report.steps.at(-1);
+    assert.deepEqual([s.class, s.passed, s.targetBound], ['UNEXPECTED_FAILURE', false, false]);
+    assertDiag(s.diagnostics);
+    assert.deepEqual([r.report.ok, r.report.observedTransportRollback, r.report.classifierPolicy], [false, false, CLASSIFIER_POLICY]);
+  }
 });
 
 test('source never runs cleanup phases, DROP, retries or report files', () => {

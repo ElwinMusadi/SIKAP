@@ -414,8 +414,9 @@ dengan rehearsal ini**. Jangan unggah ekspor, hash, file pegawai, maupun secret 
 
 > Status 17 Oktober 2026: `readyForImport` belum pernah `true`. Preflight remote read-only
 > berakhir `TARGET_NOT_EMPTY` (sesuai harapan karena fixture). Importer remote belum
-> diimplementasikan; dua run probe sintetis remote berhenti gagal-aman pada fase constraint
-> (exit 2). Run kedua memberi `MESSAGE_MISMATCH`. Bukti guard parsial, bukan bukti atomicity lengkap.
+> diimplementasikan; tiga run probe sintetis remote berhenti gagal-aman pada fase constraint
+> (exit 2). Run ketiga mengenali bentuk extended PRIMARYKEY lewat diagnostik, tetapi classifier
+> tetap menolaknya. Bukti guard parsial, bukan bukti atomicity lengkap.
 > Data nyata belum diimpor ke remote. Subbagian di bawah disusun kronologis.
 
 Preview `feat-cloudflare-migration.sikap-v2.pages.dev` masih dapat menampilkan halaman login
@@ -667,7 +668,7 @@ https://developers.cloudflare.com/pages/platform/known-issues/#enable-access-on-
 - Buat plan baru memakai pepper UAT yang sama dengan aplikasi target; plan ber-pepper latihan
   lokal tidak dapat dipakai begitu saja. Salt dan secret disimpan privat, bukan di chat.
 - Importer data remote **belum diimplementasikan**. Selain preflight read-only, kit dan
-  eksekutor probe transaksi sintetis tersedia dan telah dijalankan remote **dua kali**, masing-masing
+  eksekutor probe transaksi sintetis tersedia dan telah dijalankan remote **tiga kali**, masing-masing
   dengan persetujuan operator terpisah. Kontrol positif serta guard-abort lulus; constraint-abort berhenti dengan
   `UNEXPECTED_FAILURE`, exit `2`, tanpa retry/cleanup. Inspect independen read-only menemukan
   tepat 2 tabel kit dan 3 baris positif, tanpa baris fase gagal atau objek asing. Error constraint
@@ -678,7 +679,7 @@ https://developers.cloudflare.com/pages/platform/known-issues/#enable-access-on-
   yang kemudian disetujui berhenti lagi pada constraint (`MESSAGE_MISMATCH`): respons API cocok
   endpoint, kode `7500`, tetapi note tidak cocok pola SQL ketat. Ini bukan bukti UNIQUE atau
   non-atomic. Inspect read-only nonce kedua menemukan kembali **2 tabel kit dan 3 baris positif**,
-  tanpa baris gagal/asing; database kini **tidak kosong**, residu dibiarkan tanpa cleanup kedua.
+  tanpa baris gagal/asing; database **saat itu tidak kosong** dan residu dibiarkan selama analisis.
   Akun D1 Free tetap **10/10 slot**. Detail UUID, nonce sintetis, pin config, dan bukti dicatat di
   `MIGRATION_PLAN.md`. Jangan mengulang run identik atau memperlonggar classifier berdasarkan
   tebakan. Analisis lokal menambahkan diagnostik schema v2: label bentuk pesan/suffix/wrapper
@@ -692,9 +693,27 @@ https://developers.cloudflare.com/pages/platform/known-issues/#enable-access-on-
   `LOCAL_ROLLBACK_OBSERVED`. Classifier dan 20 literal remote tidak diubah; ini bukan bukti
   pesan atau atomicity remote. Diagnostik schema v3 sekarang dapat melabeli bentuk extended
   lewat 4 literal terpisah di konteks APIError bersih/terikat target, tetapi tetap menghasilkan
-  `MESSAGE_MISMATCH` dan tidak mengubah penerimaan bukti. Tidak ada akses remote baru.
-  Run remote baru serta cleanup berikutnya memerlukan persetujuan baru. Diagnostik tidak memulihkan pesan lama
-  atau memberi izin retry, cleanup, atau import.
+  `MESSAGE_MISMATCH` dan tidak mengubah penerimaan bukti. Tahap diagnostik tidak mengakses remote.
+  Tooling kemudian di-commit lokal pada `c9eed3e`. Cleanup kedua disetujui terpisah dan selesai
+  setelah verifikasi ulang nonce/kepemilikan sebelum tiap DROP, data dahulu lalu marker dengan
+  inspeksi independen di antaranya. SELECT final: **0 objek pengguna/0 residu**; database tetap
+  ada dan kuota **10/10** tidak berubah. Pada tahap cleanup itu belum ada run ketiga.
+  Run ketiga kemudian disetujui baru, memakai schema v3 dari commit yang sama. Kontrol positif
+  dan guard-abort lulus; fase constraint exit 1 menghentikan eksekutor dengan exit 2,
+  tetapi diagnostik kali ini mengenali bentuk
+  pesan tabel/id kit dengan primary `SQLITE_CONSTRAINT`, extended `SQLITE_CONSTRAINT_PRIMARYKEY`,
+  tanpa wrapper, pada APIError target cocok/kode 7500. Ini observasi run ketiga saja, bukan
+  pemulihan pesan run sebelumnya. Classifier lama tetap `MESSAGE_MISMATCH` dan menolak PASS.
+  Inspect independen nonce ketiga menemukan tepat **2 tabel kit/3 baris positif**, tanpa baris
+  fase gagal atau objek asing; database kembali **tidak kosong**, residu dibiarkan.
+  Tidak ada retry, cleanup ketiga, push, deploy, atau import. Policy classifier v2 kemudian
+  ditambahkan **lokal saja**: tepat satu literal extended tanpa wrapper, dengan tag 7500, diterima
+  hanya untuk APIError bersih endpoint dipatok dengan own code angka 7500. Regex lama tetap;
+  full run tetap membutuhkan semua 11 langkah dan post-read state yang cocok. Fixture literal
+  direkonstruksi dari diagnostik run ketiga + renderer, bukan pesan mentah yang disimpan.
+  Tiga receipt lama tidak diubah; policy baru belum diuji remote. Commit patch, cleanup, dan
+  run verifikasi memerlukan instruksi/persetujuan terpisah; jangan blind retry. Diagnostik
+  tidak memberi izin operasi atau import.
   Jangan mengubah alat local-only menjadi remote, menjalankan SQL ekspor
   sembarangan, atau menambahkan endpoint import publik. Jalur penulisan remote perlu receipt
   terikat account/project/database/bucket/schema/pepper, pemeriksaan target kosong dan

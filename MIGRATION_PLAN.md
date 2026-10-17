@@ -1043,8 +1043,71 @@ Persiapan 17 Oktober 2026 (tanpa membaca artefak pegawai atau menulis resource r
   dan build lulus. Review kode **PASS WITH NOTES**, tanpa temuan Medium/High.
   Tidak ada akses remote, cleanup, run baru, commit, deploy, atau import pada tahap schema v3;
   residu remote run kedua tetap dibiarkan dan kuota tetap 10/10.
+- Checkpoint tooling probe di-commit lokal pada `c9eed3e` (12 file; validasi staging 216/216,
+  lint/typecheck/whitespace lulus ulang). `.kilo/kilo.jsonc` dan `scripts/p7-api.mjs` dikecualikan;
+  tidak ada push. Pada tahap berikutnya operator menyetujui **cleanup kedua saja**, bukan run baru.
+  Scope tetap database `sikap-uat-tx-probe`, UUID `95f86a58-578b-44ac-9016-8472522e8be4`.
+  Identitas/account/scope D1 Write/pin config diverifikasi ulang, disusul SELECT kepemilikan
+  nonce run kedua `c1fbd5dba5e667f28987356368eb9b3f`: marker step 1, tepat 3 baris positif,
+  skema tepat 2 tabel kit, tanpa baris fase gagal/asing atau objek asing.
+  Tabel data di-DROP satu perintah setelah inspeksi baru; inspeksi independen membuktikan hanya
+  marker yang cocok tersisa. Setelah verifikasi ulang identitas dan marker, marker di-DROP
+  satu perintah terpisah. SELECT final: **0 objek pengguna, 0 residu probe**. Database tetap ada,
+  read replication disabled, quota D1 tetap **10/10**. Tes kit/pin **23/23** lulus sebelum cleanup.
+  Tidak ada retry, probe ketiga, penghapusan database, deploy, import, push, atau commit tambahan.
+  Bukti atomicity tetap belum lengkap; `transactionAtomicityVerified:false`, `readyForImport:false`.
+  Run diagnostik schema v3 berikutnya memerlukan persetujuan baru dan bukan bagian cleanup ini.
+- Run ketiga, satu kali dengan persetujuan baru setelah cleanup kedua, memakai source commit
+  `c9eed3e` tanpa perubahan classifier; schema diagnostik v3, Wrangler `4.151.0`, transport
+  `wrangler-d1-execute-remote-command`. Nonce sintetis
+  `7d63c820e2da9977d8f964c88d245ce7`; target UUID sama. Tes eksekutor/pin **28/28** lulus
+  sebelum run; autentikasi account/D1 Write diverifikasi ulang. Identitas/precondition kosong,
+  setup, kontrol positif/receipt guard 1, guard-abort terikat target, dan inspect-guard lulus.
+  Hash bukti inspect-guard:
+  `accabce6a9de99061755ce5506d21254b5a837cee4b07c26634cd540d6f9db8b`.
+  Constraint-abort exit 1; diagnostik APIError bersih/target cocok/kode 7500/satu note/stream
+  stdout JSON dan stderr kosong mengenali literal penuh sebagai `sqlMessageShape:owned-id-unique`,
+  `sqliteSuffix:SQLITE_CONSTRAINT`, `sqliteExtendedCode:SQLITE_CONSTRAINT_PRIMARYKEY`,
+  `messageWrapper:none`. Ini **observasi diagnostik baru pada run ketiga**, bukan penetapan ulang
+  pesan run pertama/kedua; raw provider text tetap tidak disimpan. Classifier lama sengaja tidak
+  menerima bentuk extended: `UNEXPECTED_FAILURE`, `MESSAGE_MISMATCH`, exit keseluruhan **2**,
+  `observedTransportRollback:false`, `transactionAtomicityVerified:false`, `readyForImport:false`.
+  Jangan mengubah receipt run ini menjadi PASS hanya karena diagnostik memberi label.
+  Inspeksi read-only independen dengan nonce run ketiga dan identitas terverifikasi: marker
+  milik kit step 1, total/positive 3, foreign/fail_guard/fail_constraint/trailing 0; tepat 2 tabel
+  kit dengan DDL cocok dan tanpa objek asing. Database kembali **tidak kosong**; residu run ketiga
+  dibiarkan. Tidak ada retry, cleanup ketiga, probe keempat, commit, push, deploy, atau import.
+  Tindak lanjut lokal yang layak: review kompatibilitas classifier dengan bentuk extended yang
+  kini teramati, lengkap dengan regresi penolakan ketat; bukan blind retry atau penerimaan pola
+  longgar. Cleanup dan run baru tetap memerlukan persetujuan terpisah. Kuota D1 tetap 10/10.
+- Pembaruan kompatibilitas classifier dilakukan **lokal saja** setelah run ketiga:
+  policy `d1-query-constraint-extended-primarykey-v2` menambah tepat satu literal penuh untuk
+  constraint tabel/id kit, primary CONSTRAINT + extended PRIMARYKEY, tanpa wrapper, dengan tag
+  ` [code: 7500]`. Literal direkonstruksi dari tuple diagnostik run ketiga dan perilaku renderer
+  Wrangler; tag bukan salinan verbatim pesan yang disimpan. Penerimaan baru wajib berupa
+  APIError bersih dari endpoint yang dipatok, own `code` angka 7500, kind `constraint`, dan
+  kecocokan byte penuh; tanpa normalisasi, prefix, wildcard atau perluasan regex lama.
+  Regex legacy, 20+4 map diagnostik, pemeriksaan target/nonce/schema dan state setelah error
+  tetap sama. Diagnostik v3 bila dipanggil langsung dapat tetap melaporkan MESSAGE_MISMATCH
+  sebagai pandangan legacy; diagnostik tidak menentukan penerimaan policy v2.
+  Receipt baru mencatat `classifierPolicy`; semua receipt tiga run lama tetap gagal dan tidak
+  dinaikkan menjadi PASS. Bukti run mendatang tetap memerlukan 11 langkah lengkap dan dua
+  post-read identik, bukan sekadar error yang kini dikenali. Policy v2 **belum diuji remote**.
+  Pin classifier berubah secara sengaja dari SHA-256 `1ea79c1fe5cbdeb88f4c3a767bae1902922e155fc5d6d8aeada4c35d95eeb753`
+  menjadi `5af4386a8fbc945d69e12b2f205eb8f4fde8e64f179f08a5e5f370c178ff8d6e`;
+  pin module run final `503432aa60ab6bb0d565be50dcc0f417eab58c972f942552bb4ca37cf2b9a147`.
+  Tes: eksekutor **26/26**, harness lokal **10/10**, staging **219/219**, API **400/400**,
+  web **152/152**, migrasi offline **196/196** lulus (total **967 tes**, eksekutor/harness termasuk
+  staging); lint, typecheck dan build lulus. Uji negatif mencakup konteks API/target/code salah,
+  satu-field mutasi literal, wrapper unbound, serta post-read mismatch setelah error diterima.
+  Review kode snapshot akhir **PASS**, tanpa blocker; hash module `503432aa…` dan body
+  classifier `5af4386a…` dikonfirmasi lewat penghitungan lokal serta tes pin (hash antara sebelum
+  komentar final tidak menjadi pin aktif).
+  Tidak ada operasi remote, retry, cleanup, run keempat, deploy, push, import atau commit pada
+  tahap policy v2; residu run ketiga tetap 2 tabel/3 baris sintetis. Commit patch, cleanup,
+  dan run verifikasi berikutnya tetap memerlukan instruksi/persetujuan masing-masing.
 - Importer data remote **belum diimplementasikan**. Alat migrasi offline tetap menolak
-  `--remote`; dua run probe sintetis terpisah berhenti gagal-aman seperti dicatat di atas.
+  `--remote`; tiga run probe sintetis terpisah berhenti gagal-aman seperti dicatat di atas.
   Bukti atomisitas remote belum lengkap; tidak ada import atau deploy baru. Gerbang tersisa sebelum PII
   dipindahkan:
   1. Target UAT terpisah yang kosong (fixture saat ini sengaja membuat `TARGET_NOT_EMPTY`;
