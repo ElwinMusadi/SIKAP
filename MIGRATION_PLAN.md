@@ -16,6 +16,21 @@
 | 5 | Hapus pegawai | Soft delete, retensi **7 hari** | `pegawai.deleted_at` + `purge_after`. Admin bisa memulihkan dalam 7 hari. Cron menghapus permanen (D1 + R2) setelahnya |
 | 6 | Data kepegawaian & password | Pegawai **boleh mengajukan** perubahan data kepegawaian; berlaku setelah **diverifikasi admin**. Password default = 6 digit terakhir NIP, **tidak wajib** diganti; ganti lewat Pengaturan Akun | Tabel `pengajuan_perubahan` + antrean admin. Tidak ada halaman "ganti password wajib". Banner rekomendasi (non-blocking) bila masih memakai password default. Reset password admin kembali ke default |
 
+### Konfirmasi lanjutan — 16 Oktober 2026
+
+- **Deploy hotfix GAS sudah dijalankan**, menurut konfirmasi pemilik proyek. Status ini adalah
+  laporan pemilik, bukan hasil verifikasi ulang produksi. Konfirmasi ini tidak otomatis
+  membuktikan bahwa pencabutan sharing Drive, pengarsipan deployment lama, atau semua langkah
+  pascadeploy di `HOTFIX_DEPLOY.md` sudah selesai.
+- **NIK tetap dapat diubah sendiri oleh pegawai** sebagai data pribadi; tidak dikunci bersama
+  data kepegawaian dan tidak memerlukan pengajuan perubahan.
+- **Dokumen Terverifikasi yang dihapus admin hanya dapat dipulihkan admin**, baik lewat
+  restore maupun rollback ke versi sebelumnya.
+- **Pegawai boleh menghapus dokumen Menunggu lalu langsung mengunggah ulang**; file terhapus
+  tetap menjadi versi sebelumnya sesuai masa retensi yang berlaku.
+- **NIP/NIK pegawai yang dihapus tetap dicadangkan sampai purge permanen**, dengan masa
+  pemulihan 7 hari. NIP/NIK belum dapat dipakai untuk pegawai baru selama baris lama masih ada.
+
 > **Risiko yang diterima (keputusan 2 & 6):** password default dapat ditebak dari NIP dan PBKDF2 10k jauh di bawah rekomendasi OWASP (600k). Mitigasi wajib: lockout 5 gagal / 15 menit per akun, rate limit per IP, pepper, audit login gagal, banner rekomendasi ganti password, dan laporan admin "akun yang masih memakai password default".
 
 ---
@@ -434,7 +449,7 @@ Konvensi:
 | `CRUD /api/admin/jenis-dokumen` | Admin | **baru** (STEP 05: admin menambah jenis dokumen) |
 | `CRUD /api/admin/ref/:table` | Admin | **baru** (pangkat, unit) |
 | `POST /api/admin/backup` · `GET /api/admin/backup` | Admin | `adminBackupDatabase`, `adminBackupFull` |
-| `POST /api/internal/import/*` | `IMPORT_TOKEN` | hanya selama migrasi, dihapus setelah cutover |
+| Import migrasi | alat offline/local-only | **Tidak membuat endpoint HTTP import publik**; perpindahan remote memerlukan langkah operator terpisah setelah dry-run tervalidasi |
 
 ### 3.1 Aturan keamanan di server (wajib)
 
@@ -527,12 +542,12 @@ Mockup `UIUX Stitch/*.html` dipakai sebagai referensi layout. Implementasi baru 
 | `Sesi_Login` | – | Tidak dimigrasikan (semua pengguna login ulang) |
 | Script Properties | `pengaturan` | Token WA dimasukkan ulang oleh admin melalui UI baru (tidak disalin) |
 
-### 5.2 Mekanisme
-1. **GAS `exportForMigration_()`** (fungsi privat, dijalankan manual dari editor): tulis JSON keempat sheet ke satu file di Drive.
-2. **`scripts/migrate/transform.ts`** (Node): validasi dan transformasi JSON, lalu hasilkan `seed.sql` + `report.md` (baris ditolak, mapping yang dipakai). Dijalankan berulang sampai laporan bersih.
-3. **File**: GAS `pushFilesToR2_()` iteratif dengan checkpoint di Script Properties (aman dari batas 6 menit). Setiap file di-POST ke `POST /api/internal/import/file` (header `Authorization: Bearer IMPORT_TOKEN`, cek SHA-256). Alternatif: skrip Node dengan Drive API + `wrangler r2 object put`.
-4. `wrangler d1 execute sikap-db --remote --file seed.sql` (di-batch per ≤ 1000 baris).
-5. **Rekonsiliasi**: hitung jumlah pegawai, arsip per status, total byte, dan checksum. Harus sama dengan laporan export.
+### 5.2 Mekanisme (revisi Fase 8 — local-first)
+1. **GAS `exportForMigration_()`** di `scripts/migrate/gas/ExportForMigration.gs`: alat privat yang dipasang/dijalankan manual oleh operator, **bukan** bagian deployment aplikasi. Ekspor empat sheet tanpa sesi/token, serta salinan file ke folder Drive privat. Progres file dapat dilanjutkan. Format wajib mengikuti `scripts/migrate/contract.mjs`; tidak ada pembacaan produksi otomatis oleh alat pengembangan.
+2. **`scripts/migrate/transform.mjs`** (Node offline): validasi, normalisasi, pemetaan referensi eksplisit, pembungkusan hash lama dengan target pepper dan salt privat; hasilkan plan sensitif, SQL, dan laporan berkode tanpa nilai PII. NIP/NIK numerik atau presisi hilang ditolak, tidak direkonstruksi. Error apa pun membuat plan tidak boleh diimpor.
+3. **File lokal**: operator mengunduh ekspor/folder file privat dan mengekstraknya sendiri. Importer memeriksa nama/path, isi file, ukuran, SHA-256, dan kecocokan manifest sebelum menulis target. Tidak ada URL Drive publik, endpoint import HTTP publik, atau token import dalam aplikasi.
+4. **`scripts/migrate/apply-local.mjs`**: hanya simulator D1/R2 lokal pada direktori persistence khusus. Default validasi; penulisan memerlukan `--apply`. Checkpoint terikat snapshot/digest plan/target dan disimpan bersama progres database, sehingga dapat dilanjutkan tanpa menggandakan data. Target berisi data aplikasi lain ditolak. Jalur ini tidak menerima `--remote`.
+5. **`scripts/migrate/reconcile.mjs`**: cocokkan jumlah pegawai/akun/arsip per status serta checksum/ukuran byte file target. Exit nonzero bila berbeda. Dry-run sintetis yang lulus bukan izin migrasi nyata. Import remote (UAT privat/produksi), source freeze, serta UAT data asli merupakan tahap operator berikutnya yang belum dijalankan; jalur penulisan remote belum diimplementasikan, hanya preflight read-only (Fase 9).
 
 ---
 
@@ -611,14 +626,274 @@ Terhapus). Review: APPROVE WITH CHANGES, 0 Critical/High; 2 Medium + 4 Low diper
 - [ ] Upload foto pegawai oleh admin (belum dicakup; pegawai mengunggah sendiri dari Profil).
 
 ### Fase 7 — Log, Pengaturan, Referensi, Backup (3 hari)
-- [ ] Log cursor + filter. Halaman pengaturan (WA terenkripsi, notifikasi, referensi, jenis dokumen + matriks wajib).
-- [ ] Backup: cron harian mengekspor seluruh tabel ke `sikap-backup/db/YYYY-MM-DD.json.gz` (retensi 30 hari via lifecycle rule). Tombol "Backup sekarang" + daftar/unduh backup. Dokumen di R2 tidak diduplikasi; cukup inventaris (key + sha256). Tambahkan D1 Time Travel 7 hari.
+Status integrasi 16 Oktober 2026: API admin log/referensi/jenis dokumen lolos **49/49**
+pemeriksaan terhadap API lokal asli. Backup end-to-end lokal lolos **13/13** (10 langkah,
+9 part pada fixture), dan Chromium desktop/mobile **16/16**, tanpa page error. Suite terbaru
+setelah hardening metadata: **328 test API, 152 test web**, typecheck/lint/build bersih.
+Review menemukan dan memperbaiki: PATCH aktif default yang dapat mengaktifkan ulang data,
+kode pangkat tak dapat dipakai/diedit, link backup ter-normalisasi ke origin lain, dialog
+tertutup saat simpan, referensi aktor yang dipakai ulang setelah purge, serta checkpoint
+backup terpisah saat batas lease terlewati. Metadata backup yang rusak sekarang menyebabkan
+job gagal secara terkontrol, bukan ekspor kosong yang dinyatakan selesai. Invocation cron
+lokal untuk retry serta cleanup/purge/backup juga lulus; Chromium tambahan **2/2** menguji
+dialog tidak tertutup saat simpan serta draft bertahan pada konflik 409. Tidak ada blocker
+High/Medium yang masih terbuka pada review terakhir. **Status 17 Okt 2026: Fase 7 sudah
+diimplementasikan dan di-commit lokal pada `cb4fae7`; snapshot commit diuji terpisah
+(328 test API, 152 test web, typecheck/lint/build lulus). Belum ada push maupun deploy
+preview/produksi, dan cron tetap nonaktif.**
+
+Desain implementasi (16 Okt 2026):
+- Log: admin-only, cursor `(ts,id)` menurun, 25 baris, filter teks literal/kategori/hasil/
+  rentang tanggal WITA. Tidak ada endpoint penghapusan log.
+- Referensi pangkat/unit dan jenis dokumen: kode immutable, **tanpa hard delete**; nonaktifkan
+  agar data historis tetap utuh. Pendidikan tetap read-only. Perubahan matriks wajib
+  berlaku retroaktif; UI harus menjelaskan dampaknya sebelum penyimpanan.
+- Purge: enqueue **exact R2 keys** dan guarded DELETE dalam satu transaksi D1; drain terpisah
+  dengan lease serta pemeriksaan referensi sebelum R2.delete. Tidak menggunakan prefix
+  pegawai karena INTEGER PRIMARY KEY dapat dipakai ulang. Dokumen/versi milik pegawai yang
+  masih dalam retensi pemulihan 7 hari tidak dipurge lebih dulu.
+- Backup Free plan: job NDJSON bertahap, admin-only, retensi 30 hari, maksimal 50 MB/500 part,
+  tanpa sesi login/counter/antrean pesan dan tanpa nilai secret environment. Hash password
+  serta ciphertext pengaturan termasuk. **Bukan snapshot point-in-time** dan **tidak menyalin
+  byte file R2**; manifest menandai `consistent:false` dan `includesFileBytes:false`.
+  Recovery yang konsisten memerlukan D1 Time Travel/`wrangler d1 export` dan cadangan file
+  terpisah. Kunci pepper/enkripsi wajib dicadangkan di luar repo/export.
+- Binding `BACKUPS` opsional. Tanpa bucket backup yang dikonfigurasi, UI tidak menawarkan
+  keberhasilan palsu. Preview tidak boleh memakai bucket backup produksi.
+
+- [x] Log cursor + filter. Halaman pengaturan (WA terenkripsi, notifikasi, referensi, jenis dokumen + matriks wajib).
+- [x] Backup: job ekspor logis NDJSON bertahap + manifest (retensi 30 hari), tombol
+      "Backup sekarang"/jeda/lanjutkan + daftar/unduh bagian. Cron melanjutkan pekerjaan
+      secara terbatas, bukan dump/gzip seluruh database dalam satu request. Dokumen di R2
+      tidak diduplikasi; key/checksum hanya inventaris. D1 Time Travel Free 7 hari adalah
+       jalur recovery terpisah dan harus diuji sebelum cutover.
+- [x] Purge versi/dokumen/pegawai dan backup kedaluwarsa, antrean exact-key, perlindungan
+      referensi aktor setelah ID digunakan ulang, serta retry kegagalan R2. Diuji lokal;
+      belum ada aktivasi cron remote.
+- [ ] Sebelum deploy: terapkan migrasi 0006–0008 pada target yang benar; sediakan bucket
+      backup preview privat terpisah dan binding BACKUPS bila backup preview diperlukan.
+- [ ] Sebelum aktivasi: ukur CPU backup/purge gabungan di edge memakai fixture realistis,
+      uji recovery D1 dan file terpisah, serta tetapkan pembersihan objek orphan akibat
+      crash di sela R2.put dan commit metadata.
 
 ### Fase 8 — Migrasi Data (2–3 hari + dry-run)
-- [ ] Export, transform, laporan, import ke **preview**, lalu UAT dengan data nyata.
+Tahap yang sedang dikerjakan: alat ekspor privat, transformasi offline, import lokal resumable,
+dan rekonsiliasi dengan **fixture sintetis saja**. Source/target nyata tidak dibaca atau diubah
+(status awal; salinan privat sumber nyata kemudian dibaca dengan izin pemilik data, lihat di
+bawah). Status 17 Okt 2026: alat Fase 8 offline/local-only sudah diimplementasikan di branch
+kerja; penulisan/import remote tidak termasuk dan belum ada.
+Artefak ekspor/SQL/hash/pepper/salt/checkpoint/PII disimpan di direktori privat yang diabaikan git.
+
+Validasi final alat lokal 16 Okt 2026: **140/140 test migrasi lulus**, termasuk pengaman referensi tabel target aktual. CLI nyata apply →
+reconcile → resume sintetis berhasil (3 pegawai, 3 akun, 2 arsip, 3 file/124 byte cocok
+SHA-256), termasuk direktori ber-ACL privat Windows. Vektor Node legacy-wrap diterima
+verifier Workers. Aplikasi tetap 329 test API dan 152 frontend lulus; typecheck/lint/build
+bersih. Review ulang exporter, transformasi, dan importer: tidak ada temuan High/Medium
+terbuka. Pengaman meliputi tree symlink/case path, ACL privat, bounded reads, default kolom
+keamanan, keunikan/FK seluruh plan, **referensi target aktual sebelum receipt/upload**,
+checkpoint transaksional, dan rekonsiliasi penuh termasuk perubahan role/foto yang tidak
+tertulis eksplisit dalam plan. Dua catatan Low: ACL/referensi lokal dapat berubah di sela
+check dan pemakaian; gunakan target terisolasi tanpa penulis lain.
+Rehearsal GAS sintetis telah dijalankan oleh operator dan hasil unduhannya divalidasi lokal
+pada 16 Okt 2026; penyalin v2 diuji pada Google nyata dengan sumber sintetis pada 17 Okt 2026
+(snapshot `76fdd9e1` lulus validasi lokal), lalu salinan privat sumber nyata dan dry-run lokalnya
+lulus pada 17 Okt 2026 (snapshot `039d8212`, 46 pegawai, 63 arsip, 66 file). **Fase 8 alat, rehearsal
+sintetis dan dry-run lokal data asli selesai; import preview, UAT, dan cutover belum dilakukan.**
+
+- [x] Validasi dry-run sintetis penuh dan interoperabilitas password GAS → Workers.
+- [x] Exporter memvalidasi ikatan checkpoint ke spreadsheet/folder sumber sebelum resume,
+      termasuk job selesai; checkpoint lama tanpa ikatan ditolak, tidak dipromosikan diam-diam.
+- [x] Persiapan rehearsal: `CreateSyntheticSandbox.gs` membuat sumber/file sintetis baru,
+      menolak konfigurasi ekspor lama, serta memeriksa privasi seluruh rantai folder induk.
+      Rerun menyatakan `contentVerified:false`, bukan menghitung ulang isi yang tidak dibaca.
+      Helper `migrate:prepare:rehearsal` membuat pepper/salt khusus latihan pada folder privat,
+      menolak overwrite, dan membersihkan berkas parsial yang baru dibuat saat gagal tulis.
+      Validasi 16 Okt: **34/34 test operator** (19 exporter, 8 sandbox, 7 helper secret),
+      typecheck/lint/build bersih; review ulang **PASS WITH NOTES**, tanpa High/Medium.
+      Runbook langkah demi langkah dan contoh perintah ada di `README.md`.
+- [x] Rehearsal GAS nyata dengan data sintetis: operator menyerahkan snapshot
+      `de3a7790-d540-49b5-8838-cebfebb7b5e4`. Ekspor lengkap, 3 file available, tanpa
+      pending/missing/invalid. Transformasi `ready:true`, 0 error dan 22 warning terjelaskan:
+      1 NON_ATOMIC_SNAPSHOT, 11 OWNER_REQUIREMENT_MATRIX, 3 normalisasi pangkat, 3 unit,
+      3 pendidikan, 1 P3K→PPPK. Dry-run, apply lokal, reconcile dan resume semuanya `ok:true`.
+      Target: 3 pegawai/akun, 11 jenis, 22 aturan wajib, 2 arsip (1 Terverifikasi, 1 Ditolak),
+      4 riwayat, 1 log, 3/3 checksum file cocok (739 byte). Artefak/secret ada di direktori
+      privat di luar repo; folder unduhan root diabaikan git. Tidak ada panggilan Google
+      atau operasi Cloudflare remote oleh alat lokal; tidak ada akses data produksi.
+- [x] Alat penyalinan terkontrol `scripts/migrate/gas/CopyPrivateSource.gs`: target spreadsheet
+      baru dari nilai empat tab (tanpa bound script/formula/trigger), salinan byte file privat,
+      ID diperbarui hanya pada target. Inisialisasi 5×200 baris/checkpoint, file maksimal
+      10 per run, mapping/data hash terikat checkpoint, validasi timezone/identitas/CAS,
+      gangguan Drive tetap pending agar dapat dicoba ulang. **16/16 test aktual** lulus,
+      termasuk copy→exporter→transformer, tanpa fallback. Review ulang: PASS WITH NOTES,
+      tidak ada High/Medium terbuka; dua Low manifest-data/sheet-order turut diperbaiki.
+      Seluruh suite migrasi terakhir sebelum konflik **174/174 lulus**, typecheck/lint/build bersih.
+      **17:41 konflik penulisan terlambat:** file/test diganti subagent setelah handoff.
+      Lead memulihkan implementasi dengan checkpoint **v2** dan seluruh pengaman wajib.
+      Koreksi terakhir mencabut properti hasil sebelum akses Drive/verifikasi ulang serta
+      mereset status selesai sebelum memeriksa target. **20/20 test copier aktual** dan
+      **178/178 test migrasi** lulus, termasuk copy→exporter→transformer, >10 file,
+      timestamp milidetik, dan pencabutan hasil pada drift/missing manifest.
+      Review akhir v2 **PASS WITH NOTES**, tanpa High/Medium terbuka. Checkpoint v1 tidak
+      kompatibel; gunakan project/folder baru. Uji Google nyata kemudian diselesaikan
+      operator pada sumber sintetis, sebagaimana bukti di bawah.
+- [x] Uji penyalin v2 pada Google nyata dengan sumber sintetis (17 Okt 2026, operator):
+      project standalone baru "SIKAP Uji Copy v2 (sintetis)" + folder kosong baru, kedua
+      file `.gs` diverifikasi SHA-256 identik dengan workspace. Copy job
+      `43f56546-c4e3-454c-968e-469dc1a80cb2` selesai dalam 2 run: `isComplete:true`,
+      `pendingCount:0`, `errorCount:0`, 4 tab tertulis, 3 file tersalin/terverifikasi,
+      3 referensi dialihkan. Manifest: ketiga `targetFileId` berbeda dari sumber, SHA-256
+      salinan identik dengan hash sumber pada snapshot `de3a7790`; spreadsheet sumber tidak
+      berubah (modifikasi terakhir sebelum copy). Ekspor target → snapshot
+      `76fdd9e1-427f-4c15-aff7-36da5d5ce6db` lengkap dalam 1 run (3 available, 0
+      pending/missing/invalid, `readOnlyDeclared:true`). Validasi lokal unduhan: snapshot
+      hanya memuat ID target, `File_URL`/`Folder_Drive_ID` kosong, byte/hash cocok;
+      transform `ready:true` 0 error/22 warning (komposisi sama dengan rehearsal
+      sebelumnya), dry-run/apply/reconcile/resume `ok:true`, 3/3 file 739 byte.
+      Catatan operasional: popup otorisasi harus diklik operator; form Script Properties
+      menolak nilai yang tidak diketik; wrapper sementara sudah dihapus. Project/folder uji
+      ini tidak boleh dipakai ulang.
+- [x] Salinan privat sumber nyata + dry-run lokal (17 Okt 2026, izin pemilik data tegas di chat;
+      aplikasi lama tetap melayani, jadi salinan tidak konsisten point-in-time). Project standalone
+      baru "SIKAP — Copy Sumber Nyata" + folder privat baru. Run pertama ditolak `COPY_NUMERIC_IDENTITY`:
+      diagnostik baca-saja menemukan satu sel NIK numerik (Data_Pegawai baris 5) yang diperbaiki pemilik.
+      Copy job `b8756cf1`: 15 run (~4 menit per 7–8 file, ~2,5 menit per 10 verifikasi; total ≈81 menit
+      termasuk jeda), `isComplete:true`, 66 file tersalin/terverifikasi, 0 error; satu run terkena
+      IllegalStateException sisi Google setelah checkpoint tersimpan dan resume berjalan bersih.
+      Ekspor target pertama `8a856a01` (5 run ≈24 menit, 66 available) → transform **35 error** dari
+      5 baris Data_Pegawai: NIK baris 5 hanya 1 digit (`INVALID_NIK`), 4 baris PPPK dengan
+      Pangkat_Golongan "-" (`UNKNOWN_PANGKAT`); 30 `ORPHAN_NIP` adalah arsip kelima pegawai itu.
+      Perbaikan: `normalize.mjs` memperlakukan "-" pada kolom referensi sebagai kosong dengan warning
+      `PLACEHOLDER_*` (test baru, **179/179** test migrasi lulus); pemilik mengosongkan N5 di sumber dan
+      target (NIK opsional, tidak ditebak). Ekspor ulang setelah checkpoint ekspor dihapus → snapshot
+      `039d8212` (5 run ≈22 menit, 66 available, 0 missing/invalid). Lokal: transform `ready:true`,
+      0 error/74 warning (1 NON_ATOMIC, 11 OWNER_REQUIREMENT_MATRIX, 1 CUSTOM_JENIS_OPTIONAL,
+      6/10/10 normalisasi pangkat/unit/pendidikan, 4 PLACEHOLDER_PANGKAT, 31 MISSING_HISTORIC_LOG_ACTOR);
+      dry-run 0,4 s, apply 11,3 s, reconcile 4,4 s, resume 7,5 s, reconcile ulang 4,8 s — semua `ok:true`.
+      Target: 46 pegawai/akun, 12 jenis, 22 aturan wajib, 63 arsip (1 Menunggu, 59 Terverifikasi,
+      3 Ditolak), 125 riwayat, 414 log, 66/66 file cocok (44.162.297 byte). Artefak di direktori privat
+      di luar repo; tidak ada data pegawai di chat/repo. Estimasi copy+ekspor ≈1 jam 45 menit
+      operator termasuk jeda; import lokal <1 menit. Jangan memasang trigger otomatis untuk
+      mempercepat alat manual. Dry-run kedua harus memisahkan waktu aktif, jeda, dan kuota
+      serta mengukur import remote; angka lokal bukan jaminan downtime cutover.
+- [ ] Import ke target **UAT privat terpisah yang kosong** (bukan preview lama `sikap-v2`)
+      setelah jalur penulisan/import remote diimplementasikan dan dibuktikan, lalu UAT.
+      Saat ini hanya preflight remote read-only yang tersedia (lihat Fase 9). Sebelum cutover: freeze seluruh penulis, project/folder baru, perbaiki data sumber yang masih
+      "-"/kosong bila diperlukan, NIK baris 5 diisi pemilik lewat aplikasi.
+- [ ] Export, transform, laporan, import ke target **UAT privat kosong**, lalu UAT dengan data
+      nyata (memerlukan persetujuan data nyata tersendiri).
 - [ ] Dry-run kedua untuk mengukur durasi cutover.
 
 ### Fase 9 — QA, Keamanan, Performa (3–4 hari)
+**Status 17 Oktober 2026: UAT privat parsial; belum pernah `readyForImport`.** Butir di bawah
+disusun kronologis; catatan "belum diuji" pada butir awal adalah status historis saat itu.
+
+Persiapan 17 Oktober 2026 (tanpa membaca artefak pegawai atau menulis resource remote):
+- Review placeholder referensi **PASS WITH NOTES**; `-` hanya menjadi null pada pangkat,
+  unit dan pendidikan dengan warning. Placeholder tidak boleh dipetakan melalui override;
+  identitas/tanggal/status rusak tetap error. 91 test transformer sintetis lulus.
+- HEAD anonim pada preview lama: `/login` **200**, `/api/auth/me` **401 aplikasi**; tidak ada
+  challenge Access. Ini bukti belum memenuhi batas privat, bukan bukti kebocoran PII.
+- Pilih project **baru** `sikap-uat` beserta D1/R2 `sikap-uat-*`. Jangan memasukkan data nyata
+  ke `sikap-v2` atau database preview lama: URL deployment hash historis tetap dapat diakses.
+- Implementasi lokal selesai: validator target offline (denylist produksi/preview + allowlist
+  account), auditor HEAD anonim yang wajib mencakup root Pages (tanpa credential, redirect
+  manual, challenge harus terikat host), serta guard JWT RS256 Access pada seluruh API
+  sebelum CSRF/session/body. Guard tidak menggantikan Access edge untuk static. Mode UAT
+  wajib `ACCESS_REQUIRED=1` dengan team domain/AUD valid; mode absent/0 tetap legacy.
+- Validasi final persiapan: **384 test API, 152 frontend, 196 migrasi, 92 staging lulus**;
+  typecheck/lint/build dan cron dry-run lulus; dependency runtime audit 0 kerentanan.
+  Review independen ulang PASS WITH NOTES, tanpa High/Medium terbuka. Test API nyata
+  membuktikan sesi SIKAP/cookie Access saja tidak melewati guard; seluruh kunci JWT dalam
+  test sintetis, bukan token layanan nyata. Tidak ada data pegawai dibaca/diunggah dalam
+  persiapan ini, tidak ada perubahan konfigurasi remote, commit, push atau deploy.
+- Catatan test lokal: pesan `Network connection lost` dari skenario stream terputus dan
+  warning pembacaan NDJSON tetap tercetak meskipun seluruh assertion lulus. Bukan bukti
+  bahwa pengujian remote atau konfigurasi Access telah dilakukan.
+- Pemeriksaan descriptor dan challenge host **tidak** membuktikan seluruh policy/host/binding
+  aman. `readyForImport` selalu false. Kontrol akses root Pages + wildcard alias/hash,
+  pengujian pengguna diizinkan/ditolak, binding privat, cron/notifikasi nonaktif, serta
+  pepper UAT cocok harus dibuktikan sebelum import. Tidak ada endpoint import publik.
+- Provisioning UAT 17 Okt 2026: project baru `sikap-uat` (branch Pages production `uat`,
+  bukan produksi SIKAP), D1 `sikap-uat-db` UUID `9d6ca598-057e-4297-9b8c-3ce789c5ab14`,
+  R2 `sikap-uat-files`/`sikap-uat-backup` Standard APAC. r2.dev nonaktif, tidak ada custom
+  domain bucket. Schema 0001–0008 diterapkan; pegawai/akun/arsip/sesi/outbox semuanya **0**,
+  seed 11 jenis +34 pangkat. Tidak ada import PII atau secret aplikasi yang dipasang.
+- Deployment awal holding-only `90a41e14-7ac4-48ac-b5ad-c6fd9d6767d3` di root dan hash
+  `sikap-uat.pages.dev`/`90a41e14.sikap-uat.pages.dev`: semua path/method 503/no-store,
+  tanpa login/aset dan tanpa akses binding. **13/13 pemeriksaan remote lulus**; ini
+  penguncian sementara, bukan bukti Access. Config terpisah `ops/uat/wrangler.toml`.
+  Guarded holding-deploy mematok account/config/worker SHA, cwd/proyek/branch; deploy dari
+  root tidak diperbolehkan. Review ulang PASS WITH NOTES, tanpa High/Medium blocker kode.
+- Access dipasang manual oleh operator 17 Okt 2026: satu aplikasi `SIKAP UAT Private`,
+  root+wildcard path kosong. Team `shy-thunder-ffc9.cloudflareaccess.com`, AUD
+  `50b2c68c92474c0232581b9641f9107836ca66939e439e2314f37384f4f2b3e9`.
+  Policy Allow satu email penguji, tanpa Everyone/Bypass; OTP saja, instant authentication
+  nonaktif, sesi 6 jam. Dibuat langsung Zero Trust (bukan tombol Pages); satu-AUD sesuai guard.
+  Operator juga mengonfirmasi email Allow lolos OTP menuju holding, email lain ditolak.
+- Tahap berikutnya diizinkan operator: aplikasi **kosong** diterbitkan 17 Okt 2026 sebagai
+  `0adc7584-3f21-4318-bea7-3e68a33987a1` pada root/newhash. Secret PASSWORD_PEPPER dan
+  SETTINGS_ENC_KEY acak khusus UAT dipasang, salinan pemulihan disimpan privat di luar repo
+  `C:\Users\elwin\sikap-private\uat-keys-20261017` (ACL owner/SYSTEM/Administrators diverifikasi);
+  salinan awal Temp masih ada, berkas JSON upload sementara sudah dihapus.
+  Tidak ada akun fixture/PII yang diimpor. Konfigurasi remote diunduh ulang: DB9d6ca598,
+  FILES/BACKUPS UAT, mode1 dan team/AUD tepat; semua6appcount (pegawai/akun/arsip/sesi/outbox/
+  secretproviderWA) tetap0. 13 pemeriksaan remote root+hashbaru+hashholding/asset/API dan
+  headerpalsu semuanya challenge302. Login app setelah OTP/operator dan sesi SIKAP belum diuji
+  pada saat itu (historis; lihat konfirmasi operator pada butir fixture).
+- Guarded fullapp entry memvalidasi JWT sebelum **ASSETS maupun API**, modeabsent/0 menolak503,
+  _routes include/* exclude[], deployentryexportdefault-only (metafileesbuildcheck). Builder
+  outputdist-uat-app terpisah. Uji nyata Wrangler menunjukkan subfoldercwd masih dapat memilih
+  rootconfig; adapterfullapp membuat rilis temporerDI LUARrepo tanpaancestorconfig, fingerprint
+  config, ledgerSHAsemuafile, envterfilter, fixedaccount/project/branch. Lokalreleaseproof
+  bindingUAT+mode/team/AUD benar dan page/asset/API anonim403marker. Reviewakhir PASS WITH NOTES,
+  tanpa High/Medium; staging123tests, entry11tests, typecheck/lint/build lulus.
+  Activeconfig ops/uat-app/wrangler.toml; ops/uat hanyaholdingrollbackhistoris. Cronnonaktif,
+  pengirimanWA nyatanonaktif/providerbelumconfig, produksi/previewlama tidakdiubah.
+- Operator mengonfirmasi ketiga pemeriksaan setelah OTP (loginUI, health200, auth/me401)
+  lulus, lalu mengizinkan tahap fixture. UAT kini berisi **3 akun sintetis** (Admin1,
+  PegawaiPNS1/PPPK1), password acak bukan default, tanpa NIK/email/HP/foto/arsip.
+  Generator INSERT-only dicek pada D1 lokal, targetremote dipastikan kosong dan guard
+  SQL menolak bila nonempty. Ketiga hashremote cocok kriptografis terhadap credential
+  privat+pepper UAT; tidakdicetak. Postcounts: pegawai3/akun3/Admin1/default0/PII0/arsip0/
+  sesi0/outbox0, auditFIXTURE_UAT_CREATE1. Probeperimeter13/13 tetap302Access.
+  Credential dan SQL privat: `C:\Users\elwin\sikap-private\uat-fixtures-20261017`.
+  Saat fixture dibuat, uji login SIKAP admin/pegawai, logout dan 403 role setelah Access masih
+  menunggu operator. Operator kemudian **melaporkan** login/logout SIKAP admin/pegawai dan
+  penolakan 403 berbasis role lulus (lihat `README.md`). Ini konfirmasi operator, bukan bukti
+  yang diverifikasi independen oleh sesi pengembangan; sesi ini tidak mengambil OTP/cookie dan
+  kebijakan Access di control plane tidak diaudit independen. Data nyata tidakdipakai,
+  tidakadaimportsnapshot, produksi tidakdiubah. Fixture ini bukan jalur import remote umum
+  dan tidak boleh dijalankan ulang.
+- Preflight remote **read-only** sudah diimplementasikan
+  (`npm run staging:remote:preflight -- --inspect-uat`) dan dijalankan 17 Okt 2026 terhadap `sikap-uat-db`. Hasil: exit 2 dengan
+  kode tunggal `TARGET_NOT_EMPTY`, sesuai harapan karena fixture sintetis ada;
+  `migrationsMatch:true`, `referenceCountsMatch:true`, sedangkan `schemaCompared`,
+  `accessVerified`, `pepperVerified` dan `transactionAtomicityVerified` bernilai `false`, serta
+  `readyForImport:false`. Preflight hanya membandingkan daftar migrasi dan jumlah baris
+  referensi; **tidak** membandingkan skema terhadap skema yang diharapkan dan **tidak**
+  memvalidasi isi referensi. Hasil ini bukan izin import.
+- Hardening alat staging: eksekusi Wrangler kini diisolasi di luar repo karena Wrangler 4.151.0
+  dapat membaca `.env`/config dari cwd. Deploy holding dan app memakai config rilis
+  ter-render yang dipatok beserta allowlist environment; preflight memakai path absolut config
+  sumber yang dipatok dan cwd terisolasi yang kosong. **Belum ada deploy sejak hardening ini**;
+  deployment aktif tetap `0adc7584`.
+- Checkpoint commit lokal 17 Okt 2026: `cb4fae7` (Fase 7) dan `3a1f795` (tooling Fase 8–9).
+  Belum di-push; checkpoint ini tidak menandai Fase 9 selesai atau mengizinkan import data nyata.
+- Baseline validasi working tree 17 Okt 2026: `npm test` **908 test** lulus (API 400, web 152,
+  migrasi 196, staging 160); lint, typecheck dan build lulus. Review independen PASS WITH NOTES,
+  hanya catatan Low.
+- Penulisan/import remote **belum diimplementasikan**. Alat lokal tetap menolak `--remote`, dan
+  tidak ada bukti atomisitas batch remote, import, atau deploy baru. Gerbang tersisa sebelum PII
+  dipindahkan:
+  1. Target UAT terpisah yang kosong (fixture saat ini sengaja membuat `TARGET_NOT_EMPTY`;
+     jangan menghapus/menimpanya agar tampak kosong).
+  2. Persetujuan operator untuk bukti batch/rollback remote sintetis pada target kosong, lalu
+     bukti atomisitas transaksi dan checksum GET ulang file R2.
+  3. Bukti pepper target cocok, perbandingan skema terhadap skema yang diharapkan, dan validasi
+     isi referensi aktual; receipt terikat account/project/database/bucket/schema/pepper.
+  4. Persetujuan eksplisit pemilik data untuk import data nyata.
+
 - [ ] Playwright E2E untuk 5 journey (§7). Uji parity terhadap checklist §7.2.
 - [ ] Review keamanan independen (code-reviewer): IDOR, upload, sesi, CSRF, header.
 - [ ] Lighthouse ≥ 90 (Performance/Accessibility). Bundle per route < 200 KB gzip. API p95 < 300 ms.
@@ -629,7 +904,7 @@ Terhapus). Review: APPROVE WITH CHANGES, 0 Critical/High; 2 Medium + 4 Low diper
 3. Pasang custom domain `sikap.uptdpenda-kupang.web.id` ke project Pages baru. Perbarui `APP_URL` di template WA.
 4. Smoke test produksi (login Admin & Pegawai, upload, verifikasi, notifikasi WA).
 5. Rollback plan: kembalikan domain ke deploy lama. GAS read-only bisa diaktifkan kembali karena data lama tidak diubah.
-6. Setelah 30 hari: nonaktifkan deployment GAS, cabut akses Drive, arsipkan spreadsheet (read-only, akses terbatas), hapus `/api/internal/import` dan `IMPORT_TOKEN`.
+6. Setelah 30 hari: nonaktifkan deployment GAS, cabut akses Drive, arsipkan spreadsheet (read-only, akses terbatas), dan hapus alat/wrapper ekspor sementara dari Apps Script. Tidak ada endpoint import HTTP publik atau `IMPORT_TOKEN` yang perlu dipertahankan.
 
 **Total estimasi: ±6–7 minggu kerja.**
 
