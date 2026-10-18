@@ -4,7 +4,7 @@ Aplikasi internal UPTD Pendapatan Daerah Wilayah Kota Kupang untuk mengelola dat
 
 > **Status:** migrasi dari Google Apps Script ke Cloudflare sedang berjalan di branch `feat/cloudflare-migration`.
 > Kode lama (GAS + Google Sheets + Drive) dipindahkan ke [`legacy-gas/`](legacy-gas/) dan tetap menjadi sistem produksi sampai cutover.
-> Checkpoint lokal 17 Oktober 2026: `cb4fae7` (Fase 7) dan `3a1f795` (tooling Fase 8–9). Belum di-push; Fase 9 tetap parsial dan `readyForImport:false`. Tidak ada deploy sejak hardening alat staging.
+> Checkpoint lokal 17 Oktober 2026: `cb4fae7` (Fase 7), `3a1f795` (tooling Fase 8–9), `c9eed3e` (probe D1), dan `8511abc` (classifier policy v2). Belum di-push; Fase 9 tetap parsial dan `readyForImport:false`. Verifikasi rollback query policy v2 lulus satu run; bukan bukti kesiapan impor. Tidak ada deploy sejak hardening alat staging.
 
 | Dokumen | Isi |
 |---|---|
@@ -414,9 +414,9 @@ dengan rehearsal ini**. Jangan unggah ekspor, hash, file pegawai, maupun secret 
 
 > Status 17 Oktober 2026: `readyForImport` belum pernah `true`. Preflight remote read-only
 > berakhir `TARGET_NOT_EMPTY` (sesuai harapan karena fixture). Importer remote belum
-> diimplementasikan; tiga run probe sintetis remote berhenti gagal-aman pada fase constraint
-> (exit 2). Run ketiga mengenali bentuk extended PRIMARYKEY lewat diagnostik, tetapi classifier
-> tetap menolaknya. Bukti guard parsial, bukan bukti atomicity lengkap.
+> diimplementasikan. Tiga run policy lama berhenti gagal-aman (exit 2); run keempat dengan
+> policy v2 lulus seluruh 11 langkah (exit 0), `observedTransportRollback:true`. Bukti terbatas
+> pada transport query Wrangler 4.151.0 dan policy tersebut, bukan kesiapan impor atau jaminan global.
 > Data nyata belum diimpor ke remote. Subbagian di bawah disusun kronologis.
 
 Preview `feat-cloudflare-migration.sikap-v2.pages.dev` masih dapat menampilkan halaman login
@@ -668,8 +668,8 @@ https://developers.cloudflare.com/pages/platform/known-issues/#enable-access-on-
 - Buat plan baru memakai pepper UAT yang sama dengan aplikasi target; plan ber-pepper latihan
   lokal tidak dapat dipakai begitu saja. Salt dan secret disimpan privat, bukan di chat.
 - Importer data remote **belum diimplementasikan**. Selain preflight read-only, kit dan
-  eksekutor probe transaksi sintetis tersedia dan telah dijalankan remote **tiga kali**, masing-masing
-  dengan persetujuan operator terpisah. Kontrol positif serta guard-abort lulus; constraint-abort berhenti dengan
+  eksekutor probe transaksi sintetis tersedia dan telah dijalankan remote **empat kali**, masing-masing
+  dengan persetujuan operator terpisah. Pada run awal policy lama, kontrol positif serta guard-abort lulus; constraint-abort berhenti dengan
   `UNEXPECTED_FAILURE`, exit `2`, tanpa retry/cleanup. Inspect independen read-only menemukan
   tepat 2 tabel kit dan 3 baris positif, tanpa baris fase gagal atau objek asing. Error constraint
   tidak terklasifikasi, sehingga **atomicity keseluruhan belum terbukti**. Residu awalnya
@@ -705,20 +705,57 @@ https://developers.cloudflare.com/pages/platform/known-issues/#enable-access-on-
   tanpa wrapper, pada APIError target cocok/kode 7500. Ini observasi run ketiga saja, bukan
   pemulihan pesan run sebelumnya. Classifier lama tetap `MESSAGE_MISMATCH` dan menolak PASS.
   Inspect independen nonce ketiga menemukan tepat **2 tabel kit/3 baris positif**, tanpa baris
-  fase gagal atau objek asing; database kembali **tidak kosong**, residu dibiarkan.
-  Tidak ada retry, cleanup ketiga, push, deploy, atau import. Policy classifier v2 kemudian
+  fase gagal atau objek asing; database saat itu kembali **tidak kosong**, residu dibiarkan.
+  Pada akhir run ketiga belum ada cleanup. Policy classifier v2 kemudian
   ditambahkan **lokal saja**: tepat satu literal extended tanpa wrapper, dengan tag 7500, diterima
   hanya untuk APIError bersih endpoint dipatok dengan own code angka 7500. Regex lama tetap;
   full run tetap membutuhkan semua 11 langkah dan post-read state yang cocok. Fixture literal
   direkonstruksi dari diagnostik run ketiga + renderer, bukan pesan mentah yang disimpan.
-  Tiga receipt lama tidak diubah; policy baru belum diuji remote. Commit patch, cleanup, dan
-  run verifikasi memerlukan instruksi/persetujuan terpisah; jangan blind retry. Diagnostik
-  tidak memberi izin operasi atau import.
+  Tiga receipt lama tidak diubah; policy v2 di-commit lokal pada `8511abc` (saat commit belum diuji remote).
+  Cleanup ketiga kemudian disetujui terpisah dan selesai: verifikasi nonce/skema/data sebelum
+  DROP data, inspeksi independen, lalu verifikasi ulang sebelum DROP marker. SELECT final
+  **0 objek pengguna/0 residu**, database tetap ada; saat cleanup itu belum ada run keempat.
+  Inventaris akun pada akhir cleanup berisi **11 database**, berbeda dari 10 sebelumnya; perubahan di luar
+  scope belum diinvestigasi, dan plan/kuota terkini tidak disimpulkan dari angka historis.
+  Tidak ada database lain yang dibuat/dihapus, retry, push, deploy, atau import dalam cleanup.
+  Run keempat kemudian disetujui terpisah dan **lulus exit 0**, seluruh 11 langkah, kedua error
+  terikat target dan post-read cocok: `observedTransportRollback:true`, policy v2, Wrangler
+  `4.151.0` transport remote `--command` query. Inspect independen nonce keempat mengonfirmasi
+  2 tabel kit, marker owned step 1, 3 baris positif, tanpa baris fase gagal/asing atau objek asing.
+  Database kini kembali **tidak kosong** dan residu dibiarkan. Hasil hanya untuk satu run/
+  transport/versi/policy tersebut; tidak mencakup Worker batch, `--file`, payload besar atau
+  konkurensi. `transactionAtomicityVerified:false` dan `readyForImport:false` tetap berlaku.
+  Tidak ada retry, cleanup keempat, push, deploy, import atau commit tambahan; inventaris tidak
+  dibaca ulang. Langkah berikutnya desain importer lokal yang selaras transport bukti ini;
+  cleanup atau operasi remote baru tetap perlu persetujuan terpisah.
   Jangan mengubah alat local-only menjadi remote, menjalankan SQL ekspor
   sembarangan, atau menambahkan endpoint import publik. Jalur penulisan remote perlu receipt
   terikat account/project/database/bucket/schema/pepper, pemeriksaan target kosong dan
   referensi aktual, transaksi checkpoint yang dibuktikan dengan uji sintetis rollback di
   target kosong, serta GET/checksum ulang file R2.
+- Desain importer lokal dicatat pada bagian **Desain importer remote** di `MIGRATION_PLAN.md`.
+  PII tidak boleh dikirim sebagai SQL/argv Wrangler; kandidat adapter langsung D1 REST `/query`
+  memakai template statis dan params dalam body, sehingga membutuhkan bukti sintetis baru untuk
+  request shape yang persis sama. Run keempat bukan bukti otomatis parameterized REST.
+  Urutannya: pure contract/chunk compiler/ledger state machine lokal, mock HTTP/R2, baru
+  rehearsal remote sintetis dengan persetujuan terpisah. Checkpoint, journal dan data chunk
+  harus satu request atomik yang terbukti; timeout menghentikan writer dan memerlukan
+  pemeriksaan receipt/prefix sebelum keputusan resume, tanpa blind retry. R2 create-only diikuti
+  GET SHA-256 sebelum referensi D1, tanpa cleanup otomatis. Tahap desain tidak membuat kode/resource.
+  Pure core kini diimplementasikan pada `scripts/import/core.mjs`: validasi descriptor syntax/
+  denylist, compiler chunk statis-params dengan caps dan target binding, simulasi state serta
+  klasifikasi resume yang tidak pernah mengizinkan retry. `npm run test:import` menjalankan
+  32 tes (18 core + 14 mock); full `npm test` 999 tes lulus. Artifact params bersifat privat; hanya `summarize`
+  boleh ditampilkan. Business validation, raw plan hash, target proof dan semantic validation
+  masih wajib terpisah; core tidak memberi izin apply. Expiry wajib dicek ulang oleh adapter
+  sebelum setiap send/resume; DDL journal kelak wajib unique `(run_nonce, ordinal)`.
+  Core kini menolak key dengan tipe salah dan epoch journal mundur. Mock adapter in-memory
+  (`scripts/import/mock-adapter.mjs`) mensimulasikan commit/rollback, timeout/pending/late commit
+  tanpa jaringan atau SQL engine; hasil selalu simulated dan tidak mengizinkan retry. Inspect
+  mock privat, summary hanya counts/flags; expiry dicek ulang setiap simulated send. Mock hanya
+  memodelkan konflik primary key, bukan seluruh FK/UNIQUE/CHECK. Review core dan mock
+  PASS WITH NOTES tanpa blocker. Belum ada client HTTP/R2 nyata, ledger DDL,
+  credential, CLI importer atau operasi remote baru. `readyForImport:false` tetap.
 - Gerbang tersisa: (1) target UAT terpisah yang kosong; (2) persetujuan operator untuk bukti
   batch/rollback remote sintetis; (3) bukti pepper, perbandingan skema terhadap skema yang
   diharapkan, dan validasi isi referensi; (4) persetujuan eksplisit pemilik data untuk import

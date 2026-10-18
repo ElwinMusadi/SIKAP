@@ -43,6 +43,9 @@ jobs:
       - name: Test offline migration (synthetic data, local storage only)
         run: npm run test:migrate
 
+      - name: Test pure importer core (synthetic, no network)
+        run: npm run test:import
+
       - name: Test staging guards (offline, no real credentials)
         run: npm run test:staging
 

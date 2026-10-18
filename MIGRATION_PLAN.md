@@ -1106,9 +1106,48 @@ Persiapan 17 Oktober 2026 (tanpa membaca artefak pegawai atau menulis resource r
   Tidak ada operasi remote, retry, cleanup, run keempat, deploy, push, import atau commit pada
   tahap policy v2; residu run ketiga tetap 2 tabel/3 baris sintetis. Commit patch, cleanup,
   dan run verifikasi berikutnya tetap memerlukan instruksi/persetujuan masing-masing.
+- Policy v2 di-commit lokal pada `8511abc` (6 file, staging 219/219, lint/typecheck/whitespace
+  lulus ulang; tanpa push). Sesudah itu operator menyetujui cleanup ketiga saja untuk residu
+  nonce `7d63c820e2da9977d8f964c88d245ce7` pada database probe yang sama. Identitas/account,
+  scope D1 Write, pin config, marker step 1, 3 baris positif, dan DDL dua tabel kit diverifikasi
+  ulang; tidak ada baris fase gagal/asing atau objek asing. Tabel data di-DROP satu perintah,
+  lalu inspeksi independen hanya menemukan marker yang cocok. Marker di-DROP satu perintah
+  terpisah sesudah verifikasi ulang identitas/marker. SELECT akhir: **0 objek pengguna,
+  0 residu probe**, database tetap ada, read replication disabled. Tes kit/pin **23/23** lulus.
+  Inventaris `d1 list` akhir mengembalikan **11 database** (sebelumnya 10); tahap ini tidak
+  membuat/menghapus database lain. Batas Free terdokumentasi 10 merupakan konteks historis,
+  bukan bukti plan/kuota akun saat ini; perubahan inventaris belum diinvestigasi dan tidak
+  mengizinkan penghapusan resource lain. Tidak ada retry, run keempat/verifikasi policy v2,
+  deploy, import, push, atau commit tambahan. Policy v2 belum diuji remote; run berikutnya
+  memerlukan persetujuan baru, terpisah dari cleanup ini. `readyForImport:false` tetap.
+- Verifikasi remote policy v2, satu run keempat dengan persetujuan baru setelah cleanup ketiga:
+  source commit `8511abc`, policy `d1-query-constraint-extended-primarykey-v2`, Wrangler `4.151.0`,
+  transport `wrangler-d1-execute-remote-command` (query API), nonce sintetis
+  `ac4d90b2724463de5d031a8c017f42ba`, database probe UUID tetap sama. Tes eksekutor/pin
+  **31/31** lulus; autentikasi account/D1 Write diverifikasi ulang. Seluruh **11 langkah lulus**:
+  version/identitas/precondition kosong/setup/inspect-setup, kontrol positif dengan receipt guard 1,
+  inspect-positive, guard-abort EXPECTED_SQL_ERROR terikat target dan inspect-guard, lalu
+  constraint-abort EXPECTED_SQL_ERROR terikat target dan inspect-constraint. Exit keseluruhan **0**,
+  `ok:true`, `observedTransportRollback:true`, `stateUncertain:false`, codes kosong.
+  Kedua post-read menegaskan marker owned step 1, total/positive 3, foreign/fail_guard/
+  fail_constraint/trailing 0, DDL/skema tepat dua tabel kit. Hash bukti inspect-guard
+  `5babbf530d3cb55c3732381b324458fba3127bf1e367726b24155e3a14af3bc8`;
+  inspect-constraint `c5a99cf343e62aefcde572144734fc5178efd4a8f5243dd36d2a8b6b2f319fb5`.
+  Hash step-bound tidak harus sama; kesamaan state diperiksa dari counts/schema, bukan sekadar hash.
+  Inspeksi independen read-only sesudah run dengan nonce yang sama mengonfirmasi identitas,
+  ownership, counts dan schema identik. Database kini kembali **tidak kosong**: 2 tabel kit dan
+  3 baris positif dibiarkan; cleanup memerlukan persetujuan baru. Tidak ada retry, cleanup keempat,
+  run kelima, perubahan classifier, commit, push, deploy atau import. Inventaris akun tidak
+  diperiksa ulang pada run ini; observasi terakhir 11 database tetap konteks, bukan kuota terkini.
+  Hasil ini bukti **rollback teramati pada satu run/transport/versi/policy tersebut**, bukan jaminan
+  umum atomicity atau bukti Worker `env.DB.batch()`, import `--file`, beban besar maupun konkurensi.
+  `transactionAtomicityVerified:false`, `globalAtomicityClaimed:false`, `appliesToWorkerBatch:false`,
+  `appliesToFileImport:false`, `cleanupAuthorized:false`, `readyForImport:false` tetap sesuai kontrak.
+  Tiga receipt historis policy v1 tetap gagal; tidak ditulis ulang oleh keberhasilan run keempat.
 - Importer data remote **belum diimplementasikan**. Alat migrasi offline tetap menolak
-  `--remote`; tiga run probe sintetis terpisah berhenti gagal-aman seperti dicatat di atas.
-  Bukti atomisitas remote belum lengkap; tidak ada import atau deploy baru. Gerbang tersisa sebelum PII
+  `--remote`; tiga run policy lama gagal-aman, satu run policy v2 lulus dengan batas bukti di atas.
+  Bukti khusus transport query sudah tersedia; bukti end-to-end importer belum ada, dan tidak
+  ada import atau deploy baru. Gerbang tersisa sebelum PII
   dipindahkan:
   1. Target UAT terpisah yang kosong (fixture saat ini sengaja membuat `TARGET_NOT_EMPTY`;
      jangan menghapus/menimpanya agar tampak kosong).
@@ -1117,6 +1156,293 @@ Persiapan 17 Oktober 2026 (tanpa membaca artefak pegawai atau menulis resource r
   3. Bukti pepper target cocok, perbandingan skema terhadap skema yang diharapkan, dan validasi
      isi referensi aktual; receipt terikat account/project/database/bucket/schema/pepper.
   4. Persetujuan eksplisit pemilik data untuk import data nyata.
+
+#### Desain importer remote — lokal saja, belum diimplementasikan
+
+Keputusan desain setelah run keempat tidak memberi izin import, resource baru, cleanup,
+atau run sintetis tambahan. Importer tetap terpisah dari alat offline; `apply-local.mjs`
+dan `reconcile.mjs` tidak mendapat flag `--remote`. Bukti run keempat tetap khusus query
+SQL literal via Wrangler, bukan bukti otomatis bagi request parameterized berikut.
+
+**Transport dan privasi.** PII, hash password, token dan pepper tidak boleh muncul di argv,
+SQL literal, URL, log, telemetry, pesan error, atau output laporan. Jangan menggunakan
+`wrangler --command` untuk isi plan nyata. Kandidat transport adalah client Node langsung
+ke endpoint D1 `/query` yang dipatok, dengan SQL template statis dan nilai terpisah dalam
+body JSON `batch: [{sql, params}]` melalui TLS; bukan endpoint import publik atau Worker
+sementara. Header/token hanya dari environment terlindungi, tanpa membaca credential
+Wrangler atau menyimpan token di file/manifest. Redirect, override host/proxy, debug HTTP,
+body logging, retry SDK otomatis dan telemetry dimatikan/ditolak sesuai adapter yang nanti
+terpilih. Header Authorization dan response provider tidak disalin ke laporan. Credential D1 dan R2
+terpisah, sementara/bermasa berlaku singkat, direvoke setelah run sesuai runbook; R2 dibatasi
+bucket yang disetujui, sedangkan prefix adalah pembatas importer. Granularitas scope D1 aktual
+harus diverifikasi sebelum eksekusi; jika izin hanya account-wide, risiko residual itu dicatat
+serta diterima operator dengan pin manifest/control-plane sebagai kompensasi, bukan diklaim
+menjadi least-privilege per database secara otomatis.
+
+Request shape ini **belum terbukti**. Encoding row (parameter per kolom atau satu parameter
+JSON berisi row) masih varian compiler yang harus dipilih melalui pengujian, bukan keputusan
+wire contract yang sudah terbukti. Dukungan tipe `null`/number/string, placeholder lintas
+statement, perilaku `changes()`/guard, rollback seluruh request dan karakter Unicode harus
+diuji sintetis pada adapter sebenarnya sebelum jalur tulis diaktifkan. Parameterisasi bukan
+jaminan bahwa platform tidak menyimpan nilai pada observability; kebijakan retensi/query
+insights juga gerbang privasi yang perlu diperiksa. Bila atomicity tidak terbukti, berhenti;
+checkpoint terpisah dari data atau penerimaan partial writes bukan fallback yang sah.
+
+**Manifest target dan preflight.** Descriptor privat, terversi dan hash-bound mengikat
+account, UUID database, bucket/prefix, profile, commit/compiler/transport policy, hash plan
+serta source, expected app DDL, expected ledger DDL, baseline reference/seed, nonce, expiry,
+dan referensi bukti pepper/runtime. Validasi descriptor bukan bukti identitas atau izin.
+Target awal wajib database dan bucket terpisah yang disetujui, bukan produksi/preview,
+UAT fixture, atau database probe. Nama/UUID/prefix ditolak bila cocok denylist, dan diperiksa
+ulang lewat control plane. Belum ada UUID target importer atau izin pembuatannya.
+
+App tidak boleh membaca/menulis target selama import; login, cron, notifikasi, backup,
+purge dan akses publik dinonaktifkan atau tidak dibinding ke target. Preflight baru harus
+membandingkan DDL aktual dengan hasil menerapkan migrasi pada database ephemeral, mencakup
+schema ledger secara terpisah (bukan mengabaikannya). Reference dan seed dibandingkan isi
+kanonik, bukan hanya jumlah/nama migrasi. Operational/application tables harus pristine;
+seed yang memang diizinkan harus persis baseline yang ditinjau pada initial apply. Pada resume,
+expected seed adalah fungsi deterministik dari plan dan stage/cursor committed: upsert jenis
+pada prefix stage 0 sudah diterapkan, subset wajib imported dihapus hanya setelah chunk awal
+stage 0 committed, lalu hanya prefix wajib stage 1 yang committed ditambahkan. Jenis/matriks
+untouched selalu cocok baseline; perubahan lain dianggap foreign dan menghentikan run.
+Bukti runtime pepper memakai
+challenge privat/sekali pakai dan version binding, tidak mengekspos secret atau fingerprint
+HMAC tetap ke laporan publik. Mekanisme proof itu belum ada; tanpa proof, apply tetap ditolak.
+
+**Kontrak data.** Pertahankan validator/urutan FK `IMPORT_TABLES`, canonical defaults,
+row identity dan format `legacy-wrap` dari pipeline yang ada; jangan reset semua password
+ke enam digit NIP atau menganggap pepper lokal pasti cocok. `consistent:false` pada export
+v1 tetap jujur; pernyataan source read-only saja belum membuktikan snapshot konsisten.
+Impor nyata memerlukan freeze sumber, export final dan rekonsiliasi yang disetujui pemilik data.
+Karakter Unicode/quote dipertahankan, bukan dinormalisasi; NUL dan unsafe integer ditolak.
+PII termasuk nama file tidak boleh masuk object key/metadata atau laporan. Key plan saat ini
+`migration/{snapshotId}/…` tidak diubah diam-diam; jika dibutuhkan key opaque baru, lakukan
+transform terversi dan hash plan baru yang ditinjau sebelum run, bukan rewrite saat apply.
+
+**Seed bukan insert-only mutlak.** `jenis_dokumen` saat ini memakai upsert, dan subset
+`jenis_dokumen_wajib` milik jenis yang diimpor dihapus pada stage 0 lalu diisi stage 1.
+Pertahankan hanya semantik yang ditinjau itu, tanpa `REPLACE`/cascade atau overwrite data
+pegawai. Jenis yang tidak diimpor beserta matriks seed-nya tetap baseline. Tahap antara
+commit tidak boleh terlihat oleh app; resume memeriksa expected seed/prefix berdasarkan
+stage/cursor committed seperti ketentuan preflight, dan hanya jenis untouched yang wajib
+masih persis baseline. Ledger remote terpisah tidak boleh mengubah perilaku receipt lokal.
+
+**Ledger dan checkpoint.** Desain dua tabel khusus remote (nama final/DDL belum diimplementasikan):
+run singleton mengikat target/plan/source/schema/baseline/proof/policy serta nonce, epoch,
+owner, stage, cursor, ordinal, status dan last-chunk hash; journal append-only menyimpan
+ordinal, table/range, hash chunk, cursor sebelum/sesudah dan epoch. DDL ledger adalah artefak
+versi yang dipatok dan ditinjau, bukan `CREATE IF NOT EXISTS` yang mempercayai tabel asing,
+bukan perubahan otomatis pada seluruh migrasi aplikasi/local-store. Persiapan schema target
+merupakan operasi terpisah yang perlu approval dan pengujian kompatibilitasnya. Initial apply
+mewajibkan kedua tabel ledger ber-DDL tepat dan **nol baris**; row run hanya dibuat melalui
+INSERT-only yang memeriksa ulang emptiness dan binding dalam request terjaga pertama.
+Resume hanya menerima nonce/plan/target/epoch/journal yang tepat, bukan ledger asing yang
+sudah memiliki cursor maju. Cursor/range journal berupa ordinal opaque dalam plan, bukan
+NIP/nama/email atau primary key personal. Hash chunk adalah identitas artifact plan-relative
+terikat plan digest dan ordinal, disimpan privat; jangan menerbitkan hash identifier/row PII
+rendah entropi. Hash tidak menggantikan perbandingan row privat.
+
+Retensi ledger/journal ditetapkan pada descriptor/runbook sebelum apply dan terikat approval;
+status awal hanya untuk migrasi, bukan audit pegawai permanen. Setelah rekonsiliasi/acceptance,
+archive privat dengan ACL dan penghapusan ledger memerlukan keputusan operator terpisah yang
+mengatur jangka simpan. Tidak ada drop/arsip otomatis saat completion; tanpa keputusan retensi,
+real apply tetap diblokir. Backup tidak boleh menyebarkan receipt sensitif secara tidak sengaja.
+
+Satu request atomik yang telah terbukti harus mencakup CAS ownership/epoch/cursor dan guard
+`changes()=1`, seluruh mutasi data chunk, insert journal, serta update checkpoint/guard final.
+Kegagalan di mana pun harus membatalkan **data dan checkpoint bersama**. CAS awal tidak boleh
+meninggalkan checkpoint maju jika insert berikutnya gagal. Jangan mengirim CAS/data/journal
+sebagai request terpisah. Completion juga CAS-guarded dan hanya setelah rekonsiliasi lengkap.
+Lease hanya bantuan koordinasi, bukan pengganti epoch/CAS atau bukti atomicity; clock klien
+bukan otoritas untuk merebut run. Target hanya satu writer dan takeover perlu keputusan operator.
+
+Compiler memecah chunk deterministik menurut bytes, jumlah statement, parameter dan baris,
+bukan menyalin angka 200 rows dari apply lokal. Batas platform terdokumentasi: SQL statement
+100.000 byte, 100 bound parameters per query, batch 30 detik. Scope parameter pada request
+multi-statement dan encoding REST masih harus diuji. Kebijakan awal **internal** yang konservatif:
+body JSON maksimal 64 KiB, maksimal 32 statement dan 100 parameter total per request (semua
+guard/journal ikut dihitung), statement di bawah limit platform; bukan klaim limit body D1.
+Satu row yang tidak muat ditolak, tidak dipotong. Angka final terikat versi compiler dan hasil
+probe payload representatif, bukan alasan otomatis memperbesar limit atau retry.
+
+**R2 sebelum referensi D1.** Bucket privat, prefix snapshot tervalidasi dan key tanpa PII;
+file maksimal 5 MiB sesuai kontrak awal, tanpa multipart pada iterasi pertama. Upload melalui
+S3 adapter create-only `If-None-Match: *`; konflik tidak boleh di-overwrite. Dokumen R2
+menyatakan conditional PUT atomik, tetapi adapter/credential/metadata tetap diuji sintetis.
+Setelah PUT atau respons tidak pasti, GET seluruh bytes dan hitung SHA-256, ukuran serta MIME;
+HEAD, ETag atau metadata hash saja tidak cukup. Existing key hanya boleh dipakai kembali bila
+ownership run/plan dan seluruh bytes cocok. Ownership harus dibuktikan ledger objek privat yang
+terikat run/plan serta key/byte yang disetujui; custom metadata saja tidak dipercaya. Verifikasi
+semua objek sebelum data D1 mereferensikannya.
+D1 dan R2 tidak punya transaksi bersama: kegagalan D1 dapat meninggalkan objek milik run,
+yang dikarantina dan dicatat privat; tidak ada delete/rollback otomatis atau cleanup objek asing.
+
+**Resume dan rekonsiliasi.** Timeout/5xx/reset sesudah write berarti outcome tidak pasti;
+hentikan writer, jangan resend otomatis. Read-only receipt+journal dan prefix baris diperiksa:
+next ordinal/hash/prefix cocok berarti chunk teramati committed; prior ordinal dengan candidate
+rows tidak ada dan prefix lama utuh hanya berarti commit belum teramati. Respons lama masih
+mungkin diproses server; writer harus dipastikan quiescent dan outcome diselesaikan sebelum
+keputusan operator untuk pengiriman berikutnya. Satu pembacaan cursor lama bukan izin resend.
+Runbook harus menetapkan settling/fencing berbasis batas request server dan bukti primary-read;
+menunggu 30 detik saja bukan bukti bahwa request tidak pernah dikirim/diantrekan. Bila outcome
+atau epoch writer tidak dapat diselesaikan secara aman, target dikarantina dan tidak dilanjutkan.
+State lain/foreign rows menjadi `RECEIPT_DIVERGED` dan stop. Counts JSON
+bukan bukti independen karena diturunkan dari cursor. Verifikasi ulang target/schema/seed/proof
+setiap resume memakai expected state berdasarkan stage/cursor yang committed (bukan memaksakan
+seed awal sesudah mutasi sah); perubahan plan, template, key mapping, policy atau target
+membatalkan approval lama.
+
+Rekonsiliasi akhir membaca seluruh row yang relevan secara privat dan membandingkan nilai
+kanonik/primary key, bukan hanya counts: akun/auth state, status arsip, FK serta relasi riwayat/log
+juga diperiksa. GET SHA-256 ulang semua objek dan list prefix lengkap untuk mendeteksi extras.
+Row/key/hash credential tetap di memori/private artifact; stdout hanya enum/kode/counts yang
+allowlisted. Tidak ada endpoint atau response dump berisi data pegawai.
+
+**Urutan implementasi dan gerbang berikutnya.**
+1. Implementasi lokal pure contract/chunk compiler/ledger state machine, tanpa credential,
+   network, CLI apply atau flag remote. Uji deterministic chunks, caps/Unicode/null/types,
+   seed semantics, CAS, stale epoch dan recovery ambiguity dengan fixture sintetis. Hitung
+   feasibility row terlebar per tabel ditambah overhead CAS/journal/checkpoint sebelum membentuk
+   chunk; bila cap parameter/bytes tidak memuat satu row, blokir offline sebelum probe.
+2. Adapter HTTP/R2 melalui mock saja: fixed endpoint/TLS/no redirect, redaksi error, response
+   bounds, timeout stop, conditional PUT dan GET/checksum. Mock bukan bukti platform.
+3. Setelah review+commit lokal, persetujuan terpisah untuk resource/cleanup dan satu rehearsal
+   sintetis menggunakan **request shape dan adapter yang sama** dengan importer (typed params,
+   checkpoint+journal+guard, duplicate/FK/late failure, concurrency/stale writer dan batas bytes).
+   Residu probe run keempat tetap dibiarkan sampai cleanup disetujui; tidak ada akses remote
+   baru pada tahap desain ini. Inventaris terakhir 11, plan/kuota akun belum dikonfirmasi.
+4. Rehearsal end-to-end sintetis D1+R2, interruption/resume, full-row/GET reconciliation dan
+   review keamanan sebelum permintaan izin target/data nyata. Approval pemilik data mengikat
+   plan/target/proof/masa berlaku; keputusan cutover dan produksi tetap tahap terpisah.
+
+Review desain independen setelah koreksi seed-on-resume dan ledger **PASS WITH NOTES**,
+tanpa temuan Medium/High tersisa. Ini review dokumen, bukan test implementasi atau validasi
+REST remote. Dua gerbang teknis utama tetap belum terpenuhi: request parameterized atomik
+pada adapter sebenarnya, dan proof pepper runtime privat sebelum write. Prosedur settling
+outcome ambigu harus selesai ditinjau sebelum rehearsal sintetis; tidak ada izin resend otomatis.
+
+Pada akhir tahap desain, implementasi belum ada dan tidak ada penambahan package,
+migrasi SQL, file kode, resource, deployment atau commit. Tahap pure core lokal berikutnya
+dicatat di bawah; `readyForImport:false` tetap. Referensi desain:
+https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/query/,
+https://developers.cloudflare.com/d1/platform/limits/,
+https://developers.cloudflare.com/r2/api/s3/api/.
+
+#### Pure core importer — implementasi lokal terbatas
+
+`scripts/import/core.mjs` menambahkan API murni `validateDescriptor`, `compileChunks`,
+`summarize`, `createState`, `advanceState`, dan `classifyResume`, dengan tes sintetis pada
+`core.test.mjs`. Modul hanya mengimpor crypto dan kontrak statis; tidak membaca filesystem,
+environment, clock implisit, credential, atau jaringan, dan tidak memiliki CLI apply.
+
+Descriptor terversi memakai waktu ISO eksplisit, TTL maksimal empat jam, target allow-pattern
+`sikap-import-*`, account allowlist dan denylist produksi/preview/fixture/probe. Ini pemeriksaan
+syntax/denylist saja: `existenceVerified:false`, `identityVerified:false`, `planHashVerified:false`.
+Binding target mengikat account/DB/bucket/profile/snapshot/source/plan/schema/baseline/policy/
+retention pada SQL CAS, journal, chunk hash dan pengamatan resume. Owner/epoch/nonces/expiry
+tidak masuk digest stabil agar takeover tidak mengganti identitas konten, tetapi nonce/owner/
+epoch tetap wajib cocok di CAS; ini tidak mengimplementasikan takeover atau membuktikan izin.
+
+Compiler menerima **tables yang sudah canonical penuh**, bukan export GAS atau plan mentah.
+Caller masa depan wajib menjalankan business validation `validatePlan`, normalisasi
+`canonicalRow` dari pipeline yang ada, memverifikasi bytes/hash plan/source dan preflight;
+core tidak menggantikan validasi itu. Output selalu `semanticValidationRequired:true`,
+`schemaRequired:true`, `transportProven:false`, `proofRequired:true`, `remoteAuthorized:false`,
+`readyForImport:false`. Artifact mengandung PII/hash password pada params sehingga bersifat
+**privat**, tidak untuk log/CLI; hanya `summarize` mengeluarkan counts/flags tanpa SQL, nilai,
+ID, nonce atau hash artifact.
+
+Urutan tujuh tabel dan kolom dipatok ke kontrak apply lokal. Nilai hanya ada dalam params;
+SQL dibangun dari template allowlist. NUL, Unicode tidak well-formed, unsafe integer, extra/
+missing column dan duplicate primary key ditolak. Unicode/quote tidak diubah. Stage 0 first
+chunk menghapus wajib hanya untuk seluruh ID jenis yang diimpor, sekali saja; zero jenis
+berarti tidak ada DELETE. Jenis memakai upsert yang ditinjau; tabel lain plain INSERT.
+Stage kosong tetap menghasilkan chunk advancement agar stage/cursor tidak melompati protokol.
+
+Setiap chunk kandidat berisi claim CAS yang memeriksa `claim_seq` lama, guard tepat setelah
+UPDATE, mutasi data, journal INSERT, checkpoint CAS dan guard final. Semua placeholder dan
+jumlah params diperiksa. Contract ledger masih prospektif, **tidak ada DDL/schema yang dibuat**;
+journal wajib unique `(run_nonce, ordinal)` saat DDL nanti diterapkan. Completion belum ada:
+state stage 7/allChunksApplied tetap `complete:false`, `completeAuthorized:false` dan wajib
+rekonsiliasi. State machine saat ini simulasi murni, bukan bukti SQL batch benar-benar atomik.
+
+Caps internal per request tetap 64 KiB body JSON UTF-8, 32 statement, 100 parameter dan
+maksimal 64 row, semua overhead CAS/journal/seed ikut dihitung. Chunk hash berantai mengikat
+binding target/policy, plan, ordinal/range dan data. Ukuran dicadangkan untuk epoch selebar
+safe integer agar takeover tidak mengubah boundary/hash. Row tunggal yang tidak muat ditolak.
+Artifact dan state di-deep-freeze, dan fungsi state hanya menerima artifact/chunk milik core.
+
+Resume membandingkan receipt/journal tepat dengan urutan/hashes/binding/epoch dan prefix
+attestation: next state cocok memberi `COMMITTED_OBSERVED`; prior state belum settled tetap
+`HOLD_UNCERTAIN`; prior state dengan attestation quiescent/prefix pun hanya
+`NOT_COMMITTED_OBSERVED_OPERATOR_REQUIRED`, tidak mengizinkan pengiriman. Foreign/malformed/
+state mismatch menjadi `DIVERGED`. Semua hasil selalu `authorizesRetry:false`,
+`authorizesSend:false`, `autoResendAllowed:false`; boolean caller bukan bukti remote atau izin.
+
+`test:import` ditambahkan ke `npm test`, lint glob dan CI, tanpa dependency/lockfile berubah.
+Run penuh `npm test` lulus **980 tes**: API 400, web 152, migrasi offline 196, staging 219,
+core 13. Lint, typecheck, build, dan whitespace (`git diff --check`) lulus. Review kode core
+independen **PASS WITH NOTES**, tanpa blocker; review SQL dan dokumentasi juga tidak menemukan
+blocker. Catatan Low: business validator wajib menolak primary key bertipe salah (misalnya
+angka vs string pada kolom TEXT), urutan epoch journal belum diuji monoton, dan masih ada
+celah tes boundary seed multi-chunk/epoch-size/PRIMARY contract. Descriptor expiry baru dicek
+saat compile; adapter masa depan wajib memeriksa ulang sebelum tiap send/resume, bukan
+menganggap artifact lama tetap berizin. Catatan ini tidak mengaktifkan adapter atau apply.
+Ada warning tooling Workers/Vitest
+lama dan diagnostic network-loss dari mock test yang sudah ada; command tetap exit 0,
+semua test lulus. Belum ada HTTP/R2 adapter nyata atau mock adapter, transport proof baru,
+ledger DDL, bootstrap receipt, full semantic validation, credential, atau importer CLI.
+Tidak ada akses remote, cleanup, resource, deploy, import, push atau commit pada tahap ini.
+Residu probe run keempat tetap dibiarkan, dan jalur REST parameterized masih belum terbukti.
+
+#### Hardening core dan mock adapter — simulasi lokal saja
+
+Tahap berikutnya memperketat primary key berdasarkan skema: jenis dan dua key matriks wajib
+adalah TEXT non-empty; key tabel lain INTEGER safe, tanpa coercion/trim atau penerimaan `-0`.
+`PRIMARY` dan `KEY_TYPES` diekspor frozen dan dipatok ke apply lokal serta tipe kolom DDL.
+Epoch journal harus monoton non-decreasing, safe/nonnegative, tidak `-0`, tidak melampaui epoch
+binding dan tepat untuk entry saat ini. Semua mismatch tetap `DIVERGED`, bukan izin retry.
+Lima tes baru menutup type-affinity collision, seed 40 jenis multi-chunk (DELETE tetap satu
+kali meliputi seluruh jenis imported), boundary tepat 64 KiB pada epoch 0/MAX_SAFE_INTEGER,
+serta receipt/journal epoch yang stale atau mundur. Tes core menjadi **18/18**.
+
+`scripts/import/mock-adapter.mjs` menambahkan `createMockAdapter({artifact,descriptor,now,seed?})`
+dengan capability frozen `send`, `inspect`, `settle`, `summary`. Ini bukan HTTP/R2 adapter:
+hanya state private in-memory, tanpa SQL engine, credential, filesystem, environment, network,
+timer atau clock implisit. Constructor memvalidasi descriptor dan seluruh parameter binding
+claim/journal/checkpoint dari artifact core yang dikenal. Seed hanya dua tabel jenis/matriks
+canonical dengan type key sesuai core; tidak ada implicit apply saat constructor.
+
+Setiap `send` memeriksa ulang expiry/`now` monoton sebelum attempt, menuntut chunk asli tepat
+pada ordinal sekarang. Typed operations dari template statis dijalankan pada draft clone;
+publish data+receipt+journal terjadi sekaligus hanya pada simulated success. Injected rollback
+setelah claim/data/journal membuang draft. Konflik primary key dimodelkan, tetapi UNIQUE lain,
+FK dan CHECK skema **tidak diemulasikan**; mock tidak membuktikan validitas SQL atau constraint
+D1 yang sesungguhnya. Semua hasil berlabel `localOnly:true`, `simulated:true`,
+`transportProof:false`, `remoteAuthorized:false`, `readyForImport:false` dan tanpa izin send/retry.
+
+Fault timeout-before, timeout-after, pending, HTTP 429/500 dan malformed response memberi
+`AMBIGUOUS_SIMULATED` dan mengunci instance; tidak ada resend otomatis. Sebagian scenario
+sengaja memodelkan belum dieksekusi, sebagian sudah commit: ini pilihan simulasi, bukan klaim
+outcome server dari status HTTP. `settle(commit|abort)` hanya kontrol menyelesaikan draft
+pending (termasuk late commit); tidak membuka halted atau memberi izin. Waktu yang berlalu
+setelah request tidak menghapus kemungkinan late commit, sehingga settle bukan send baru
+atau mekanisme melewati expiry.
+
+`inspect()` bersifat **privat** dan menghasilkan receipt/journal hash/nonce, row counts, serta
+prefix equality yang dihitung ulang dari seed + artifact committed. Jangan log output ini.
+Sebelum pending settle, `writerQuiescent:false` membuat core menahan state; sesudah late commit
+core mengamati committed prefix, sesudah abort core hanya menghasilkan keputusan operator
+required. `summary`/hasil send/settle hanya counts, enum dan safety flags; tidak mengandung PII,
+parameter, SQL, ID, nonce atau hash chunk. `complete:false` tetap meski semua chunk diaplikasikan.
+
+Validasi akhir tahap: core **18/18**, mock **14/14**, `test:import` **32/32**. Seluruh `npm test`
+lulus **999 tes** (API 400, web 152, migrasi offline 196, staging 219, import 32), lint,
+typecheck, build dan whitespace lulus. Review core dan mock **PASS WITH NOTES**, tanpa
+Medium/High; scope bukti hanya pure state machine dan simulasi. Tidak ada client HTTP/R2 nyata,
+bootstrap/DDL ledger, importer CLI, resource, credential, cleanup, deploy, import atau commit.
+Residu probe run keempat tetap 2 tabel/3 baris dan REST parameterized belum dibuktikan.
 
 - [ ] Playwright E2E untuk 5 journey (§7). Uji parity terhadap checklist §7.2.
 - [ ] Review keamanan independen (code-reviewer): IDOR, upload, sesi, CSRF, header.
