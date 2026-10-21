@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { VerifikasiItem, VerifikasiQueueResponse } from '@shared/verifikasi';
-import { appendReason, flattenQueue, neighborId, removeQueueItem, shortcutAction, type QueueData, type ShortcutEventLike } from './verifikasi-utils';
+import {
+  appendReason,
+  compactWait,
+  flattenQueue,
+  neighborId,
+  parseArsipParam,
+  removeQueueItem,
+  shortcutAction,
+  waitingDays,
+  type QueueData,
+  type ShortcutEventLike,
+} from './verifikasi-utils';
 
 function item(arsipId: number): VerifikasiItem {
   return {
@@ -84,5 +95,36 @@ describe('quick rejection reasons', () => {
     expect(appendReason('Buram.', 'Kedaluwarsa')).toBe('Buram; Kedaluwarsa');
     expect(appendReason('Buram', 'buram')).toBe('Buram');
     expect(appendReason('x'.repeat(495), 'Kedaluwarsa')).toHaveLength(500);
+  });
+});
+
+describe('deep link and waiting time', () => {
+  it('accepts only positive integer arsip ids', () => {
+    expect(parseArsipParam('42')).toBe(42);
+    expect(parseArsipParam(null)).toBeNull();
+    expect(parseArsipParam('')).toBeNull();
+    expect(parseArsipParam('0')).toBeNull();
+    expect(parseArsipParam('-3')).toBeNull();
+    expect(parseArsipParam('1.5')).toBeNull();
+    expect(parseArsipParam('12abc')).toBeNull();
+  });
+
+  it('counts whole days since upload and never goes negative', () => {
+    const now = Date.parse('2026-10-21T08:00:00Z');
+    expect(waitingDays('2026-10-21T07:00:00Z', now)).toBe(0);
+    expect(waitingDays('2026-10-18T08:00:00Z', now)).toBe(3);
+    expect(waitingDays('2026-10-18T08:00:01Z', now)).toBe(2);
+    expect(waitingDays('2026-10-22T00:00:00Z', now)).toBe(0);
+    expect(waitingDays('bukan tanggal', now)).toBe(0);
+  });
+
+  it('formats a compact waiting label for the queue', () => {
+    const now = Date.parse('2026-10-21T08:00:00Z');
+    expect(compactWait('2026-10-21T07:59:40Z', now)).toBe('baru saja');
+    expect(compactWait('2026-10-21T07:48:00Z', now)).toBe('12 mnt');
+    expect(compactWait('2026-10-21T03:00:00Z', now)).toBe('5 jam');
+    expect(compactWait('2026-10-18T07:00:00Z', now)).toBe('3 hari');
+    expect(compactWait('2026-10-22T08:00:00Z', now)).toBe('baru saja');
+    expect(compactWait('bukan tanggal', now)).toBe('-');
   });
 });

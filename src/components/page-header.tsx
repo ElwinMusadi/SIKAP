@@ -17,19 +17,24 @@ interface PageHeaderProps {
   className?: string;
 }
 
+/** "← Section" link above a detail page title (also usable on its own above custom headers). */
+export function PageBackLink({ to, label }: { to: string; label: string }) {
+  return (
+    <Link
+      to={to}
+      className="inline-flex w-fit items-center gap-1.5 rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <ArrowLeft className="size-4" aria-hidden="true" />
+      {label}
+    </Link>
+  );
+}
+
 /** The one page header (template "Daftar", "Detail", "Formulir"; docs/RENCANA-REDESIGN-UIUX.md §6). */
 export function PageHeader({ title, description, actions, eyebrow, back, meta, className }: PageHeaderProps) {
   return (
     <div className={cn('flex flex-col gap-3', className)}>
-      {back ? (
-        <Link
-          to={back.to}
-          className="inline-flex w-fit items-center gap-1.5 rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          {back.label}
-        </Link>
-      ) : null}
+      {back ? <PageBackLink to={back.to} label={back.label} /> : null}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex min-w-0 flex-col gap-1">
           {eyebrow ? <p className="text-eyebrow text-muted-foreground uppercase">{eyebrow}</p> : null}

@@ -1,12 +1,13 @@
 import { KeyRound, Lock } from 'lucide-react';
 import type { Role, StatusAkun } from '@shared/enums';
 import type { Kelengkapan, PegawaiListItem } from '@shared/pegawai';
+import { ProgressMeter } from '@/components/progress-meter';
 import { StatusBadge } from '@/components/status-badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { initials } from '@/lib/format';
+import { countsFromSummary } from '@/lib/progress';
 import { STATUS_REGISTRY, statusSpec, TONE_CLASSES } from '@/lib/status';
 import { cn } from '@/lib/utils';
 
@@ -83,22 +84,10 @@ export function KelengkapanCell({ dokumen, className }: { dokumen: PegawaiListIt
   if (dokumen.wajibTotal === 0) {
     return <span className={cn('text-xs text-muted-foreground', className)}>Status kepegawaian belum diisi</span>;
   }
-  const style = KELENGKAPAN_STYLE[dokumen.kelengkapan];
   return (
-    <div className={cn('flex min-w-36 flex-col gap-1.5', className)}>
-      <div className="flex items-center justify-between gap-2">
-        <Badge variant="outline" className={style.badge}>
-          {dokumen.kelengkapan}
-        </Badge>
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {dokumen.wajibTerverifikasi}/{dokumen.wajibTotal}
-        </span>
-      </div>
-      <Progress
-        value={dokumen.persen}
-        className={cn('h-1.5', style.bar)}
-        aria-label={`Dokumen wajib terverifikasi ${dokumen.wajibTerverifikasi} dari ${dokumen.wajibTotal}`}
-      />
+    <div className={cn('flex min-w-40 flex-col gap-1.5', className)}>
+      <StatusBadge domain="kelengkapan" status={dokumen.kelengkapan} className="w-fit" />
+      <ProgressMeter variant="compact" counts={countsFromSummary(dokumen)} label="Dokumen wajib" />
       {dokumen.menunggu > 0 ? (
         <span className="text-xs text-status-pending tabular-nums">{dokumen.menunggu} menunggu verifikasi</span>
       ) : null}

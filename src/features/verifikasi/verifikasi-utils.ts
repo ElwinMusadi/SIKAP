@@ -38,6 +38,34 @@ export function neighborId(items: readonly VerifikasiItem[], arsipId: number): n
   return items[index + 1]?.arsipId ?? items[index - 1]?.arsipId ?? null;
 }
 
+/** `?arsip=<id>` deep link (Beranda, detail pegawai) → arsip id, or null when absent/invalid. */
+export function parseArsipParam(value: string | null): number | null {
+  if (value === null || !/^\d{1,15}$/.test(value)) return null;
+  const id = Number(value);
+  return id > 0 ? id : null;
+}
+
+/** Queue items waiting at least this many days get the amber "lama menunggu" marker. */
+export const WAIT_WARN_DAYS = 3;
+
+/** Whole days since upload (0 for future or unparseable timestamps). */
+export function waitingDays(uploadedAt: string, now = Date.now()): number {
+  const t = Date.parse(uploadedAt);
+  if (Number.isNaN(t)) return 0;
+  return Math.max(0, Math.floor((now - t) / 86_400_000));
+}
+
+/** Short waiting time for the narrow queue column: "baru saja", "12 mnt", "5 jam", "3 hari". */
+export function compactWait(uploadedAt: string, now = Date.now()): string {
+  const t = Date.parse(uploadedAt);
+  if (Number.isNaN(t)) return '-';
+  const minutes = Math.max(0, Math.floor((now - t) / 60_000));
+  if (minutes < 1) return 'baru saja';
+  if (minutes < 60) return `${minutes} mnt`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 24 ? `${hours} jam` : `${Math.floor(hours / 24)} hari`;
+}
+
 /* ------------------------------------------------------------------ */
 /* Keyboard shortcuts                                                  */
 /* ------------------------------------------------------------------ */

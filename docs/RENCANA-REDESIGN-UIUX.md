@@ -2,7 +2,7 @@
 
 Disusun 21 Oktober 2026 dari tiga sumber: (1) penelusuran visual aplikasi lokal dengan data fiktif (`scripts/dev-seed.mjs`) di desktop 1440 px dan ponsel 375 px, (2) audit kode `src/` (±15 ribu baris, 13 fitur), (3) perbandingan dengan proyek lain pemilik (PINTU `portal-uptdkotakupang`, `laravel-finance-tracker`, `SIP-IKP`, `kalkulator-pajak`) serta mockup `UIUX Stitch/` dan `Blueprint Product/Step 06`.
 
-Status: semua keputusan §11 disetujui pemilik (21 Okt 2026). **Fase 0 dan 1 selesai di branch `feat/redesign-uiux`** (belum dirilis), fase 2–6 belum. Produksi hidup, jadi redesign hanya menyentuh frontend (`src/`), tanpa perubahan API, skema D1, atau perilaku bisnis.
+Status: semua keputusan §11 disetujui pemilik (21 Okt 2026). **Fase 0–3 selesai di branch `feat/redesign-uiux`** (belum dirilis), fase 4–6 belum. Produksi hidup, jadi redesign hanya menyentuh frontend (`src/`), tanpa perubahan API, skema D1, atau perilaku bisnis.
 
 Catatan implementasi fase 0–1:
 
@@ -25,6 +25,17 @@ Catatan implementasi fase 2 (pustaka pola, diperagakan di `/_design` dengan data
 | Formulir | `src/components/form-patterns.tsx`: `FormSection`, `LockedHint`, `StickySaveBar`, `EntitySheet` (576 px), `FormDialog` (512 px) |
 
 Tes baru: registri status (4), progres (3), dan util tabel (6). Halaman fitur belum dipindah ke pola ini; pemindahan dilakukan di fase 3–5.
+
+Catatan implementasi fase 3 (layar Admin utama, tanpa perubahan API):
+
+| Layar | Isi |
+|---|---|
+| Beranda Admin | `src/features/beranda/admin-dashboard.tsx`: KPI (pegawai aktif, menunggu verifikasi, pengajuan, kelengkapan instansi), grafik batang kelengkapan dan donat komposisi pegawai, antrean 5 teratas, aksi cepat, kartu password default, linimasa aktivitas. Admin melihat tab **Instansi** / **Data saya**. Dashboard dimuat *lazy* agar recharts (±360 kB) tidak ikut terunduh oleh pegawai; chunk Beranda kini ±14 kB |
+| Master Data Pegawai | `DataTable` mode server (sort + paginasi di URL), `FilterBar` (status, akun, kelengkapan, belum unggah) + tombol "Password default", kartu di ponsel, menu "…" per baris. `?tambah=1` membuka sheet tambah pegawai |
+| Detail Pegawai | Header dengan avatar, badge meta, menu "…" untuk aksi akun, tab Profil/Dokumen/Pengajuan memakai `SectionCard`, `ProgressMeter`, `EmptyState`/`ErrorState` |
+| Verifikasi Dokumen | Workspace 3 panel di ≥1280 px (antrean · pratinjau · keputusan); 1024–1279 px: pratinjau + kolom kanan; ponsel: daftar + sheet penuh. Penanda lama menunggu (amber ≥ 3 hari), filter jenis di panel antrean, toolbar pratinjau ringkas, tombol **Setujui** hijau (varian `success` baru di `Button`) / **Tolak** merah, label "Setujui & lanjutkan", pintasan `A`/`R`/`J`/`K` (+ `Kbd` di tombol). Tautan `?arsip=<id>` dari Beranda dan detail pegawai langsung memilih dokumen |
+
+Ditunda karena butuh data baru dari API (fase berikutnya, bila disetujui): grafik kelengkapan **per unit**, tren unggahan, dan riwayat dokumen sejenis di panel keputusan Verifikasi. Tes baru: deep link, lama menunggu, dan label waktu ringkas di `verifikasi-utils` (3).
 
 ---
 
