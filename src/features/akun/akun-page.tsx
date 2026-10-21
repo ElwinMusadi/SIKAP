@@ -17,6 +17,7 @@ import { useTheme, type ThemePreference } from '@/app/theme';
 import { PageHeader } from '@/components/page-header';
 import { SectionCard } from '@/components/section-card';
 import { ErrorState } from '@/components/states';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -230,13 +231,11 @@ function ChangePasswordCard({ user }: { user: SessionUser }) {
     <SectionCard id="keamanan" className="scroll-mt-20" title="Ganti password" description="Gunakan password yang kuat dan tidak dipakai di layanan lain.">
       <div className="flex flex-col gap-6">
         {user.isDefaultPassword ? (
-          <div className="flex gap-2.5 rounded-lg border border-status-pending/25 bg-status-pending-muted p-3 text-sm">
-            <KeyRound className="mt-0.5 size-4 shrink-0 text-status-pending" aria-hidden="true" />
-            <p>
-              <span className="font-medium text-status-pending">Anda masih memakai password default.</span>{' '}
-              <span className="text-foreground">Password ini mudah ditebak (6 digit terakhir NIP); segera ganti.</span>
-            </p>
-          </div>
+          <Alert variant="pending">
+            <KeyRound aria-hidden="true" />
+            <AlertTitle>Anda masih memakai password default</AlertTitle>
+            <AlertDescription>Password ini mudah ditebak (6 digit terakhir NIP); segera ganti.</AlertDescription>
+          </Alert>
         ) : null}
 
         <form noValidate onSubmit={onSubmit}>
@@ -262,10 +261,10 @@ function ChangePasswordCard({ user }: { user: SessionUser }) {
             <FieldDescription>Setelah password diganti, semua perangkat lain akan dikeluarkan otomatis.</FieldDescription>
 
             {errors.root?.message ? (
-              <p role="alert" className="flex items-center gap-2 text-sm text-destructive">
-                <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
-                {errors.root.message}
-              </p>
+              <Alert variant="destructive" role="alert">
+                <TriangleAlert aria-hidden="true" />
+                <AlertDescription>{errors.root.message}</AlertDescription>
+              </Alert>
             ) : null}
 
             <Field orientation="horizontal">

@@ -15,8 +15,10 @@ interface StatusPageProps {
 
 /** Full-page state for 404 / 403 / route errors: thin line illustration, code, title, way back. */
 export function StatusPage({ code, icon: Icon, title, description, actions, fullScreen }: StatusPageProps) {
+  // Outside the shell there is no <main>: the page itself is the main landmark.
+  const Root = fullScreen ? 'main' : 'div';
   return (
-    <div className={cn('flex items-center justify-center px-6 py-16', fullScreen ? 'min-h-svh bg-background' : 'min-h-[60svh]')}>
+    <Root className={cn('flex items-center justify-center px-6 py-16', fullScreen ? 'min-h-svh bg-background' : 'min-h-[60svh]')}>
       <div className="flex max-w-md flex-col items-center gap-5 text-center">
         <div className="relative flex size-40 items-center justify-center text-muted-foreground" aria-hidden="true">
           <svg viewBox="0 0 160 160" className="absolute inset-0 size-full" fill="none" stroke="currentColor">
@@ -37,6 +39,6 @@ export function StatusPage({ code, icon: Icon, title, description, actions, full
         </div>
         {actions ? <div className="flex flex-wrap justify-center gap-2">{actions}</div> : null}
       </div>
-    </div>
+    </Root>
   );
 }

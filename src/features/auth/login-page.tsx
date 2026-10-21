@@ -7,6 +7,7 @@ import { loginRequestSchema, type LoginRequest } from '@shared/api';
 
 import kantorSamsat from '@/assets/kantor-samsat.webp';
 import logoNtt from '@/assets/logo-ntt.webp';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -140,10 +141,10 @@ export default function LoginPage() {
                 </Field>
 
                 {login.error ? (
-                  <p role="alert" className="flex gap-2 rounded-lg border border-status-rejected/25 bg-status-rejected-muted px-3 py-2.5 text-sm text-status-rejected">
-                    <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                    {loginErrorMessage(login.error)}
-                  </p>
+                  <Alert variant="destructive" role="alert">
+                    <CircleAlert aria-hidden="true" />
+                    <AlertDescription>{loginErrorMessage(login.error)}</AlertDescription>
+                  </Alert>
                 ) : null}
 
                 <Button type="submit" size="lg" className="w-full" disabled={login.isPending}>

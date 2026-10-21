@@ -14,6 +14,7 @@ import {
 import { PageHeader } from '@/components/page-header';
 import { SectionCard } from '@/components/section-card';
 import { ErrorState } from '@/components/states';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field';
@@ -27,7 +28,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReferensiPanel } from '@/features/referensi/referensi-panel';
 import BackupPanel from '@/features/backup/backup-panel';
 import { errorMessage, isApiError } from '@/lib/api';
-import { TONE_CLASSES } from '@/lib/status';
 import { cn } from '@/lib/utils';
 import {
   useNotifSettings,
@@ -116,16 +116,21 @@ export default function PengaturanPage() {
             ))}
           </TabsList>
         </div>
+        {/* forceMount: every tab's aria-controls resolves; only the active section renders (and fetches). */}
         {SECTIONS.map((s) => (
-          <TabsContent key={s.id} value={s.id} className="flex min-w-0 flex-col gap-4">
-            <div className="flex flex-col gap-0.5">
-              <h2 className="text-h2 text-foreground">{s.label}</h2>
-              <p className="text-sm text-muted-foreground">{s.description}</p>
-            </div>
-            {s.id === 'notifikasi' ? <NotificationsSection /> : null}
-            {s.id === 'whatsapp' ? <WhatsAppSection /> : null}
-            {s.id === 'referensi' ? <ReferensiPanel /> : null}
-            {s.id === 'backup' ? <BackupPanel /> : null}
+          <TabsContent key={s.id} value={s.id} forceMount className="flex min-w-0 flex-col gap-4 data-[state=inactive]:hidden">
+            {s.id === section ? (
+              <>
+                <div className="flex flex-col gap-0.5">
+                  <h2 className="text-h2 text-foreground">{s.label}</h2>
+                  <p className="text-sm text-muted-foreground">{s.description}</p>
+                </div>
+                {s.id === 'notifikasi' ? <NotificationsSection /> : null}
+                {s.id === 'whatsapp' ? <WhatsAppSection /> : null}
+                {s.id === 'referensi' ? <ReferensiPanel /> : null}
+                {s.id === 'backup' ? <BackupPanel /> : null}
+              </>
+            ) : null}
           </TabsContent>
         ))}
       </Tabs>
@@ -211,16 +216,14 @@ function WhatsAppSection() {
   );
 }
 
-/** Small inline result/error box used under forms in this page. */
+/** Result/error box under the WhatsApp form. */
 function Callout({ tone, icon: Icon, title, children }: { tone: 'verified' | 'rejected'; icon: LucideIcon; title: string; children: React.ReactNode }) {
   return (
-    <div role={tone === 'rejected' ? 'alert' : 'status'} className={cn('flex gap-2.5 rounded-lg border p-3 text-sm', TONE_CLASSES[tone].badge)}>
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      <div className="flex flex-col gap-0.5">
-        <p className="font-medium">{title}</p>
-        <p className="text-foreground">{children}</p>
-      </div>
-    </div>
+    <Alert variant={tone === 'verified' ? 'success' : 'destructive'} role={tone === 'rejected' ? 'alert' : 'status'}>
+      <Icon aria-hidden="true" />
+      <AlertTitle>{title}</AlertTitle>
+      <AlertDescription>{children}</AlertDescription>
+    </Alert>
   );
 }
 
@@ -329,7 +332,7 @@ function WhatsAppForm({ settings }: { settings: WhatsAppSettings }) {
             {provider === 'fonnte' ? (
               <TokenField
                 key="fonnte"
-                id={`${id}-fonnte`}
+                id={`${id}-fonnte-token`}
                 label="Token Fonnte"
                 value={draft.fonnteToken ?? ''}
                 configured={settings.fonnte.configured}
@@ -346,7 +349,7 @@ function WhatsAppForm({ settings }: { settings: WhatsAppSettings }) {
               <>
                 <TokenField
                   key="meta"
-                  id={`${id}-meta`}
+                  id={`${id}-meta-token`}
                   label="Token Meta Cloud API"
                   value={draft.metaToken ?? ''}
                   configured={settings.meta.configured}

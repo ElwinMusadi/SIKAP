@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMe } from '@/features/auth/queries';
 import { useRefData } from '@/features/profil/queries';
 import { errorMessage } from '@/lib/api';
@@ -111,7 +111,7 @@ export default function PegawaiListPage() {
         }
       />
 
-      <Tabs value={params.terhapus ? 'terhapus' : 'aktif'} onValueChange={(v) => update({ terhapus: v === 'terhapus' })}>
+      <Tabs value={params.terhapus ? 'terhapus' : 'aktif'} onValueChange={(v) => update({ terhapus: v === 'terhapus' })} className="gap-4">
         <TabsList>
           <TabsTrigger value="aktif">Aktif</TabsTrigger>
           <TabsTrigger value="terhapus">
@@ -121,24 +121,34 @@ export default function PegawaiListPage() {
             ) : null}
           </TabsTrigger>
         </TabsList>
+
+        {/* forceMount keeps both panels in the DOM so each tab's aria-controls resolves; only the active one has content. */}
+        <TabsContent value="aktif" forceMount className="flex flex-col gap-4 data-[state=inactive]:hidden">
+          {params.terhapus ? null : (
+            <>
+              <PegawaiFilters params={params} update={update} onReset={resetFilters} />
+              <AktifTable
+                params={params}
+                update={update}
+                query={query}
+                selfId={me?.id}
+                onReset={resetFilters}
+                onAdd={openCreate}
+                onEdit={(id) => setSheet({ open: true, id })}
+                onAction={(item, action) => actions.request(item, action)}
+              />
+            </>
+          )}
+        </TabsContent>
+        <TabsContent value="terhapus" forceMount className="flex flex-col gap-4 data-[state=inactive]:hidden">
+          {params.terhapus ? (
+            <>
+              <PegawaiFilters params={params} update={update} onReset={resetFilters} />
+              <TerhapusTable params={params} update={update} query={query} onReset={resetFilters} />
+            </>
+          ) : null}
+        </TabsContent>
       </Tabs>
-
-      <PegawaiFilters params={params} update={update} onReset={resetFilters} />
-
-      {params.terhapus ? (
-        <TerhapusTable params={params} update={update} query={query} onReset={resetFilters} />
-      ) : (
-        <AktifTable
-          params={params}
-          update={update}
-          query={query}
-          selfId={me?.id}
-          onReset={resetFilters}
-          onAdd={openCreate}
-          onEdit={(id) => setSheet({ open: true, id })}
-          onAction={(item, action) => actions.request(item, action)}
-        />
-      )}
 
       <PegawaiFormSheet open={sheet.open} pegawaiId={sheet.id} onOpenChange={(open) => setSheet((s) => ({ ...s, open }))} />
       {actions.dialog}
@@ -382,7 +392,7 @@ function PegawaiIdentity({ item }: { item: PegawaiListItem }) {
         <span className="flex items-center gap-2">
           <Link
             to={`/admin/pegawai/${item.id}`}
-            className="max-w-64 truncate font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:underline"
+            className="max-w-64 truncate py-0.5 font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:underline"
             title={item.nama}
           >
             {item.nama}

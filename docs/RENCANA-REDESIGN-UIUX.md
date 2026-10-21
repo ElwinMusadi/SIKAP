@@ -2,7 +2,7 @@
 
 Disusun 21 Oktober 2026 dari tiga sumber: (1) penelusuran visual aplikasi lokal dengan data fiktif (`scripts/dev-seed.mjs`) di desktop 1440 px dan ponsel 375 px, (2) audit kode `src/` (±15 ribu baris, 13 fitur), (3) perbandingan dengan proyek lain pemilik (PINTU `portal-uptdkotakupang`, `laravel-finance-tracker`, `SIP-IKP`, `kalkulator-pajak`) serta mockup `UIUX Stitch/` dan `Blueprint Product/Step 06`.
 
-Status: semua keputusan §11 disetujui pemilik (21 Okt 2026). **Fase 0–5 selesai di branch `feat/redesign-uiux`** (belum dirilis), fase 6 belum. Produksi hidup, jadi redesign hanya menyentuh frontend (`src/`), tanpa perubahan API, skema D1, atau perilaku bisnis.
+Status: semua keputusan §11 disetujui pemilik (21 Okt 2026). **Fase 0–6 selesai di branch `feat/redesign-uiux`** (belum dirilis). Panduan pemakaian komponen: [`POLA-UI.md`](POLA-UI.md). Produksi hidup, jadi redesign hanya menyentuh frontend (`src/`), tanpa perubahan API, skema D1, atau perilaku bisnis.
 
 Catatan implementasi fase 0–1:
 
@@ -59,7 +59,17 @@ Catatan implementasi fase 5 (layar admin sekunder, tanpa perubahan API):
 | Pengaturan Sistem | Navigasi seksi di kiri (vertikal ≥1024 px, gulir horizontal di ponsel), seksi bisa ditautkan dengan `?bagian=whatsapp|referensi|backup`. Referensi: tiga `DataTable` + kartu ponsel. Backup: status dari registri (domain `backup`), riwayat berupa tabel di desktop dan kartu di ponsel, callout menggantikan Alert |
 | 404 / 403 / galat | `StatusPage` (`src/components/status-page.tsx`): ilustrasi garis tipis, kode kecil, tombol Kembali/Ke Beranda; dipakai `NotFound`, `RequireRole`, dan galat rute |
 
-Perbaikan pola: wrapper shadcn `Tabs` kini meneruskan `orientation` ke Radix (sebelumnya hanya atribut data, sehingga tombol panah dan `aria-orientation` selalu horizontal). Registri status bertambah domain `log` dan `backup`. QA: alur setujui pengajuan diuji ujung ke ujung dengan data fiktif lokal, filter rentang tanggal tersimpan di URL, pemindaian kontras otomatis semua layar fase 5 lolos AA di terang dan gelap. Tes baru: registri (2 domain), `filterJenis` (2), nama/kategori aksi log (1).
+Catatan implementasi fase 6 (poles, tanpa perubahan API):
+
+- **Callout seragam:** `Alert` kini punya varian `default` (info), `pending`, `destructive`, dan `success` sesuai registri status, tanpa `role="alert"` bawaan (role dipasang hanya untuk galat setelah aksi). Callout buatan sendiri dari fase 3–5 diganti `Alert`.
+- **Kode mati dihapus:** `coming-soon.tsx`, serta komponen shadcn yang tak terpakai `empty`, `item`, `hover-card`, `scroll-area`. Sisa `bg-primary/5` diganti `bg-accent-soft`.
+- **Audit aksesibilitas otomatis** di semua layar (ponsel dan desktop, termasuk dialog/sheet terbuka): nama aksesibel, label form, alt gambar, ID ganda, referensi ARIA, urutan heading, satu `h1`, landmark, interaktif bersarang, `tabindex` positif, dan ukuran target. Temuan yang diperbaiki: `aria-controls` tab yang menunjuk panel tidak ada (pola `forceMount`), ID ganda radio/token di Pengaturan WhatsApp (label token menempel ke radio), 404 tanpa `<main>`, serta tinggi `PageBackLink` dan tautan nama di kartu pegawai (kini ≥ 24 px). Pengecualian yang disengaja: elemen latar dalam `aria-hidden` saat dialog Radix terbuka (fokus terkunci di dialog), dan kontrol 16 px yang sudah punya area sentuh `after:-inset-*`. Pemeriksaan ini mengikuti aturan utama axe, tetapi bukan axe/Lighthouse lengkap.
+- **QA ponsel dan mode gelap:** tanpa overflow horizontal di 375 px dan kontras teks lolos AA di terang maupun gelap pada semua layar pegawai dan admin, termasuk login, 403, dan 404.
+- **Performa:** `@tanstack/react-table` dipisah dari chunk `query` yang dipramuat di setiap halaman, sehingga muatan awal turun ±41 kB (12,7 kB gzip). Grafik tetap *lazy* (hanya dashboard admin).
+- **Dokumentasi pola:** [`POLA-UI.md`](POLA-UI.md).
+- Tidak dikerjakan (opsional di §9): tab *Tampilan* tingkat instansi di Pengaturan Sistem. Preferensi tema per perangkat sudah ada di Pengaturan Akun.
+
+Perbaikan pola fase 5: wrapper shadcn `Tabs` kini meneruskan `orientation` ke Radix (sebelumnya hanya atribut data, sehingga tombol panah dan `aria-orientation` selalu horizontal). Registri status bertambah domain `log` dan `backup`. QA: alur setujui pengajuan diuji ujung ke ujung dengan data fiktif lokal, filter rentang tanggal tersimpan di URL, pemindaian kontras otomatis semua layar fase 5 lolos AA di terang dan gelap. Tes baru: registri (2 domain), `filterJenis` (2), nama/kategori aksi log (1).
 
 ---
 

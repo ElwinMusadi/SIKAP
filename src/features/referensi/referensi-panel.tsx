@@ -14,6 +14,7 @@ import {
 import { DataTable, SortableHeader, columnHelper, type DataTableColumn } from '@/components/data-table/data-table';
 import { ErrorState } from '@/components/states';
 import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -141,13 +142,14 @@ export function ReferensiPanel() {
   const nextUrutan = pangkat.reduce((max, p) => Math.max(max, p.urutan), 0) + 1;
   return (
     <div className="flex flex-col gap-8" aria-busy={query.isFetching || undefined}>
-      <p className="flex max-w-3xl gap-2 rounded-lg bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground">
-        <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-        <span>
-          <span className="font-medium text-foreground">Data referensi tidak dapat dihapus.</span> Nonaktifkan pangkat atau unit yang tidak dipakai
-          lagi; nilai yang sudah tercatat pada data pegawai tetap berlaku sebagai data historis, tetapi tidak muncul untuk input baru.
-        </span>
-      </p>
+      <Alert className="max-w-3xl">
+        <Info aria-hidden="true" />
+        <AlertTitle>Data referensi tidak dapat dihapus</AlertTitle>
+        <AlertDescription>
+          Nonaktifkan pangkat atau unit yang tidak dipakai lagi; nilai yang sudah tercatat pada data pegawai tetap berlaku sebagai data historis,
+          tetapi tidak muncul untuk input baru.
+        </AlertDescription>
+      </Alert>
 
       <RefSection
         title="Pangkat / golongan"
@@ -280,16 +282,14 @@ function RefDialog({ open, busy, onClose, children }: { open: boolean; busy: boo
 function DeactivateWarning({ show, label }: { show: boolean; label: string }) {
   if (!show) return null;
   return (
-    <div role="status" className="flex gap-2.5 rounded-lg border border-status-pending/25 bg-status-pending-muted p-3 text-sm">
-      <TriangleAlert className="mt-0.5 size-4 shrink-0 text-status-pending" aria-hidden="true" />
-      <div className="flex flex-col gap-0.5">
-        <p className="font-medium text-status-pending">{label} akan dinonaktifkan</p>
-        <p className="text-foreground">
-          Pegawai yang sudah memakai nilai ini tetap menyimpannya sebagai data historis yang sah. Nilai nonaktif tidak dapat dipilih untuk input atau
-          perubahan data baru.
-        </p>
-      </div>
-    </div>
+    <Alert variant="pending" role="status">
+      <TriangleAlert aria-hidden="true" />
+      <AlertTitle>{label} akan dinonaktifkan</AlertTitle>
+      <AlertDescription>
+        Pegawai yang sudah memakai nilai ini tetap menyimpannya sebagai data historis yang sah. Nilai nonaktif tidak dapat dipilih untuk input atau
+        perubahan data baru.
+      </AlertDescription>
+    </Alert>
   );
 }
 
@@ -308,12 +308,11 @@ function AktifSwitch({ id, checked, onChange, disabled }: { id: string; checked:
 function FormAlert({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <p role="alert" className="flex gap-2 rounded-lg border border-status-rejected/25 bg-status-rejected-muted px-3 py-2.5 text-sm text-status-rejected">
-      <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      <span>
-        <span className="font-medium">Gagal menyimpan.</span> <span className="text-foreground">{message}</span>
-      </span>
-    </p>
+    <Alert variant="destructive" role="alert">
+      <TriangleAlert aria-hidden="true" />
+      <AlertTitle>Gagal menyimpan</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   );
 }
 

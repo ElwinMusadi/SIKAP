@@ -424,7 +424,7 @@ function AjukanPerubahanDialog({ profile, refData }: { profile: Profile; refData
                   return (
                     <div
                       key={field}
-                      className="flex flex-col gap-3 rounded-lg border p-3 has-data-[state=checked]:border-primary/30 has-data-[state=checked]:bg-primary/5"
+                      className="flex flex-col gap-3 rounded-lg border p-3 has-data-[state=checked]:border-primary/30 has-data-[state=checked]:bg-accent-soft"
                     >
                       <Field orientation="horizontal">
                         <Controller

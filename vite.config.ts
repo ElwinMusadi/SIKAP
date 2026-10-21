@@ -27,7 +27,9 @@ export default defineConfig({
         codeSplitting: {
           groups: [
             { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/ },
-            { name: 'query', test: /node_modules[\\/]@tanstack[\\/]/ },
+            { name: 'query', test: /node_modules[\\/]@tanstack[\\/](query-core|react-query)[\\/]/ },
+            // Data tables only (admin lists, log): kept out of the chunk every page (and the login) preloads.
+            { name: 'tanstack-table', test:/node_modules[\\/]@tanstack[\\/](table-core|react-table|store|react-store)[\\/]/ },
             { name: 'radix', test: /node_modules[\\/](radix-ui|@radix-ui)[\\/]/ },
             { name: 'forms', test: /node_modules[\\/](zod|react-hook-form|@hookform)[\\/]/ },
           ],

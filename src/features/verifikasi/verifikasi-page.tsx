@@ -646,19 +646,19 @@ function ItemDetails({ item }: { item: VerifikasiItem }) {
       </section>
 
       {item.isReupload ? (
-        <div className="flex gap-2.5 rounded-lg border border-status-pending/25 bg-status-pending-muted p-3 text-sm">
-          <RotateCcw className="mt-0.5 size-4 shrink-0 text-status-pending" aria-hidden="true" />
-          <div className="flex flex-col gap-1">
-            <p className="font-medium text-status-pending">Unggahan ulang</p>
+        <Alert variant="pending">
+          <RotateCcw aria-hidden="true" />
+          <AlertTitle>Unggahan ulang</AlertTitle>
+          <AlertDescription>
             {item.catatanSebelumnya ? (
-              <p className="text-foreground">
+              <>
                 <span className="text-muted-foreground">Alasan penolakan sebelumnya: </span>“{item.catatanSebelumnya}”
-              </p>
+              </>
             ) : (
-              <p className="text-muted-foreground">Dokumen ini sudah pernah diperiksa sebelumnya.</p>
+              'Dokumen ini sudah pernah diperiksa sebelumnya.'
             )}
-          </div>
-        </div>
+          </AlertDescription>
+        </Alert>
       ) : null}
     </div>
   );

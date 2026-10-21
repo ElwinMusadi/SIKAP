@@ -52,7 +52,7 @@ CI (`.github/workflows/ci.yml`, job `verify`): typecheck, lint, test api/web/mig
 - Password PBKDF2-SHA256 + pepper; hash lama GAS dibungkus `legacy-wrap` saat migrasi (pepper + salt rahasia). Sesi cookie HttpOnly 12 jam sliding; kunci 15 menit setelah 5 gagal.
 - Dokumen: admin memverifikasi versi yang ditampilkan; dokumen milik admin sendiri diverifikasi admin lain. Notifikasi WA lewat outbox (at-least-once), bukan sumber kebenaran.
 - Referensi (pangkat, unit, jenis dokumen) dinonaktifkan, tidak dihapus. Purge memakai antrean exact-key, bukan prefix.
-- Design system v2 (`docs/RENCANA-REDESIGN-UIUX.md` §5) ada di `src/index.css`: kertas `#F7F6F2`, tinta, satu aksen navy `#1E3A8A`, `status-*`, utilitas `text-display/h2/h3/eyebrow/metric`, `shadow-card/pop/dialog`, terang + gelap (`src/app/theme.tsx` + `public/theme-init.js`). **Impor `cn` dari `@/lib/utils`, bukan dari paket `cn`**; perbaiki impor setelah `shadcn add`. Uji kontras di `/_design` (khusus dev).
+- Design system v2 (`docs/RENCANA-REDESIGN-UIUX.md` §5) ada di `src/index.css`: kertas `#F7F6F2`, tinta, satu aksen navy `#1E3A8A`, `status-*`, utilitas `text-display/h2/h3/eyebrow/metric`, `shadow-card/pop/dialog`, terang + gelap (`src/app/theme.tsx` + `public/theme-init.js`). **Impor `cn` dari `@/lib/utils`, bukan dari paket `cn`**; perbaiki impor setelah `shadcn add`. Uji kontras di `/_design` (khusus dev). Status selalu lewat registri `src/lib/status.ts` + `StatusBadge`; callout memakai varian `Alert`; tabel memakai `DataTable`; aturan lengkap (tabs `forceMount`, lebar sheet ponsel, target sentuh, chunk vendor) di [`docs/POLA-UI.md`](docs/POLA-UI.md).
 - Importer produksi **fail-closed**: target hanya `sikap-import-*`, pin modul + fakta plan wajib, kredensial dari `credentials.env` privat dengan kedaluwarsa UTC ketat ≤ 12 jam. **Jangan pernah menjalankan ulang import produksi**; pemulihan = target baru + pin baru + review.
 
 ## Batasan kerja dengan pemilik
@@ -77,7 +77,7 @@ CI (`.github/workflows/ci.yml`, job `verify`): typecheck, lint, test api/web/mig
 
 ## TODO / pekerjaan terbuka
 
-- **Redesign UI/UX** frontend — rencana di [`docs/RENCANA-REDESIGN-UIUX.md`](docs/RENCANA-REDESIGN-UIUX.md) (design system, pustaka pola, fase 0–6). §11 disetujui; fase 0–5 selesai di branch `feat/redesign-uiux` (belum dirilis), fase 6 (polish: QA per layar, aksesibilitas, komponen mati) belum.
+- **Redesign UI/UX** frontend — rencana di [`docs/RENCANA-REDESIGN-UIUX.md`](docs/RENCANA-REDESIGN-UIUX.md) (design system, pustaka pola, fase 0–6). §11 disetujui; fase 0–6 selesai di branch `feat/redesign-uiux`, **belum di-merge dan belum dirilis** (deploy hanya atas permintaan pemilik). Panduan pola: [`docs/POLA-UI.md`](docs/POLA-UI.md).
 - **Backup otomatis belum ada**: binding `BACKUPS` + bucket privat + Worker cron (`workers/cron`) + kebijakan retensi ≥ 30 hari; D1 Time Travel sebagai pemulihan konsisten.
 - WAF Rate Limiting untuk `/api/auth/login`.
 - WhatsApp tetap nonaktif sampai diminta pemilik.

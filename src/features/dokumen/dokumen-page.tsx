@@ -38,7 +38,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { errorMessage } from '@/lib/api';
@@ -321,19 +321,41 @@ function DocumentCollection({
   const opsional = items.filter((i) => !i.wajib);
   const shown = tab === 'wajib' ? wajib : opsional;
 
+  const panel =
+    shown.length === 0 ? (
+      <Card className="py-0">
+        <EmptyState
+          icon={FolderOpen}
+          size="inline"
+          title={tab === 'wajib' ? 'Tidak ada dokumen wajib' : 'Tidak ada dokumen opsional'}
+          description={tab === 'wajib' ? 'Status kepegawaian Anda tidak mewajibkan dokumen apa pun.' : undefined}
+        />
+      </Card>
+    ) : (
+      <>
+        {/* Phones always get cards; the table is a desktop alternative. */}
+        <ul className={cn('grid gap-4 sm:grid-cols-2 xl:grid-cols-3', view === 'list' && 'md:hidden')}>
+          {shown.map((item) => (
+            <li key={item.jenisDokumenId} className="flex">
+              <DocumentCard item={item} handlers={handlers} />
+            </li>
+          ))}
+        </ul>
+        {view === 'list' ? <DocumentTable items={shown} handlers={handlers} /> : null}
+      </>
+    );
+
   return (
-    <section aria-label="Daftar dokumen" className="flex flex-col gap-4">
+    <Tabs value={tab} onValueChange={(value) => onTabChange(value as TabValue)} className="gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={tab} onValueChange={(value) => onTabChange(value as TabValue)}>
-          <TabsList>
-            <TabsTrigger value="wajib">
-              Wajib <span className="text-muted-foreground tabular-nums">{wajib.length}</span>
-            </TabsTrigger>
-            <TabsTrigger value="opsional">
-              Opsional <span className="text-muted-foreground tabular-nums">{opsional.length}</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <TabsList aria-label="Kelompok dokumen">
+          <TabsTrigger value="wajib">
+            Wajib <span className="text-muted-foreground tabular-nums">{wajib.length}</span>
+          </TabsTrigger>
+          <TabsTrigger value="opsional">
+            Opsional <span className="text-muted-foreground tabular-nums">{opsional.length}</span>
+          </TabsTrigger>
+        </TabsList>
         <ToggleGroup
           type="single"
           variant="outline"
@@ -353,29 +375,14 @@ function DocumentCollection({
         </ToggleGroup>
       </div>
 
-      {shown.length === 0 ? (
-        <Card className="py-0">
-          <EmptyState
-            icon={FolderOpen}
-            size="inline"
-            title={tab === 'wajib' ? 'Tidak ada dokumen wajib' : 'Tidak ada dokumen opsional'}
-            description={tab === 'wajib' ? 'Status kepegawaian Anda tidak mewajibkan dokumen apa pun.' : undefined}
-          />
-        </Card>
-      ) : (
-        <>
-          {/* Phones always get cards; the table is a desktop alternative. */}
-          <ul className={cn('grid gap-4 sm:grid-cols-2 xl:grid-cols-3', view === 'list' && 'md:hidden')}>
-            {shown.map((item) => (
-              <li key={item.jenisDokumenId} className="flex">
-                <DocumentCard item={item} handlers={handlers} />
-              </li>
-            ))}
-          </ul>
-          {view === 'list' ? <DocumentTable items={shown} handlers={handlers} /> : null}
-        </>
-      )}
-    </section>
+      {/* forceMount keeps both panels in the DOM so each tab's aria-controls resolves; only the active one has content. */}
+      <TabsContent value="wajib" forceMount className="flex flex-col gap-4 data-[state=inactive]:hidden">
+        {tab === 'wajib' ? panel : null}
+      </TabsContent>
+      <TabsContent value="opsional" forceMount className="flex flex-col gap-4 data-[state=inactive]:hidden">
+        {tab === 'opsional' ? panel : null}
+      </TabsContent>
+    </Tabs>
   );
 }
 

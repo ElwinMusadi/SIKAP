@@ -367,8 +367,8 @@ function JenisFormBody({ state, latest, nextUrutan, onRefetch, onClose, kategori
         </Field>
 
         {confirming ? (
-          <Alert role="alert" className="border-status-pending/30 bg-status-pending-muted">
-            <TriangleAlert className="text-status-pending" />
+          <Alert variant="pending" role="alert">
+            <TriangleAlert />
             <AlertTitle>Konfirmasi perubahan berdampak luas</AlertTitle>
             <AlertDescription>
               <ul className="list-disc pl-4">

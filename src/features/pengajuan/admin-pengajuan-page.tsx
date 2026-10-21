@@ -7,6 +7,7 @@ import { KEPEGAWAIAN_LABELS, rejectPengajuanRequestSchema, type AdminPengajuanIt
 import { DataTable, SortableHeader, columnHelper, type DataTableColumn } from '@/components/data-table/data-table';
 import { FormDialog } from '@/components/form-patterns';
 import { PageHeader } from '@/components/page-header';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -232,7 +233,7 @@ export default function AdminPengajuanPage() {
         </div>
         {/* One panel per tab so every trigger's aria-controls resolves; only the active one has content. */}
         {STATUS_PENGAJUAN.map((s) => (
-          <TabsContent key={s} value={s}>
+          <TabsContent key={s} value={s} forceMount className="data-[state=inactive]:hidden">
             {s === status ? table : null}
           </TabsContent>
         ))}
@@ -299,13 +300,11 @@ function ReviewSheet({
 
             <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">
               {item.stale && pending ? (
-                <div className={cn('flex gap-2.5 rounded-lg border border-status-pending/25 p-3 text-sm', TONE_CLASSES.pending.soft)}>
-                  <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                  <p>
-                    <span className="font-medium">Data pegawai sudah berubah sejak pengajuan dibuat.</span>{' '}
-                    <span className="text-foreground">Periksa kolom "Data lama" sebelum menyetujui.</span>
-                  </p>
-                </div>
+                <Alert variant="pending">
+                  <TriangleAlert aria-hidden="true" />
+                  <AlertTitle>Data pegawai sudah berubah sejak pengajuan dibuat</AlertTitle>
+                  <AlertDescription>Periksa kolom data lama sebelum menyetujui.</AlertDescription>
+                </Alert>
               ) : null}
 
               {item.alasan ? (
@@ -324,20 +323,19 @@ function ReviewSheet({
               </section>
 
               {item.reviewedAt ? (
-                <section className="flex gap-2.5 rounded-lg border p-3 text-sm">
-                  <FileClock className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                  <p className="text-muted-foreground">
+                <Alert>
+                  <FileClock aria-hidden="true" />
+                  <AlertTitle>
                     {item.status === 'Dibatalkan'
-                      ? `Dibatalkan pegawai pada ${formatDateTimeWITA(item.reviewedAt)}.`
-                      : `Ditinjau${item.reviewedBy ? ` oleh ${item.reviewedBy.nama}` : ''} pada ${formatDateTimeWITA(item.reviewedAt)}.`}
-                    {item.catatanAdmin ? (
-                      <>
-                        <br />
-                        <span className="font-medium text-foreground">Catatan:</span> <span className="text-foreground">{item.catatanAdmin}</span>
-                      </>
-                    ) : null}
-                  </p>
-                </section>
+                      ? `Dibatalkan pegawai pada ${formatDateTimeWITA(item.reviewedAt)}`
+                      : `Ditinjau${item.reviewedBy ? ` oleh ${item.reviewedBy.nama}` : ''} pada ${formatDateTimeWITA(item.reviewedAt)}`}
+                  </AlertTitle>
+                  {item.catatanAdmin ? (
+                    <AlertDescription>
+                      <span className="font-medium text-foreground">Catatan:</span> {item.catatanAdmin}
+                    </AlertDescription>
+                  ) : null}
+                </Alert>
               ) : null}
 
               <Link

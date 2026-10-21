@@ -223,14 +223,15 @@ function DetailContent({ data }: { data: PegawaiDetailResponse }) {
             ) : null}
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="profil">
-          <ProfilTab profile={pegawai} refData={refQuery.data} />
+        {/* forceMount: every tab's aria-controls resolves; only the active tab renders (and fetches). */}
+        <TabsContent value="profil" forceMount className="data-[state=inactive]:hidden">
+          {tab === 'profil' ? <ProfilTab profile={pegawai} refData={refQuery.data} /> : null}
         </TabsContent>
-        <TabsContent value="dokumen">
-          <DokumenTab pegawaiId={pegawai.id} />
+        <TabsContent value="dokumen" forceMount className="data-[state=inactive]:hidden">
+          {tab === 'dokumen' ? <DokumenTab pegawaiId={pegawai.id} /> : null}
         </TabsContent>
-        <TabsContent value="pengajuan">
-          <PengajuanTab data={data} refData={refQuery.data} />
+        <TabsContent value="pengajuan" forceMount className="data-[state=inactive]:hidden">
+          {tab === 'pengajuan' ? <PengajuanTab data={data} refData={refQuery.data} /> : null}
         </TabsContent>
       </Tabs>
 
@@ -287,8 +288,8 @@ function ProfilTab({ profile, refData }: { profile: Profile; refData: RefRespons
   return (
     <div className="flex flex-col gap-4">
       {missingCount > 0 ? (
-        <Alert className="border-status-pending/25 bg-status-pending-muted">
-          <TriangleAlert className="text-status-pending" />
+        <Alert variant="pending">
+          <TriangleAlert />
           <AlertTitle>{missingCount} data diri wajib belum diisi</AlertTitle>
           <AlertDescription>Pegawai belum dapat mengunggah dokumen sampai data diri lengkap.</AlertDescription>
         </Alert>

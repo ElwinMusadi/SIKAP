@@ -6,6 +6,7 @@ import { DataTable, SortableHeader, columnHelper, type DataTableColumn, type Sor
 import { FilterBar } from '@/components/data-table/filter-bar';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { JenisDialog, type JenisDialogState } from './jenis-dialog';
@@ -48,13 +49,13 @@ export default function JenisDokumenPage() {
         }
       />
 
-      <p className="flex max-w-3xl gap-2 rounded-lg bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground">
-        <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-        <span>
+      <Alert className="max-w-3xl">
+        <Info aria-hidden="true" />
+        <AlertDescription>
           Perubahan status wajib berlaku surut untuk seluruh pegawai dan langsung memengaruhi persentase kelengkapan. Jenis dokumen tidak dapat
           dihapus; nonaktifkan jika tidak lagi dipakai, arsip yang ada tetap tersimpan.
-        </span>
-      </p>
+        </AlertDescription>
+      </Alert>
 
       <FilterBar
         search={{ value: filters.q, onChange: (q) => setFilters((f) => ({ ...f, q })), placeholder: 'Cari nama atau ID jenis' }}

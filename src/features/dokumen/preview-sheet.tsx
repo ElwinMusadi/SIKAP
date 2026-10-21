@@ -20,6 +20,7 @@ import { DOCUMENT_POLICY, documentFileUrl, isViewableDocumentMime, type DokumenI
 import { EmptyState, ErrorState } from '@/components/states';
 import { StatusBadge } from '@/components/status-badge';
 import { Timeline } from '@/components/timeline';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -113,30 +114,20 @@ function PreviewBody({ item, onUpload, onDelete }: Omit<PreviewSheetProps, 'open
           </dl>
         ) : null}
         {arsip?.catatanAdmin ? (
-          <div
-            className={cn(
-              'mt-1 flex gap-2.5 rounded-lg border p-3 text-sm',
-              item.status === 'Ditolak' ? 'border-status-rejected/25 bg-status-rejected-muted' : 'bg-muted/50',
-            )}
-          >
-            <MessageSquareText
-              className={cn('mt-0.5 size-4 shrink-0', item.status === 'Ditolak' ? 'text-status-rejected' : 'text-muted-foreground')}
-              aria-hidden="true"
-            />
-            <div className="flex flex-col gap-0.5">
-              <p className={cn('font-medium', item.status === 'Ditolak' ? 'text-status-rejected' : 'text-foreground')}>Catatan admin</p>
-              <p className="text-foreground">{arsip.catatanAdmin}</p>
-            </div>
-          </div>
+          <Alert variant={item.status === 'Ditolak' ? 'destructive' : 'default'} className="mt-1">
+            <MessageSquareText aria-hidden="true" />
+            <AlertTitle>Catatan admin</AlertTitle>
+            <AlertDescription className="text-foreground">{arsip.catatanAdmin}</AlertDescription>
+          </Alert>
         ) : null}
       </SheetHeader>
 
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">
         {item.status === 'Menunggu' && item.can.delete ? (
-          <p role="note" className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-            <Info className="size-4 shrink-0" aria-hidden="true" />
-            Salah unggah? Hapus dokumen ini lalu unggah ulang.
-          </p>
+          <Alert role="note">
+            <Info aria-hidden="true" />
+            <AlertDescription>Salah unggah? Hapus dokumen ini lalu unggah ulang.</AlertDescription>
+          </Alert>
         ) : null}
         {arsip && shown ? (
           <section aria-label="Pratinjau file" className="flex flex-col gap-2">

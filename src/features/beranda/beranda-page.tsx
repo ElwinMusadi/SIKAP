@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   ChevronRight,
@@ -24,6 +24,7 @@ import { ProgressMeter } from '@/components/progress-meter';
 import { SectionCard } from '@/components/section-card';
 import { EmptyState, ErrorState } from '@/components/states';
 import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -106,21 +107,31 @@ export default function BerandaPage() {
           </>
         }
       />
-      <Tabs defaultValue="instansi" className="gap-6">
-        <TabsList>
-          <TabsTrigger value="instansi">Instansi</TabsTrigger>
-          <TabsTrigger value="saya">Data saya</TabsTrigger>
-        </TabsList>
-        <TabsContent value="instansi">
+      <AdminTabs user={user} />
+    </div>
+  );
+}
+
+/** forceMount: both tabs' aria-controls resolve; only the active dashboard renders (and fetches). */
+function AdminTabs({ user }: { user: SessionUser }) {
+  const [tab, setTab] = useState<'instansi' | 'saya'>('instansi');
+  return (
+    <Tabs value={tab} onValueChange={(value) => setTab(value as 'instansi' | 'saya')} className="gap-6">
+      <TabsList>
+        <TabsTrigger value="instansi">Instansi</TabsTrigger>
+        <TabsTrigger value="saya">Data saya</TabsTrigger>
+      </TabsList>
+      <TabsContent value="instansi" forceMount className="data-[state=inactive]:hidden">
+        {tab === 'instansi' ? (
           <Suspense fallback={<AdminDashboardSkeleton />}>
             <AdminDashboard />
           </Suspense>
-        </TabsContent>
-        <TabsContent value="saya">
-          <PegawaiDashboard user={user} />
-        </TabsContent>
-      </Tabs>
-    </div>
+        ) : null}
+      </TabsContent>
+      <TabsContent value="saya" forceMount className="data-[state=inactive]:hidden">
+        {tab === 'saya' ? <PegawaiDashboard user={user} /> : null}
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -367,13 +378,11 @@ function PengajuanCard({ data }: { data: DashboardResponse }) {
     <SectionCard title="Perubahan data kepegawaian">
       {aktif ? (
         <div className="flex flex-col gap-3">
-          <div className={cn('flex gap-2.5 rounded-lg border border-status-pending/25 p-3 text-sm', TONE_CLASSES.pending.soft)}>
-            <FileClock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <p>
-              <span className="font-medium">Sedang diverifikasi.</span>{' '}
-              <span className="text-foreground">Dikirim {formatRelative(aktif.createdAt)}.</span>
-            </p>
-          </div>
+          <Alert variant="pending">
+            <FileClock aria-hidden="true" />
+            <AlertTitle>Sedang diverifikasi</AlertTitle>
+            <AlertDescription>Dikirim {formatRelative(aktif.createdAt)}.</AlertDescription>
+          </Alert>
           <Button asChild variant="outline" size="sm" className="w-fit">
             <Link to="/profil#kepegawaian">Lihat pengajuan</Link>
           </Button>

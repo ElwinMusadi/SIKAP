@@ -257,7 +257,7 @@ function UploadForm({
             className={cn(
               'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-6 text-center outline-none transition-colors',
               'hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
-              dragging && 'border-primary bg-primary/5',
+              dragging && 'border-primary bg-accent-soft',
               fileError && 'border-destructive',
               active && 'pointer-events-none opacity-60',
               file && 'py-4',
@@ -309,12 +309,12 @@ function UploadForm({
         ) : null}
 
         {profileMissing ? (
-          <Alert variant="destructive">
+          <Alert variant="pending" role="alert">
             <UserRound />
             <AlertTitle>Lengkapi profil sebelum mengunggah dokumen</AlertTitle>
             <AlertDescription>
               <p>Belum diisi: {profileMissing}.</p>
-              <Button asChild size="sm" variant="outline" className="mt-2">
+              <Button asChild size="sm" variant="outline" className="mt-2 bg-card">
                 <Link to="/profil">Buka Profil</Link>
               </Button>
             </AlertDescription>
@@ -322,7 +322,7 @@ function UploadForm({
         ) : null}
 
         {otherError ? (
-          <Alert variant="destructive">
+          <Alert variant="destructive" role="alert">
             <TriangleAlert />
             <AlertTitle>{isConflict ? 'Dokumen tidak dapat diunggah' : 'Gagal mengunggah dokumen'}</AlertTitle>
             <AlertDescription>

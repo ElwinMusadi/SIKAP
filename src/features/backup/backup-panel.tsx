@@ -5,6 +5,7 @@ import type { BackupJob, BackupListResponse } from '@shared/backup';
 import { SectionCard } from '@/components/section-card';
 import { EmptyState, ErrorState } from '@/components/states';
 import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -146,11 +147,11 @@ export function BackupPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex max-w-3xl gap-3 rounded-xl border bg-muted/40 p-4 text-sm">
-        <ShieldAlert className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <div className="flex flex-col gap-2">
-          <p className="font-medium text-foreground">Backup logis berisi data sensitif</p>
-          <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+      <Alert className="max-w-3xl">
+        <ShieldAlert aria-hidden="true" />
+        <AlertTitle>Backup logis berisi data sensitif</AlertTitle>
+        <AlertDescription>
+          <ul className="mt-1 list-disc space-y-1 pl-4">
             <li>
               Ekspor dibuat bertahap per tabel, sehingga <strong className="text-foreground">bukan salinan pada satu titik waktu</strong> yang
               konsisten. Untuk pemulihan bencana gunakan D1 Time Travel atau <code>wrangler d1 export</code>.
@@ -165,8 +166,8 @@ export function BackupPanel() {
             </li>
             <li>Unduhan hanya untuk admin. Simpan file di lokasi privat dan jangan dibagikan.</li>
           </ul>
-        </div>
-      </div>
+        </AlertDescription>
+      </Alert>
 
       <SectionCard
         headingLevel="h3"
@@ -245,13 +246,11 @@ export function BackupPanel() {
 
 function FailureCallout({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div role="alert" className={cn('flex gap-2.5 rounded-lg border p-3 text-sm', TONE_CLASSES.rejected.badge)}>
-      <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      <div className="flex flex-col gap-0.5">
-        <p className="font-medium">{title}</p>
-        <p className="text-foreground">{children}</p>
-      </div>
-    </div>
+    <Alert variant="destructive" role="alert">
+      <TriangleAlert aria-hidden="true" />
+      <AlertTitle>{title}</AlertTitle>
+      <AlertDescription>{children}</AlertDescription>
+    </Alert>
   );
 }
 
