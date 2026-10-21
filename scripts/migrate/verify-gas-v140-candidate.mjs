@@ -56,10 +56,13 @@ export function computePackageSha256(files) {
 }
 
 export async function assertSafeCandidateDir(target) {
-  if (typeof target !== 'string' || !path.isAbsolute(target)) throw new Error('CANDIDATE_PATH_INVALID');
+  if (typeof target !== 'string') throw new Error('CANDIDATE_PATH_INVALID');
+  // Disallowed prefixes first so Windows-style device/UNC/8.3 paths get the same specific error on every platform
+  // (path.isAbsolute is false for them on POSIX).
   if (target.startsWith('\\\\?\\') || target.startsWith('\\\\.\\') || target.startsWith('\\\\') || target.startsWith('//') || target.includes('~')) {
     throw new Error('CANDIDATE_PATH_DISALLOWED_PREFIX');
   }
+  if (!path.isAbsolute(target)) throw new Error('CANDIDATE_PATH_INVALID');
   const resolved = path.resolve(target);
   const rootCan = process.platform === 'win32' ? ROOT.toLowerCase() : ROOT;
   const targetCan = process.platform === 'win32' ? resolved.toLowerCase() : resolved;
