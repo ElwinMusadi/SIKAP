@@ -1,4 +1,4 @@
-# Isolated UAT FULL APP. Never use the root config or production resources.
+# Isolated UAT FULL APP bound to the verified private import target. Never use the root config or production resources.
 name = "sikap-uat"
 compatibility_date = "2026-10-17"
 compatibility_flags = ["nodejs_compat"]
@@ -13,14 +13,10 @@ ACCESS_AUDIENCE = "50b2c68c92474c0232581b9641f9107836ca66939e439e2314f37384f4f2b
 
 [[d1_databases]]
 binding = "DB"
-database_name = "sikap-uat-db"
-database_id = "9d6ca598-057e-4297-9b8c-3ce789c5ab14"
+database_name = "sikap-import-uat-20261018"
+database_id = "885b655b-3482-44fc-9d01-56ad0204bb35"
 migrations_dir = "../../migrations"
 
 [[r2_buckets]]
 binding = "FILES"
-bucket_name = "sikap-uat-files"
-
-[[r2_buckets]]
-binding = "BACKUPS"
-bucket_name = "sikap-uat-backup"
+bucket_name = "sikap-import-uat-20261018-files"

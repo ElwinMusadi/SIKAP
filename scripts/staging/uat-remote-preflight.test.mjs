@@ -4,10 +4,34 @@ import { readFile, mkdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { existsSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { analyseResults, inspectUat, main, parseArgs, INSPECT_SQL, APP_TABLES, REF_COUNTS } from './uat-remote-preflight.mjs';
-import { UAT_ACCOUNT } from './deploy-holding.mjs';
+import { createHash } from 'node:crypto';
+import { analyseResults, inspectUat, main, parseArgs, INSPECT_SQL, APP_TABLES, REF_COUNTS, CONFIG_SHA } from './uat-remote-preflight.mjs';
+import { UAT_ACCOUNT, UAT_DB } from './deploy-holding.mjs';
 import { defaultTmpRoot, PREFLIGHT_PREFIX, WRANGLER_BIN } from './deploy-uat-app.mjs';
 const repoRoot=path.resolve(import.meta.dirname,'../..');
+// This preflight is RETIRED: it stays pinned to the historical OLD fixture app config (old UAT DB)
+// and fails closed against the rebound ops/uat-app/wrangler.toml. The literal below is that
+// historical config, used only to keep isolation/spawn-argument coverage in temp fixtures.
+const RETIRED_CONFIG=['# Isolated UAT FULL APP. Never use the root config or production resources.','name = "sikap-uat"',
+  'compatibility_date = "2026-10-17"','compatibility_flags = ["nodejs_compat"]','pages_build_output_dir = "../../dist-uat-app"','',
+  '[vars]','APP_URL = "https://sikap-uat.pages.dev"','SESSION_TTL_HOURS = "12"','ACCESS_REQUIRED = "1"',
+  'ACCESS_TEAM_DOMAIN = "shy-thunder-ffc9.cloudflareaccess.com"','ACCESS_AUDIENCE = "50b2c68c92474c0232581b9641f9107836ca66939e439e2314f37384f4f2b3e9"','',
+  '[[d1_databases]]','binding = "DB"','database_name = "sikap-uat-db"',`database_id = "${UAT_DB}"`,'migrations_dir = "../../migrations"','',
+  '[[r2_buckets]]','binding = "FILES"','bucket_name = "sikap-uat-files"','','[[r2_buckets]]','binding = "BACKUPS"','bucket_name = "sikap-uat-backup"',''].join('\n');
+async function retiredBase(t){const d=await mkdtemp(path.join(tmpdir(),'sikap-preflight-retired-'));t.after(()=>rm(d,{recursive:true,force:true}));
+  await mkdir(path.join(d,'ops/uat-app'),{recursive:true});await writeFile(path.join(d,'ops/uat-app/wrangler.toml'),RETIRED_CONFIG);return d;}
+test('retired preflight stays pinned to the old fixture config and refuses the rebound app config before any spawn',async(t)=>{
+  assert.equal(createHash('sha256').update(RETIRED_CONFIG).digest('hex'),CONFIG_SHA);
+  const current=(await readFile(path.join(repoRoot,'ops/uat-app/wrangler.toml'),'utf8')).replaceAll('\r\n','\n');
+  assert.notEqual(createHash('sha256').update(current).digest('hex'),CONFIG_SHA);
+  assert.ok(!current.includes(UAT_DB));
+  const tmpRoot=await scratch(t,'sikap-preflight-retired-root-');
+  const dir=await mkdtemp(path.join(tmpdir(),'sikap-preflight-current-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+  await mkdir(path.join(dir,'ops/uat-app'),{recursive:true});await writeFile(path.join(dir,'ops/uat-app/wrangler.toml'),current);
+  for(const base of [dir,repoRoot])
+    await assert.rejects(inspectUat({base,env:{CLOUDFLARE_ACCOUNT_ID:UAT_ACCOUNT},tmpRoot,spawn(){assert.fail('no spawn');}}),{code:'UAT_CONFIG_MISMATCH'});
+  assert.deepEqual(readdirSync(tmpRoot),[]);
+});
 const isInside=(parent,child)=>{const r=path.relative(parent,child);return r===''||(!r.startsWith('..')&&!path.isAbsolute(r));};
 const HOSTILE={CLOUDFLARE_API_BASE_URL:'https://evil.test/client/v4',HTTPS_PROXY:'http://proxy.invalid',HTTP_PROXY:'http://proxy.invalid',
   https_proxy:'http://proxy.invalid',WRANGLER_LOG:'debug',CLOUDFLARE_ENV:'production',NODE_OPTIONS:'--require=evil.js',
@@ -47,10 +71,7 @@ test('CLI accepts one explicit inspection action, never caller target/SQL/remote
   assert.ok(!/\b(password_hash|actor_nip|no_hp|nik)\b/i.test(INSPECT_SQL));
 });
 test('pinned target, account, config and SELECT-only spawn arguments cannot be overridden',async(t)=>{
-  const dir=await mkdtemp(path.join(tmpdir(),'sikap-preflight-unit-'));t.after(()=>rm(dir,{recursive:true,force:true}));
-  await mkdir(path.join(dir,'ops/uat-app'),{recursive:true});
-  const original=await readFile(new URL('../../ops/uat-app/wrangler.toml',import.meta.url),'utf8');
-  await writeFile(path.join(dir,'ops/uat-app/wrangler.toml'),original);
+  const dir=await retiredBase(t);
   const tmpRoot=await scratch(t,'sikap-preflight-root-');
   for(const env of [{},{CLOUDFLARE_ACCOUNT_ID:'0'.repeat(32)}])
     await assert.rejects(inspectUat({base:dir,env,tmpRoot,spawn(){assert.fail();}}),{code:'UAT_ACCOUNT_REQUIRED'});
@@ -92,13 +113,18 @@ test('pinned target, account, config and SELECT-only spawn arguments cannot be o
 });
 test('CLI report shape on success and refusal is unchanged',async(t)=>{
   const tmpRoot=await scratch(t,'sikap-preflight-cli-');
+  const base=await retiredBase(t);
   const out=[];const err=[];t.mock.method(console,'log',(s)=>out.push(s));t.mock.method(console,'error',(s)=>err.push(s));
-  const code=await main(['--inspect-uat'],{env:{CLOUDFLARE_ACCOUNT_ID:UAT_ACCOUNT},tmpRoot,spawn:()=>({status:0,stdout:JSON.stringify(response())})});
+  const code=await main(['--inspect-uat'],{base,env:{CLOUDFLARE_ACCOUNT_ID:UAT_ACCOUNT},tmpRoot,spawn:()=>({status:0,stdout:JSON.stringify(response())})});
   assert.equal(code,2);const r=JSON.parse(out[0]);assert.equal(r.readyForImport,false);assert.ok(r.codes.includes('TARGET_NOT_EMPTY'));
   assert.equal(await main(['--inspect-uat'],{env:{},tmpRoot,spawn(){assert.fail();}}),1);
   assert.deepEqual(JSON.parse(err[0]),{ok:false,readOnly:true,readyForImport:false,codes:['UAT_ACCOUNT_REQUIRED']});
+  // Default (real repo) config is the rebound app: the retired preflight refuses it without spawning.
+  assert.equal(await main(['--inspect-uat'],{env:{CLOUDFLARE_ACCOUNT_ID:UAT_ACCOUNT},tmpRoot,spawn(){assert.fail();}}),1);
+  assert.deepEqual(JSON.parse(err[1]),{ok:false,readOnly:true,readyForImport:false,codes:['UAT_CONFIG_MISMATCH']});
   assert.deepEqual(readdirSync(tmpRoot),[]);
 });
-test('remote failures never return provider output or invoke a retry/write',async()=>{
-  let calls=0;await assert.rejects(inspectUat({env:{CLOUDFLARE_ACCOUNT_ID:UAT_ACCOUNT},spawn(){calls++;return{status:1,stdout:'private provider detail',stderr:'secret'};}}),{code:'UAT_READ_FAILED'});assert.equal(calls,1);
+test('remote failures never return provider output or invoke a retry/write',async(t)=>{
+  const base=await retiredBase(t);
+  let calls=0;await assert.rejects(inspectUat({base,env:{CLOUDFLARE_ACCOUNT_ID:UAT_ACCOUNT},spawn(){calls++;return{status:1,stdout:'private provider detail',stderr:'secret'};}}),{code:'UAT_READ_FAILED'});assert.equal(calls,1);
 });

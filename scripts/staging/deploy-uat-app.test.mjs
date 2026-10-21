@@ -9,9 +9,12 @@ import {
   createUatRelease, prepareUatRelease, deployUatApp, verifyAppTarget, verifyUatRelease, renderReleaseConfig, defaultTmpRoot,
   assertNoAncestorConfig, sweepStaleIsolatedDirs,
   DEPLOY_ARGS, DENIED_REFS, MAX_ASSET_BYTES, RELEASE_CONFIG_SHA, RELEASE_PREFIX, HOLDING_RELEASE_PREFIX, PREFLIGHT_PREFIX,
-  ISOLATED_PREFIXES, STALE_AFTER_MS,
+  ISOLATED_PREFIXES, STALE_AFTER_MS, SOURCE_CONFIG_SHA, appBindingsValid, childEnvFor,
 } from './deploy-uat-app.mjs';
 import { UAT_ACCOUNT, UAT_DB } from './deploy-holding.mjs';
+import { UAT_APP_DB, UAT_APP_DB_NAME, UAT_APP_FILES_BUCKET, UAT_APP_RETIRED_REFS } from './uat-app-constants.mjs';
+import { UAT_TARGET } from '../import/real-data-gate.mjs';
+import { DENY } from '../import/core.mjs';
 
 const root = path.resolve(import.meta.dirname, '../..');
 const sha = (v) => createHash('sha256').update(v).digest('hex');
@@ -52,7 +55,8 @@ test('release is outside repo, has no ancestor wrangler config, renders only pat
     assert.equal(sha(cfg), RELEASE_CONFIG_SHA);
     assert.ok(cfg.includes('pages_build_output_dir = "./public"'));
     assert.ok(!cfg.includes('migrations_dir') && !cfg.includes('..') && !cfg.includes('[env'));
-    assert.ok(cfg.includes(`database_id = "${UAT_DB}"`) && cfg.includes('ACCESS_REQUIRED = "1"'));
+    assert.ok(cfg.includes(`database_id = "${UAT_APP_DB}"`) && cfg.includes('ACCESS_REQUIRED = "1"'));
+    assert.ok(!cfg.includes(UAT_DB) && !cfg.includes('BACKUPS') && !cfg.includes('sikap-uat-backup') && !cfg.includes('crons'));
     assert.ok(cfg.includes('shy-thunder-ffc9.cloudflareaccess.com') && cfg.includes('50b2c68c92474c0232581b9641f9107836ca66939e439e2314f37384f4f2b3e9'));
     for (const r of DENIED_REFS) assert.ok(!cfg.includes(r));
     const src = readFileSync(path.join(root, 'ops/uat-app/wrangler.toml'), 'utf8').replaceAll('\r\n', '\n').split('\n');
@@ -123,10 +127,82 @@ test('account, source config tamper, routes, marker refused before any spawn', a
 test('renderReleaseConfig rejects any drift from pinned source text', () => {
   const src = readFileSync(path.join(root, 'ops/uat-app/wrangler.toml'), 'utf8').replaceAll('\r\n', '\n');
   assert.equal(sha(renderReleaseConfig(src)), RELEASE_CONFIG_SHA);
-  for (const bad of [src.replace(UAT_DB, DENIED_REFS[0]), src.replace('sikap-uat-files', 'sikap-files'),
+  for (const bad of [src.replace(UAT_APP_DB, DENIED_REFS[0]), src.replace(UAT_APP_FILES_BUCKET, 'sikap-files'),
     src.replace('migrations_dir = "../../migrations"\n', ''), `${src}\n[env.production]\n`, src.replace('ACCESS_REQUIRED = "1"', 'ACCESS_REQUIRED = "0"')]) {
     assert.throws(() => renderReleaseConfig(bad), /UAT_(CONFIG_MISMATCH|RELEASE_CONFIG_INVALID)/);
   }
+});
+
+test('app constants align with the verified import target; old UAT DB stays denied to import core', () => {
+  assert.deepEqual([UAT_APP_DB, UAT_APP_DB_NAME, UAT_APP_FILES_BUCKET], ['885b655b-3482-44fc-9d01-56ad0204bb35', 'sikap-import-uat-20261018', 'sikap-import-uat-20261018-files']);
+  assert.deepEqual([UAT_TARGET.accountId, UAT_TARGET.databaseId, UAT_TARGET.databaseName, UAT_TARGET.bucket], [UAT_ACCOUNT, UAT_APP_DB, UAT_APP_DB_NAME, UAT_APP_FILES_BUCKET]);
+  assert.equal(UAT_DB, '9d6ca598-057e-4297-9b8c-3ce789c5ab14', 'old fixture constant unchanged');
+  assert.ok(DENY.databaseIds.includes(UAT_DB) && !DENY.databaseIds.includes(UAT_APP_DB));
+  assert.ok(!DENY.databaseNames.includes(UAT_APP_DB_NAME) && !DENY.buckets.includes(UAT_APP_FILES_BUCKET));
+  assert.deepEqual(DENIED_REFS, ['b8611b82-8067-4153-ae5e-d6a0b94be7a6', '1bd39313-4072-43a7-a183-7544c8264c46'], 'shared root deny list unchanged');
+  for (const r of [UAT_DB, 'sikap-uat-db', 'sikap-uat-files', 'sikap-uat-backup', 'BACKUPS']) assert.ok(UAT_APP_RETIRED_REFS.includes(r), r);
+  assert.ok(Object.isFrozen(UAT_APP_RETIRED_REFS));
+});
+
+test('runtime app config: exact DB/FILES/Access, no BACKUPS, no [env], no cron, digest pinned', () => {
+  const src = readFileSync(path.join(root, 'ops/uat-app/wrangler.toml'), 'utf8').replaceAll('\r\n', '\n');
+  assert.equal(sha(src), SOURCE_CONFIG_SHA);
+  assert.ok(appBindingsValid(src));
+  const lines = src.split('\n');
+  assert.deepEqual(lines.filter((l) => l.startsWith('binding')), ['binding = "DB"', 'binding = "FILES"']);
+  for (const l of ['name = "sikap-uat"', 'APP_URL = "https://sikap-uat.pages.dev"', 'SESSION_TTL_HOURS = "12"', 'ACCESS_REQUIRED = "1"',
+    'ACCESS_TEAM_DOMAIN = "shy-thunder-ffc9.cloudflareaccess.com"', 'ACCESS_AUDIENCE = "50b2c68c92474c0232581b9641f9107836ca66939e439e2314f37384f4f2b3e9"',
+    `database_name = "${UAT_APP_DB_NAME}"`, `database_id = "${UAT_APP_DB}"`, `bucket_name = "${UAT_APP_FILES_BUCKET}"`]) assert.equal(lines.filter((x) => x === l).length, 1, l);
+  assert.deepEqual(lines.filter((l) => l.startsWith('[')), ['[vars]', '[[d1_databases]]', '[[r2_buckets]]']);
+  for (const bad of [UAT_DB, 'sikap-uat-db"', 'sikap-uat-files', 'sikap-uat-backup', 'BACKUPS', '[env', 'crons', 'triggers', ...DENIED_REFS]) assert.ok(!src.includes(bad), bad);
+});
+
+test('mutated app config (old DB/name, old FILES, BACKUPS, Access bypass, env/cron) refused before any spawn', async (t) => {
+  const { dir, tmpRoot } = await fixture(t);
+  const cfgPath = path.join(dir, 'ops/uat-app/wrangler.toml');
+  const src = readFileSync(path.join(root, 'ops/uat-app/wrangler.toml'), 'utf8').replaceAll('\r\n', '\n');
+  const backups = '\n[[r2_buckets]]\nbinding = "BACKUPS"\nbucket_name = "sikap-uat-backup"\n';
+  const cases = [
+    src.replace(UAT_APP_DB, UAT_DB), src.replace(UAT_APP_DB_NAME, 'sikap-uat-db'), src.replace(UAT_APP_FILES_BUCKET, 'sikap-uat-files'),
+    src.replace(UAT_APP_FILES_BUCKET, 'sikap-uat-backup'), `${src}${backups}`, `${src}\n[[r2_buckets]]\nbinding = "BACKUPS"\nbucket_name = "${UAT_APP_FILES_BUCKET}-x"\n`,
+    `${src}\n[[d1_databases]]\nbinding = "DB2"\ndatabase_name = "x"\ndatabase_id = "${UAT_DB}"\n`,
+    src.replace('ACCESS_REQUIRED = "1"', 'ACCESS_REQUIRED = "0"'), src.replace(/ACCESS_AUDIENCE = .*\n/, ''),
+    src.replace('ACCESS_TEAM_DOMAIN = "shy-thunder-ffc9.cloudflareaccess.com"', 'ACCESS_TEAM_DOMAIN = "evil.cloudflareaccess.com"'),
+    src.replace('[vars]\n', '[vars]\nACCESS_AUDIENCE = "00"\n'), `${src}\n[env.production.vars]\nACCESS_REQUIRED = "0"\n`,
+    `${src}\n[triggers]\ncrons = ["0 * * * *"]\n`,
+  ];
+  for (const bad of cases) {
+    assert.equal(appBindingsValid(bad), false, bad.slice(-80));
+    assert.throws(() => renderReleaseConfig(bad), /UAT_(CONFIG_MISMATCH|RELEASE_CONFIG_INVALID)/);
+    await writeFile(cfgPath, bad);
+    await assert.rejects(deployUatApp({ base: dir, env: ENV, tmpRoot, spawn: () => assert.fail('no spawn') }), /UAT_CONFIG_MISMATCH/);
+    assert.deepEqual(listing(tmpRoot), []);
+  }
+});
+
+test('release excludes .dev.vars/.env next to config; child env carries no R2/S3 secrets or env selectors', async (t) => {
+  const { dir, tmpRoot } = await fixture(t);
+  await writeFile(path.join(dir, 'ops/uat-app/.dev.vars'), 'PASSWORD_PEPPER=leak\nSETTINGS_ENC_KEY=leak\n');
+  await writeFile(path.join(dir, '.env'), 'CLOUDFLARE_API_TOKEN=leak\n');
+  const env = { ...ENV, PATH: 'p', CLOUDFLARE_API_TOKEN: 'tok', R2_ACCESS_KEY_ID: 'k', R2_SECRET_ACCESS_KEY: 's', AWS_ACCESS_KEY_ID: 'k',
+    AWS_SECRET_ACCESS_KEY: 's', CLOUDFLARE_R2_ACCESS_KEY_ID: 'k', PASSWORD_PEPPER: 'p', SETTINGS_ENC_KEY: 'e', CLOUDFLARE_ENV: 'production',
+    WRANGLER_ENV: 'production', CLOUDFLARE_ACCOUNT_ID: UAT_ACCOUNT };
+  assert.deepEqual(Object.keys(childEnvFor(env)).sort(), ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN', 'PATH']);
+  let calls = 0;
+  await deployUatApp({ base: dir, env, tmpRoot, spawn(_bin, _args, opts) {
+    calls++;
+    assert.deepEqual(Object.keys(opts.env).sort(), ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN', 'PATH']);
+    assert.deepEqual(listing(opts.cwd).sort(), ['public', 'wrangler.toml']);
+    const all = [];
+    const walk = (d) => { for (const n of readdirSync(d, { withFileTypes: true })) { const p = path.join(d, n.name); all.push(n.name); if (n.isDirectory()) walk(p); } };
+    walk(opts.cwd);
+    assert.ok(!all.some((n) => n.startsWith('.')), 'no hidden/secret files in release');
+    const cfg = readFileSync(path.join(opts.cwd, 'wrangler.toml'), 'utf8');
+    assert.ok(!/PEPPER|ENC_KEY|SECRET|leak/.test(cfg));
+    return { status: 0 };
+  } });
+  assert.equal(calls, 1);
+  assert.deepEqual(listing(tmpRoot), []);
 });
 
 test('sha256 ledger binds copied bytes; extra, altered, missing release files refused', async (t) => {

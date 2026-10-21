@@ -9,8 +9,8 @@ import { BASELINE_DENY } from '../staging/uat-target.mjs';
 import { UAT_ACCOUNT, UAT_DB } from '../staging/uat-constants.mjs';
 import { PROBE_DATABASE_ID } from '../staging/d1-tx-probe-target.mjs';
 import {
-  CORE_VERSION, TRANSPORT, LIMITS, COLUMNS, PRIMARY, KEY_TYPES, DENY, SQL, LEDGER, ERROR_CODES, ImportCoreError, validateDescriptor,
-  compileChunks, summarize, createState, advanceState, classifyResume, RESUME_OUTCOMES,
+  CORE_VERSION, TRANSPORT, LIMITS, COLUMNS, PRIMARY, KEY_TYPES, DENY, SQL, SQL_ARITY, STATEMENT_KINDS, LEDGER, ERROR_CODES, ImportCoreError,
+  MAX_VALUE_CHARS, validateDescriptor, compileChunks, decodeStatement, summarize, createState, advanceState, classifyResume, RESUME_OUTCOMES,
 } from './core.mjs';
 
 const NOW = '2026-10-18T00:00:00.000Z';
@@ -41,7 +41,9 @@ function tables({ pegawai = 3, logs = 2, jenis = 2, wide = 0 } = {}) {
   return t;
 }
 const compile = (t = tables(), d = descriptor()) => compileChunks({ tables: t }, d, { now: NOW });
-const placeholders = (sql) => (sql.match(/\?/g) ?? []).length;
+// Placeholder markers of a template (each `?` with its digits); v2 allows only the numbered ?1.
+const markers = (sql) => sql.match(/\?\d*/g) ?? [];
+const dec = (s) => decodeStatement(s).values;
 
 test('static purity: only node:crypto and pure contract imports; no I/O/env/clock/network', () => {
   const source = readFileSync(new URL('./core.mjs', import.meta.url), 'utf8').replace(/^\s*\/\/.*$/gm, '');
@@ -55,15 +57,32 @@ test('pinned contracts: COLUMNS equal apply-local, deny list covers baseline/UAT
   for (const id of [...BASELINE_DENY.databaseIds, UAT_DB, PROBE_DATABASE_ID]) assert.ok(DENY.databaseIds.includes(id));
   for (const name of BASELINE_DENY.databaseNames) assert.ok(DENY.databaseNames.includes(name));
   for (const bucket of BASELINE_DENY.buckets) assert.ok(DENY.buckets.includes(bucket));
-  assert.deepEqual({ ...LIMITS }, { bodyBytes: 65536, statementBytes: 100000, statements: 32, parameters: 100, rows: 64 });
+  assert.deepEqual({ ...LIMITS }, { bodyBytes: 65536, statementBytes: 100000, statements: 32, parameters: 100, values: 100, rows: 64 });
   assert.ok(Object.isFrozen(LIMITS) && Object.isFrozen(COLUMNS.pegawai) && Object.isFrozen(SQL.insert) && Object.isFrozen(DENY.buckets));
-  assert.equal(CORE_VERSION, 1);
-  assert.equal(TRANSPORT, 'd1-rest-parameterized-batch-candidate-v1');
+  assert.ok(Object.isFrozen(SQL_ARITY) && Object.isFrozen(SQL_ARITY.insert) && Object.isFrozen(STATEMENT_KINDS));
+  assert.equal(CORE_VERSION, 2);
+  assert.equal(TRANSPORT, 'd1-rest-json-row-string-param-v2');
+  assert.deepEqual([...STATEMENT_KINDS], ['claim', 'guard', 'seedDelete', 'insert', 'journal', 'checkpoint']);
+  assert.deepEqual(JSON.parse(JSON.stringify(SQL_ARITY)), { claim: 11, guard: 0, seedDelete: null, journal: 9, checkpoint: 14, insert: Object.fromEntries(IMPORT_TABLES.map((t) => [t, COLUMNS[t].length])) });
+  // Exact static templates: one numbered ?1 per slot, slot indexes 0..arity-1 in order, guard none.
+  const slotList = (n, from = 0) => Array.from({ length: n }, (_, i) => `json_extract(?1, '$[${i + from}]')`);
+  const bind = (o) => `id = 1 AND run_nonce = ${slotList(1, o)} AND owner_nonce = ${slotList(1, o + 1)} AND epoch = ${slotList(1, o + 2)} AND target_binding_sha256 = ${slotList(1, o + 3)} AND plan_sha256 = ${slotList(1, o + 4)} AND stage = ${slotList(1, o + 5)} AND cursor = ${slotList(1, o + 6)} AND ordinal = ${slotList(1, o + 7)} AND claim_seq = ${slotList(1, o + 8)} AND last_chunk_sha256 IS ${slotList(1, o + 9)} AND complete = 0`;
+  assert.equal(SQL.claim, `UPDATE __sikap_import_v1_run SET claim_seq = json_extract(?1, '$[0]') WHERE ${bind(1)}`);
+  assert.equal(SQL.checkpoint, `UPDATE __sikap_import_v1_run SET stage = json_extract(?1, '$[0]'), cursor = json_extract(?1, '$[1]'), ordinal = json_extract(?1, '$[2]'), last_chunk_sha256 = json_extract(?1, '$[3]') WHERE ${bind(4)}`);
+  assert.equal(SQL.journal, `INSERT INTO __sikap_import_v1_journal (${LEDGER.journalColumns.join(', ')}) VALUES (${slotList(9).join(', ')})`);
+  assert.equal(SQL.seedDelete, 'DELETE FROM jenis_dokumen_wajib WHERE jenis_dokumen_id IN (SELECT value FROM json_each(?1))');
+  assert.equal(SQL.guard, "SELECT CASE WHEN changes() = 1 THEN 1 ELSE json('') END AS sikap_import_guard");
+  for (const table of IMPORT_TABLES) assert.ok(SQL.insert[table].startsWith(`INSERT INTO ${table} (${COLUMNS[table].join(', ')}) VALUES (${slotList(COLUMNS[table].length).join(', ')})`), table);
+  for (const sql of [SQL.claim, SQL.checkpoint, SQL.journal, SQL.seedDelete, ...Object.values(SQL.insert)]) {
+    assert.ok(markers(sql).length > 0 && markers(sql).every((m) => m === '?1'), sql.slice(0, 40));
+    assert.doesNotMatch(sql, /\?(?!1\b)|\?1\d/);
+  }
+  assert.deepEqual(markers(SQL.guard), []);
   assert.equal(LEDGER.runTable, '__sikap_import_v1_run');
   for (const sql of [SQL.claim, SQL.checkpoint, SQL.journal, SQL.seedDelete, ...Object.values(SQL.insert)]) assert.doesNotMatch(sql, /REPLACE|CASCADE|DROP/i);
   assert.match(SQL.insert.jenis_dokumen, /ON CONFLICT\(id\) DO UPDATE/);
   for (const table of IMPORT_TABLES.filter((t) => t !== 'jenis_dokumen')) assert.doesNotMatch(SQL.insert[table], /CONFLICT/);
-  assert.match(SQL.claim, /claim_seq = \? AND last_chunk_sha256 IS \? AND complete = 0$/);
+  assert.match(SQL.claim, /claim_seq = json_extract\(\?1, '\$\[9\]'\) AND last_chunk_sha256 IS json_extract\(\?1, '\$\[10\]'\) AND complete = 0$/);
 });
 
 test('descriptor: valid input returns frozen syntax-only result with all safety flags false', () => {
@@ -116,35 +135,134 @@ test('compile: ordered stages, seed delete first, static SQL, exact params, limi
   assert.deepEqual([...new Set(artifact.chunks.map((c) => c.stage))], IMPORT_TABLES.map((_, i) => i));
   const first = artifact.chunks[0];
   assert.equal(first.batch[2].sql, SQL.seedDelete);
-  assert.deepEqual(first.batch[2].params, [JSON.stringify(['DOC-SYN1', 'DOC-SYN2'])]);
+  // Single encoding: the one wire param parses directly to the id list (never a nested string).
+  assert.deepEqual(first.batch[2].params, ['["DOC-SYN1","DOC-SYN2"]']);
+  assert.deepEqual(JSON.parse(first.batch[2].params[0]), ['DOC-SYN1', 'DOC-SYN2']);
+  assert.deepEqual(decodeStatement(first.batch[2]), { kind: 'seedDelete', table: null, values: ['DOC-SYN1', 'DOC-SYN2'] });
   assert.equal(artifact.chunks.filter((c) => c.batch.some((s) => s.sql === SQL.seedDelete)).length, 1);
   let previous = null;
   for (const chunk of artifact.chunks) {
     const sqls = chunk.batch.map((s) => s.sql);
     assert.deepEqual([sqls[0], sqls[1]], [SQL.claim, SQL.guard]);
     assert.deepEqual(sqls.slice(-3), [SQL.journal, SQL.checkpoint, SQL.guard]);
+    let values = 0;
     for (const s of chunk.batch) {
-      assert.equal(placeholders(s.sql), s.params.length);
+      assert.deepEqual(Object.keys(s), ['sql', 'params']);
       assert.doesNotMatch(s.sql, /Sintetis|legacy-wrap|DOC-SYN|log \d/);
-      for (const p of s.params) assert.ok(p === null || typeof p === 'string' || Number.isSafeInteger(p));
+      const d = decodeStatement(s);
+      assert.ok(Object.isFrozen(d) && Object.isFrozen(d.values));
+      if (s.sql === SQL.guard) {
+        assert.deepEqual(s.params, []);
+        assert.deepEqual(d, { kind: 'guard', table: null, values: [] });
+      } else {
+        // Wire: exactly ONE string param, the canonical JSON of the decoded values.
+        assert.equal(s.params.length, 1);
+        assert.equal(typeof s.params[0], 'string');
+        assert.equal(s.params[0], JSON.stringify(d.values));
+        if (d.kind !== 'seedDelete') assert.equal(d.values.length, d.kind === 'insert' ? SQL_ARITY.insert[d.table] : SQL_ARITY[d.kind]);
+        for (const v of d.values) assert.ok(v === null || typeof v === 'string' || Number.isSafeInteger(v));
+      }
+      values += d.kind === 'seedDelete' ? 1 : d.values.length;
     }
-    assert.ok(chunk.parameterCount <= 100 && chunk.statementCount <= 32 && chunk.rowCount <= 64 && chunk.bodyBytes <= 65536);
+    assert.equal(chunk.valueCount, values);
+    assert.equal(chunk.parameterCount, chunk.statementCount - 2); // every non-guard statement: 1 wire param
+    assert.ok(chunk.valueCount <= LIMITS.values && chunk.parameterCount <= LIMITS.parameters && chunk.statementCount <= 32 && chunk.rowCount <= 64 && chunk.bodyBytes <= 65536);
     assert.equal(chunk.bodyBytes, Buffer.byteLength(JSON.stringify({ batch: chunk.batch }), 'utf8'));
     assert.equal(chunk.prevChunkSha256, previous);
-    const [claimNext, ...claimRest] = chunk.batch[0].params;
+    const [claimNext, ...claimRest] = dec(chunk.batch[0]);
     assert.equal(claimNext, chunk.ordinal + 1);
     assert.deepEqual(claimRest.slice(-2), [chunk.ordinal, previous]);
-    const cp = chunk.batch.at(-2).params;
+    const cp = dec(chunk.batch.at(-2));
     assert.deepEqual(cp.slice(0, 4), [chunk.nextStage, chunk.nextCursor, chunk.ordinal + 1, chunk.chunkSha256]);
     assert.deepEqual(cp.slice(-2), [chunk.ordinal + 1, previous]);
     previous = chunk.chunkSha256;
   }
-  // Rows reconstructed from params equal canonical input order (Unicode/quotes preserved).
+  // Rows decoded from the wire equal canonical input order (Unicode/quotes/null/int types preserved).
   for (const table of IMPORT_TABLES) {
-    const rows = artifact.chunks.filter((c) => c.table === table).flatMap((c) => c.batch.filter((s) => s.sql === SQL.insert[table]).map((s) => s.params));
+    const rows = artifact.chunks.filter((c) => c.table === table).flatMap((c) => c.batch.filter((s) => s.sql === SQL.insert[table]).map(dec));
     assert.deepEqual(rows, input[table].map((row) => COLUMNS[table].map((col) => row[col])));
   }
+  // First claim: prev hash is a decoded JSON null (not the string "null"); epoch/ordinals numeric.
+  const claim0 = dec(first.batch[0]);
+  assert.equal(claim0[10], null);
+  assert.equal(typeof claim0[3], 'number');
+  assert.match(first.batch[0].params[0], /,null\]$/);
+  const peg = dec(artifact.chunks.find((c) => c.table === 'pegawai').batch[2]);
+  assert.equal(typeof peg[0], 'number');
+  assert.ok(peg.includes(null) && peg.some((v) => typeof v === 'string' && v.includes('"Kutip"')));
   assert.ok(Object.isFrozen(artifact.chunks[0].batch[3].params));
+});
+
+test('decodeStatement: strict shape, exact SQL allowlist, canonical JSON, cell types and arity', () => {
+  const artifact = compile();
+  const chunk = artifact.chunks.find((c) => c.table === 'pegawai');
+  const [claim, guard] = chunk.batch, insert = chunk.batch[2], seed = artifact.chunks[0].batch[2];
+  const claimValues = dec(claim), insertValues = dec(insert);
+  const bad = (stmt) => codeOf(() => decodeStatement(stmt));
+  const withParam = (s, text) => ({ sql: s.sql, params: [text] });
+  // Shape: exact own data keys, plain prototypes, no getters/symbols/holes/extras/proxies.
+  assert.equal(bad(null), 'STATEMENT_INVALID');
+  assert.equal(bad([]), 'STATEMENT_INVALID');
+  assert.equal(bad({ sql: claim.sql }), 'STATEMENT_INVALID');
+  assert.equal(bad({ ...claim, extra: 1 }), 'STATEMENT_INVALID');
+  assert.equal(bad({ ...claim, [Symbol('s')]: 1 }), 'STATEMENT_INVALID');
+  assert.equal(bad(Object.assign(Object.create({ x: 1 }), { sql: claim.sql, params: [...claim.params] })), 'STATEMENT_INVALID');
+  let called = false;
+  const getter = { params: [...claim.params] };
+  Object.defineProperty(getter, 'sql', { enumerable: true, get() { called = true; return SQL.claim; } });
+  assert.equal(bad(getter), 'STATEMENT_INVALID');
+  const getterParam = [];
+  Object.defineProperty(getterParam, '0', { enumerable: true, get() { called = true; return claim.params[0]; } });
+  assert.equal(bad({ sql: claim.sql, params: getterParam }), 'STATEMENT_INVALID');
+  assert.equal(called, false);
+  const extraProp = [claim.params[0]]; extraProp.x = 1;
+  assert.equal(bad({ sql: claim.sql, params: extraProp }), 'STATEMENT_INVALID');
+  // eslint-disable-next-line no-sparse-arrays
+  assert.equal(bad({ sql: claim.sql, params: [, claim.params[0]] }), 'STATEMENT_INVALID');
+  assert.equal(bad({ sql: claim.sql, params: new Array(1) }), 'STATEMENT_INVALID');
+  assert.equal(bad({ sql: claim.sql, params: new Proxy([...claim.params], { getOwnPropertyDescriptor() { throw new Error('SECRET'); } }) }), 'STATEMENT_INVALID');
+  assert.equal(bad(new Proxy({ ...claim }, { ownKeys() { throw new Error('SECRET'); } })), 'STATEMENT_INVALID');
+  class Sub extends Array {}
+  assert.equal(bad({ sql: claim.sql, params: Sub.from(claim.params) }), 'STATEMENT_INVALID');
+  // Wire param count/type.
+  assert.equal(bad({ sql: claim.sql, params: [] }), 'STATEMENT_INVALID');
+  assert.equal(bad({ sql: claim.sql, params: [claim.params[0], claim.params[0]] }), 'STATEMENT_INVALID');
+  assert.equal(bad({ sql: claim.sql, params: claimValues }), 'STATEMENT_INVALID'); // v1 positional params rejected
+  assert.equal(bad({ sql: guard.sql, params: ['[]'] }), 'STATEMENT_INVALID');
+  assert.equal(bad({ sql: claim.sql, params: [null] }), 'STATEMENT_INVALID');
+  // Unknown SQL: no normalization, whitespace, case or v1 template accepted.
+  for (const sql of [`${SQL.claim} `, SQL.claim.toLowerCase(), SQL.claim.replaceAll('?1', '?'), 'SELECT 1', 'UPDATE __sikap_import_v1_run SET claim_seq = ? WHERE id = 1']) assert.equal(bad({ sql, params: [...claim.params] }), 'STATEMENT_INVALID');
+  assert.equal(bad({ sql: 1, params: [] }), 'STATEMENT_INVALID');
+  // Canonical JSON only.
+  const text = claim.params[0];
+  for (const alt of [` ${text}`, text.replace(',', ', '), `${text}\n`, text.replace('[', '[ '), '{}', '"x"', '1', 'null', '[', `${text.slice(0, -1)},]`]) assert.equal(bad(withParam(claim, alt)), 'STATEMENT_INVALID', alt);
+  const intAt = (values, i, spelling) => JSON.stringify(values).replace(new RegExp(`^(\\[(?:[^,]*,){${i}})${values[i]}([,\\]])`), `$1${spelling}$2`);
+  assert.equal(intAt(claimValues, 0, String(claimValues[0])), text);
+  for (const spelling of [`${claimValues[0]}.0`, `${claimValues[0]}e0`, `0${claimValues[0]}`, `+${claimValues[0]}`]) assert.equal(bad(withParam(claim, intAt(claimValues, 0, spelling))), 'STATEMENT_INVALID', spelling);
+  assert.equal(bad(withParam(claim, JSON.stringify(claimValues).replace(/^\[\d+/, '[-0'))), 'STATEMENT_INVALID');
+  // Alternate string escapes of the same value are non-canonical.
+  assert.equal(bad(withParam(claim, text.replace(`"${claimValues[1]}"`, `"\\u00${claimValues[1].charCodeAt(0).toString(16)}${claimValues[1].slice(1)}"`))), 'STATEMENT_INVALID');
+  assert.equal(bad(withParam(insert, JSON.stringify(insertValues).replace('"Kutip\\"', '"Kutip\\u0022'))), 'STATEMENT_INVALID');
+  assert.equal(bad(withParam(claim, text)), null);
+  // Arity and cells.
+  assert.equal(bad(withParam(claim, JSON.stringify(claimValues.slice(0, -1)))), 'STATEMENT_INVALID');
+  assert.equal(bad(withParam(claim, JSON.stringify([...claimValues, null]))), 'STATEMENT_INVALID');
+  assert.equal(bad(withParam(insert, JSON.stringify(insertValues.slice(1)))), 'STATEMENT_INVALID');
+  const cell = (v) => bad(withParam(insert, JSON.stringify([...insertValues.slice(0, -1), v])));
+  for (const v of [1.5, 2 ** 53, true, false, {}, [], [1], { a: 1 }, 'a\0b', 'x'.repeat(MAX_VALUE_CHARS + 1)]) assert.equal(cell(v), 'STATEMENT_INVALID', JSON.stringify(v)?.slice(0, 20));
+  assert.equal(bad(withParam(insert, `${JSON.stringify(insertValues.slice(0, -1)).slice(0, -1)},"\\ud800"]`)), 'STATEMENT_INVALID'); // lone surrogate
+  for (const v of [null, 0, -1, Number.MAX_SAFE_INTEGER, '', 'x'.repeat(MAX_VALUE_CHARS), '\u{1F600}"\\']) assert.equal(cell(v), null);
+  // Seed delete: non-empty unique non-empty strings.
+  for (const ids of [[], [''], ['A', 'A'], [1], [null], ['A', ['B']]]) assert.equal(bad(withParam(seed, JSON.stringify(ids))), 'STATEMENT_INVALID', JSON.stringify(ids));
+  assert.deepEqual(decodeStatement(withParam(seed, JSON.stringify(['A', '0', ' b ']))).values, ['A', '0', ' b ']);
+  // Bounded before parse: a param longer than the body cap is rejected without JSON.parse.
+  const parse = JSON.parse;
+  let parsed = false;
+  JSON.parse = (...args) => { parsed = true; return parse(...args); };
+  try { assert.equal(bad(withParam(seed, `["${'x'.repeat(LIMITS.bodyBytes)}"]`)), 'STATEMENT_INVALID'); } finally { JSON.parse = parse; }
+  assert.equal(parsed, false);
+  // Never echoes input.
+  try { decodeStatement(withParam(claim, 'SECRET-JSON')); } catch (error) { assert.doesNotMatch(`${error.message}${error.stack}`, /SECRET/); }
 });
 
 test('compile: empty stages still advance; no seed delete when no jenis imported', () => {
@@ -160,7 +278,9 @@ test('compile: chunking by params/bytes, 64-row policy, wide rows fit, oversize 
   const many = compile(tables({ pegawai: 5, logs: 300 }));
   const logChunks = many.chunks.filter((c) => c.table === 'log_aktivitas');
   assert.equal(logChunks.reduce((s, c) => s + c.rowCount, 0), 300);
-  assert.ok(logChunks.every((c) => c.rowCount <= 64 && c.parameterCount <= 100));
+  assert.ok(logChunks.every((c) => c.rowCount <= 64 && c.valueCount <= LIMITS.values && c.parameterCount <= LIMITS.parameters));
+  // v1 density preserved by the logical values cap: 34 ledger values + 12 per log row => 5 rows.
+  assert.deepEqual(logChunks.slice(0, -1).map((c) => [c.rowCount, c.valueCount, c.parameterCount]), Array(logChunks.length - 1).fill([5, 94, 8]));
   assert.equal(many.chunks.filter((c) => c.table === 'pegawai').length, 3); // 30 cols: 2 rows/chunk
   const wide = compile(tables({ pegawai: 3, wide: 16384 }));
   assert.ok(wide.chunks.every((c) => c.bodyBytes <= LIMITS.bodyBytes));
@@ -210,6 +330,12 @@ test('compile: deterministic, immutable vs caller mutation, hashes bind content 
     const other = compile(tables(), descriptor(over));
     assert.ok(other.chunks.every((x, i) => x.chunkSha256 !== a.chunks[i].chunkSha256));
     assert.notDeepEqual(other.chunks[0].batch[0].params, a.chunks[0].batch[0].params);
+  }
+  // Chunk identity binds core v2 version + transport and the exact wire data statements.
+  const target = validateDescriptor(descriptor(), NOW).targetBindingSha256;
+  for (const x of a.chunks) {
+    const data = x.batch.slice(2, -3).map((s) => [s.sql, s.params]);
+    assert.equal(x.chunkSha256, h(JSON.stringify(['sikap-import-chunk', 2, 'd1-rest-json-row-string-param-v2', target, x.ordinal, x.stage, x.table, x.startCursor, x.endCursor, x.prevChunkSha256, h(JSON.stringify(data))])));
   }
   const takeover = compile(tables(), descriptor({ epoch: 9007199254740991, ownerNonce: 'abcdefabcdefabcdefabcdefabcdefab', expiresAt: '2026-10-18T02:00:00.000Z' }));
   assert.deepEqual(takeover.chunks.map((x) => [x.chunkSha256, x.startCursor, x.endCursor]), a.chunks.map((x) => [x.chunkSha256, x.startCursor, x.endCursor]));
@@ -337,7 +463,8 @@ test('compile: primary keys are type-strict per schema; no coercion, valid strin
   ids.forEach((id, i) => { t.jenis_dokumen[i].id = id; t.jenis_dokumen_wajib[i].jenis_dokumen_id = id; });
   const artifact = compile(t);
   assert.deepEqual(artifact.chunks[0].batch[2].params, [JSON.stringify(ids)]);
-  const sent = (table) => artifact.chunks.flatMap((c) => c.batch.filter((s) => s.sql === SQL.insert[table]).map((s) => s.params[0]));
+  assert.deepEqual(dec(artifact.chunks[0].batch[2]), ids);
+  const sent = (table) => artifact.chunks.flatMap((c) => c.batch.filter((s) => s.sql === SQL.insert[table]).map((s) => dec(s)[0]));
   assert.deepEqual(sent('jenis_dokumen'), ids);
   assert.deepEqual(sent('jenis_dokumen_wajib'), ids);
 });
@@ -351,6 +478,8 @@ test('compile: stage 0 split across many jenis chunks carries exactly ONE seed d
   assert.deepEqual(seeded, [stage0[0]]);
   assert.equal(stage0[0].batch[2].sql, SQL.seedDelete);
   assert.deepEqual(stage0[0].batch[2].params, [JSON.stringify(Array.from({ length: 40 }, (_, i) => `DOC-SYN${i + 1}`))]);
+  // The whole id list is ONE logical value: seed counts 1 toward LIMITS.values.
+  assert.equal(stage0[0].valueCount, 11 + 1 + stage0[0].rowCount * COLUMNS.jenis_dokumen.length + 9 + 14);
   for (const chunk of stage0.slice(1)) assert.equal(chunk.batch[2].sql, SQL.insert.jenis_dokumen);
 });
 
@@ -443,9 +572,9 @@ test('target binding: SQL params carry stable digest; other target/policy observ
   const a = compile(tables(), d);
   for (const chunk of a.chunks) {
     const [claim, , ...rest] = chunk.batch;
-    assert.equal(claim.params[4], target); // ordinal+1, runNonce, ownerNonce, epoch, target, plan...
-    assert.equal(chunk.batch.at(-2).params[7], target); // stage, cursor, ordinal, hash, runNonce, ownerNonce, epoch, target
-    assert.equal(rest.at(-3).params[2], target); // journal: runNonce, epoch, target
+    assert.equal(dec(claim)[4], target); // ordinal+1, runNonce, ownerNonce, epoch, target, plan...
+    assert.equal(dec(chunk.batch.at(-2))[7], target); // stage, cursor, ordinal, hash, runNonce, ownerNonce, epoch, target
+    assert.equal(dec(rest.at(-3))[2], target); // journal: runNonce, epoch, target
   }
   const b = compile(tables(), descriptor({ policySha256: h('p2') }));
   const n = 0, c = b.chunks[n];

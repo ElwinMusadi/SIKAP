@@ -10,13 +10,14 @@
 //     Every output carries localOnly:true, simulated:true, transportProof:false and the core
 //     SAFETY flags (remoteAuthorized/readyForImport/authorizesExecution false).
 //   * Only the fixed core SQL templates of a known compiled artifact are recognized, matched by
-//     identity at construction; arbitrary SQL is never interpreted.
+//     identity at construction and decoded by the core v2 decodeStatement (JSON-row string
+//     params) before any positional check; arbitrary SQL is never interpreted.
 //   * Every ambiguous outcome HALTS the instance; there is no automatic resend or retry. settle()
 //     only resolves a simulated in-flight request and never authorizes a resume or retry.
 //   * inspect() is PRIVATE (contains nonces/digests needed by core classifyResume); never log it.
 //     summary() is public-safe: counts, enums and flags only.
 import { IMPORT_TABLES } from '../migrate/contract.mjs';
-import { COLUMNS, PRIMARY, KEY_TYPES, SQL, SAFETY, ImportCoreError, validateDescriptor, summarize } from './core.mjs';
+import { COLUMNS, PRIMARY, KEY_TYPES, SQL, SAFETY, ImportCoreError, decodeStatement, validateDescriptor, summarize } from './core.mjs';
 
 export const MOCK_VERSION = 1;
 export const MOCK_FAULTS = Object.freeze([
@@ -152,32 +153,39 @@ function readSeed(raw) {
   return out;
 }
 
-// Recognize ONLY the fixed core templates of each chunk and check every binding parameter at its
-// fixed position against the descriptor (claim, journal, checkpoint). Returns typed operations.
+// Strict core v2 decode of one wire statement; any rejection is an artifact shape failure.
+const decode = (statement) => {
+  try { return decodeStatement(statement); } catch { return fail('ARTIFACT_SHAPE'); }
+};
+
+// Recognize ONLY the fixed core templates of each chunk: every statement is decoded by the core
+// v2 decoder FIRST (exact SQL allowlist, single canonical JSON param), then every binding value is
+// checked at its fixed decoded position against the descriptor (claim, journal, checkpoint).
+// Returns typed operations over decoded values; wire params are never interpreted directly.
 function compileOps(artifact, b) {
   const chunks = artifact.chunks;
   return Object.freeze(chunks.map((chunk, i) => {
     const batch = chunk.batch, prev = chunk.prevChunkSha256;
     check(Array.isArray(batch) && batch.length >= 5 && chunk.ordinal === i && chunk.table === IMPORT_TABLES[chunk.stage], 'ARTIFACT_SHAPE');
     check(prev === (i === 0 ? null : chunks[i - 1].chunkSha256), 'ARTIFACT_SHAPE');
+    const decoded = batch.map(decode);
     check(batch[0].sql === SQL.claim && batch[1].sql === SQL.guard && batch.at(-3).sql === SQL.journal &&
       batch.at(-2).sql === SQL.checkpoint && batch.at(-1).sql === SQL.guard, 'ARTIFACT_SHAPE');
+    check(decoded[0].kind === 'claim' && decoded[1].kind === 'guard' && decoded.at(-3).kind === 'journal' &&
+      decoded.at(-2).kind === 'checkpoint' && decoded.at(-1).kind === 'guard', 'ARTIFACT_SHAPE');
     const bind = [b.runNonce, b.ownerNonce, b.epoch, b.target, b.plan, chunk.stage, chunk.startCursor, i];
     const journal = [b.runNonce, b.epoch, b.target, i, chunk.stage, chunk.table, chunk.startCursor, chunk.endCursor, chunk.chunkSha256];
-    check(sameList(batch[0].params, [i + 1, ...bind, i, prev]), 'MOCK_BINDING_MISMATCH');
-    check(sameList(batch.at(-3).params, journal), 'MOCK_BINDING_MISMATCH');
-    check(sameList(batch.at(-2).params, [chunk.nextStage, chunk.nextCursor, i + 1, chunk.chunkSha256, ...bind, i + 1, prev]), 'MOCK_BINDING_MISMATCH');
+    check(sameList(decoded[0].values, [i + 1, ...bind, i, prev]), 'MOCK_BINDING_MISMATCH');
+    check(sameList(decoded.at(-3).values, journal), 'MOCK_BINDING_MISMATCH');
+    check(sameList(decoded.at(-2).values, [chunk.nextStage, chunk.nextCursor, i + 1, chunk.chunkSha256, ...bind, i + 1, prev]), 'MOCK_BINDING_MISMATCH');
     const ops = [{ kind: 'claim', set: i + 1, where: [...bind, i, prev] }, { kind: 'guard' }];
     let rows = 0;
-    batch.slice(2, -3).forEach((s, k) => {
-      if (s.sql === SQL.seedDelete && i === 0 && k === 0 && s.params.length === 1) {
-        let ids;
-        try { ids = JSON.parse(s.params[0]); } catch { fail('ARTIFACT_SHAPE'); }
-        check(Array.isArray(ids) && ids.every((id) => typeof id === 'string'), 'ARTIFACT_SHAPE');
-        ops.push({ kind: 'seedDelete', ids: new Set(ids) });
+    decoded.slice(2, -3).forEach((s, k) => {
+      if (s.kind === 'seedDelete' && i === 0 && k === 0 && chunk.startCursor === 0) {
+        ops.push({ kind: 'seedDelete', ids: new Set(s.values) }); // decoded: non-empty unique id strings
       } else {
-        check(s.sql === SQL.insert[chunk.table] && s.params.length === COLUMNS[chunk.table].length && keyTyped(chunk.table, s.params), 'ARTIFACT_SHAPE');
-        ops.push({ kind: chunk.table === 'jenis_dokumen' ? 'upsert' : 'insert', table: chunk.table, values: s.params });
+        check(s.kind === 'insert' && s.table === chunk.table && s.values.length === COLUMNS[chunk.table].length && keyTyped(chunk.table, s.values), 'ARTIFACT_SHAPE');
+        ops.push({ kind: chunk.table === 'jenis_dokumen' ? 'upsert' : 'insert', table: chunk.table, values: s.values });
         rows++;
       }
     });

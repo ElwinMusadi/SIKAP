@@ -15,8 +15,11 @@
 //     gates of a future adapter: semanticValidationRequired/planHashVerified flags say so.
 //   * The returned artifact is PRIVATE: params contain PII and password hashes. Never print or
 //     log it; use summarize() for counts/flags only. SQL text is static; no value is ever
-//     interpolated into SQL. The request shape, typed null/number params, multi-statement
-//     atomicity and changes() guards are UNPROVEN on the remote transport (transportProven:false).
+//     interpolated into SQL. Transport v2: every non-guard statement binds EXACTLY ONE string
+//     param, the canonical JSON.stringify of its value array, read slot-by-slot in static SQL via
+//     json_extract(?1, '$[i]') (seed delete: json_each(?1)); guards bind none. decodeStatement is
+//     the single strict inverse. Remote acceptance, multi-statement atomicity and changes() guards
+//     remain UNPROVEN on the remote transport (transportProven:false).
 //   * Ledger table/column names below are a prospective contract; no DDL exists yet. A future
 //     reviewed ledger DDL must match them exactly.
 //   * classifyResume never authorizes a resend or retry. Uncertain outcomes stop for an operator.
@@ -30,13 +33,15 @@ import { createHash } from 'node:crypto';
 import { ARTIFACT_LIMITS, IMPORT_TABLES } from '../migrate/contract.mjs';
 import { UAT_ACCOUNT, UAT_DB } from '../staging/uat-constants.mjs';
 
-export const CORE_VERSION = 1;
-export const TRANSPORT = 'd1-rest-parameterized-batch-candidate-v1';
+export const CORE_VERSION = 2;
+export const TRANSPORT = 'd1-rest-json-row-string-param-v2';
 export const DESCRIPTOR_FORMAT = 'sikap-remote-import-descriptor';
-// Internal conservative policy, not platform limits. bodyBytes = UTF-8 of JSON.stringify({batch});
-// parameters/statements count the whole request incl. CAS/guards/journal/checkpoint; rows is a
-// core policy cap per chunk (rows normally bound earlier by parameters/bytes).
-export const LIMITS = Object.freeze({ bodyBytes: 64 * 1024, statementBytes: 100_000, statements: 32, parameters: 100, rows: 64 });
+// Internal conservative policy, not platform limits. bodyBytes = UTF-8 of JSON.stringify({batch})
+// (the actual wire incl. double JSON escaping); statements/parameters/values count the whole
+// request incl. CAS/guards/journal/checkpoint. parameters = WIRE string params (1 per non-guard
+// statement); values = decoded logical values (seed delete counts 1), preserving v1 density.
+// rows is a core policy cap per chunk (rows normally bound earlier by values/bytes).
+export const LIMITS = Object.freeze({ bodyBytes: 64 * 1024, statementBytes: 100_000, statements: 32, parameters: 100, values: 100, rows: 64 });
 export const MAX_VALUE_CHARS = 16_384;
 export const MAX_DESCRIPTOR_TTL_MS = 4 * 60 * 60 * 1000;
 export const SAFETY = Object.freeze({ remoteAuthorized: false, readyForImport: false, proofRequired: true, authorizesExecution: false });
@@ -78,31 +83,51 @@ export const LEDGER = deepFreeze({
   // OR IGNORE/REPLACE), so a duplicate ordinal aborts the whole candidate request.
   journalUniqueKey: ['run_nonce', 'ordinal'],
 });
-const RUN_BIND = 'id = 1 AND run_nonce = ? AND owner_nonce = ? AND epoch = ? AND target_binding_sha256 = ? AND plan_sha256 = ? AND stage = ? AND cursor = ? AND ordinal = ? AND claim_seq = ? AND last_chunk_sha256 IS ? AND complete = 0';
+// Static JSON-row slot reader: the ONLY placeholder is the numbered ?1 (one string param per
+// statement), repeated per slot; slot indexes are module constants, never values.
+const slot = (index) => `json_extract(?1, '$[${index}]')`;
+const slots = (count) => Array.from({ length: count }, (_, index) => slot(index)).join(', ');
+// CAS binding read from slots offset..offset+9 (prev hash nullable: IS, never =).
+const runBind = (o) => `id = 1 AND run_nonce = ${slot(o)} AND owner_nonce = ${slot(o + 1)} AND epoch = ${slot(o + 2)} AND target_binding_sha256 = ${slot(o + 3)} AND plan_sha256 = ${slot(o + 4)} AND stage = ${slot(o + 5)} AND cursor = ${slot(o + 6)} AND ordinal = ${slot(o + 7)} AND claim_seq = ${slot(o + 8)} AND last_chunk_sha256 IS ${slot(o + 9)} AND complete = 0`;
 // Stable target/content identity: excludes runNonce/ownerNonce/epoch/expiresAt (takeover keeps it).
 const BINDING_KEYS = Object.freeze(['accountId', 'databaseId', 'databaseName', 'bucket', 'profile', 'snapshotId', 'sourceSha256', 'planSha256', 'appSchemaSha256', 'ledgerSchemaSha256', 'baselineSha256', 'policySha256', 'retentionPolicySha256']);
-const EPOCH_PARAMS = 3; // claim, journal, checkpoint each bind epoch once
+const EPOCH_PARAMS = 3; // claim, journal, checkpoint each carry epoch once (digits are never escaped)
 const MAX_EPOCH_DIGITS = String(Number.MAX_SAFE_INTEGER).length;
 export const SQL = deepFreeze({
-  claim: `UPDATE ${LEDGER.runTable} SET claim_seq = ? WHERE ${RUN_BIND}`,
+  claim: `UPDATE ${LEDGER.runTable} SET claim_seq = ${slot(0)} WHERE ${runBind(1)}`,
   guard: "SELECT CASE WHEN changes() = 1 THEN 1 ELSE json('') END AS sikap_import_guard",
-  seedDelete: 'DELETE FROM jenis_dokumen_wajib WHERE jenis_dokumen_id IN (SELECT value FROM json_each(?))',
-  journal: `INSERT INTO ${LEDGER.journalTable} (${LEDGER.journalColumns.join(', ')}) VALUES (${LEDGER.journalColumns.map(() => '?').join(', ')})`,
-  checkpoint: `UPDATE ${LEDGER.runTable} SET stage = ?, cursor = ?, ordinal = ?, last_chunk_sha256 = ? WHERE ${RUN_BIND}`,
+  seedDelete: 'DELETE FROM jenis_dokumen_wajib WHERE jenis_dokumen_id IN (SELECT value FROM json_each(?1))',
+  journal: `INSERT INTO ${LEDGER.journalTable} (${LEDGER.journalColumns.join(', ')}) VALUES (${slots(LEDGER.journalColumns.length)})`,
+  checkpoint: `UPDATE ${LEDGER.runTable} SET stage = ${slot(0)}, cursor = ${slot(1)}, ordinal = ${slot(2)}, last_chunk_sha256 = ${slot(3)} WHERE ${runBind(4)}`,
   insert: Object.fromEntries(IMPORT_TABLES.map((table) => {
     const columns = COLUMNS[table];
-    let sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`;
+    let sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${slots(columns.length)})`;
     // Reviewed seed semantics: jenis upsert only; everything else plain INSERT (never REPLACE).
     if (table === 'jenis_dokumen') sql += ` ON CONFLICT(id) DO UPDATE SET ${columns.filter((c) => c !== 'id').map((c) => `${c} = excluded.${c}`).join(', ')}`;
     return [table, sql];
   })),
 });
+// Decoded logical value count per statement kind (seedDelete: variable non-empty id list).
+export const SQL_ARITY = deepFreeze({
+  claim: 11, guard: 0, seedDelete: null, journal: LEDGER.journalColumns.length, checkpoint: 14,
+  insert: Object.fromEntries(IMPORT_TABLES.map((table) => [table, COLUMNS[table].length])),
+});
+export const STATEMENT_KINDS = Object.freeze(['claim', 'guard', 'seedDelete', 'insert', 'journal', 'checkpoint']);
+// Exact SQL allowlist: sql text -> { kind, table, arity }. Unknown SQL is never interpreted.
+const SPECS = new Map([
+  [SQL.claim, Object.freeze({ kind: 'claim', table: null, arity: SQL_ARITY.claim })],
+  [SQL.guard, Object.freeze({ kind: 'guard', table: null, arity: 0 })],
+  [SQL.seedDelete, Object.freeze({ kind: 'seedDelete', table: null, arity: null })],
+  [SQL.journal, Object.freeze({ kind: 'journal', table: null, arity: SQL_ARITY.journal })],
+  [SQL.checkpoint, Object.freeze({ kind: 'checkpoint', table: null, arity: SQL_ARITY.checkpoint })],
+  ...IMPORT_TABLES.map((table) => [SQL.insert[table], Object.freeze({ kind: 'insert', table, arity: SQL_ARITY.insert[table] })]),
+]);
 
 export const ERROR_CODES = Object.freeze([
   'INPUT_INVALID', 'NOW_INVALID', 'DESCRIPTOR_SHAPE', 'DESCRIPTOR_FIELD_INVALID', 'DESCRIPTOR_TARGET_DENIED',
   'DESCRIPTOR_EXPIRED', 'DESCRIPTOR_EXPIRY_TOO_LONG', 'TABLES_INVALID', 'ROW_INVALID', 'VALUE_INVALID',
   'KEY_INVALID', 'DUPLICATE_KEY', 'ROW_LIMIT', 'ROWS_DO_NOT_FIT', 'ARTIFACT_UNKNOWN', 'CHUNK_MISMATCH',
-  'STATE_INVALID', 'INTERNAL',
+  'STATE_INVALID', 'STATEMENT_INVALID', 'INTERNAL',
 ]);
 const CODE_SET = new Set(ERROR_CODES);
 const OWN_ERRORS = new WeakSet();
@@ -256,10 +281,54 @@ function readTables(raw) {
   return out;
 }
 
-const placeholders = (sql) => (sql.match(/\?/g) ?? []).length;
-const statement = (sql, params) => {
-  check(placeholders(sql) === params.length, 'INTERNAL');
-  return { sql, params };
+// Distinct bound params of a template: every placeholder must be exactly the numbered `?1`
+// (no bare `?`, `?2`, `?12`, `:name`, `@x` or `$x` binders); guards have none.
+const boundParams = (sql) => {
+  const marks = [...sql.matchAll(/\?\d*/g)].map((match) => match[0]);
+  check(marks.every((mark) => mark === '?1') && !/[:@]\w|\$[A-Za-z_]/.test(sql.replace(/'[^']*'/g, '')), 'INTERNAL');
+  return marks.length > 0 ? 1 : 0;
+};
+for (const [sql, spec] of SPECS) check(boundParams(sql) === (spec.kind === 'guard' ? 0 : 1), 'INTERNAL');
+
+const cellOk = (value) => value === null ||
+  (typeof value === 'string' ? value.length <= MAX_VALUE_CHARS && !value.includes('\0') && value.isWellFormed() : Number.isSafeInteger(value) && !Object.is(value, -0));
+
+// Strict inverse of the v2 wire encoding for ONE statement {sql, params}. Accepts only the exact
+// SQL allowlist, a plain own-data shape (no getter is run) and the single canonical JSON string
+// param; returns frozen { kind, table, values } with values in v1 positional order. Every
+// rejection is STATEMENT_INVALID; it never echoes input. The param text is bounded by the body
+// cap BEFORE parsing (a fitting request can never carry a longer param).
+export const decodeStatement = guarded((raw) => {
+  const s = plain(raw, ['sql', 'params'], 'STATEMENT_INVALID');
+  const spec = typeof s.sql === 'string' ? SPECS.get(s.sql) : undefined;
+  check(spec !== undefined, 'STATEMENT_INVALID');
+  const params = plainArray(s.params, 1, 'STATEMENT_INVALID');
+  if (spec.kind === 'guard') {
+    check(params.length === 0, 'STATEMENT_INVALID');
+    return deepFreeze({ kind: spec.kind, table: null, values: [] });
+  }
+  check(params.length === 1 && typeof params[0] === 'string' && params[0].length <= LIMITS.bodyBytes, 'STATEMENT_INVALID');
+  const text = params[0];
+  let values;
+  try { values = JSON.parse(text); } catch { fail('STATEMENT_INVALID'); }
+  check(Array.isArray(values), 'STATEMENT_INVALID');
+  if (spec.arity === null) {
+    // Seed delete: non-empty list of unique non-empty id strings.
+    check(values.length > 0 && values.length <= ARTIFACT_LIMITS.rows, 'STATEMENT_INVALID');
+    check(values.every((id) => typeof id === 'string' && id.length > 0 && cellOk(id)) && new Set(values).size === values.length, 'STATEMENT_INVALID');
+  } else {
+    check(values.length === spec.arity && values.every(cellOk), 'STATEMENT_INVALID');
+  }
+  // Canonical only (after the flat-cell check, so no nested structure is re-serialized): rejects
+  // whitespace, -0, 1.0/1e0, alternate string escapes and any other non-JSON.stringify spelling.
+  check(JSON.stringify(values) === text, 'STATEMENT_INVALID');
+  return deepFreeze({ kind: spec.kind, table: spec.table, values });
+});
+
+const statement = (sql, values) => {
+  const spec = SPECS.get(sql);
+  check(spec !== undefined, 'INTERNAL');
+  return { sql, params: spec.kind === 'guard' ? (check(values.length === 0, 'INTERNAL'), []) : [JSON.stringify(values)] };
 };
 const ARTIFACTS = new WeakMap();
 
@@ -276,47 +345,68 @@ export const compileChunks = guarded((input, rawDescriptor, options) => {
   const seedIds = tables.jenis_dokumen.map((values) => values[0]);
   const chunks = [];
   let previous = null;
+  // Logical statement: { sql, kind, table, values } (values = v1 positional order). Encoded once.
+  const op = (sql, values) => ({ sql, ...SPECS.get(sql), values });
   const build = (stage, start, end, seed) => {
     const table = IMPORT_TABLES[stage], rows = tables[table], ordinal = chunks.length;
     const nextStage = end === rows.length ? stage + 1 : stage, nextCursor = end === rows.length ? 0 : end;
-    const data = [...seed, ...rows.slice(start, end).map((values) => statement(SQL.insert[table], [...values]))];
+    const dataOps = [...seed, ...rows.slice(start, end).map((values) => op(SQL.insert[table], [...values]))];
+    const data = dataOps.map((o) => statement(o.sql, o.values));
+    // Digest over the exact v2 wire statements (sql + string params) of the data part.
     const dataDigest = sha256(JSON.stringify(data.map((s) => [s.sql, s.params])));
     // Plan-relative identity: excludes epoch/owner/run nonce so a takeover keeps chunk hashes.
     const chunkSha256 = sha256(JSON.stringify(['sikap-import-chunk', CORE_VERSION, TRANSPORT, target, ordinal, stage, table, start, end, previous, dataDigest]));
     const bind = [runNonce, ownerNonce, epoch, target, planSha256, stage, start, ordinal];
-    const batch = [
-      statement(SQL.claim, [ordinal + 1, ...bind, ordinal, previous]),
-      statement(SQL.guard, []),
-      ...data,
-      statement(SQL.journal, [runNonce, epoch, target, ordinal, stage, table, start, end, chunkSha256]),
-      statement(SQL.checkpoint, [nextStage, nextCursor, ordinal + 1, chunkSha256, ...bind, ordinal + 1, previous]),
-      statement(SQL.guard, []),
+    const ops = [
+      op(SQL.claim, [ordinal + 1, ...bind, ordinal, previous]),
+      op(SQL.guard, []),
+      ...dataOps,
+      op(SQL.journal, [runNonce, epoch, target, ordinal, stage, table, start, end, chunkSha256]),
+      op(SQL.checkpoint, [nextStage, nextCursor, ordinal + 1, chunkSha256, ...bind, ordinal + 1, previous]),
+      op(SQL.guard, []),
     ];
+    const batch = [...ops.slice(0, 2).map((o) => statement(o.sql, o.values)), ...data, ...ops.slice(-3).map((o) => statement(o.sql, o.values))];
+    const valueCount = ops.reduce((sum, o) => sum + (o.kind === 'seedDelete' ? 1 : o.values.length), 0);
     const parameterCount = batch.reduce((sum, s) => sum + s.params.length, 0);
     const bodyBytes = utf8Bytes(JSON.stringify({ batch }));
     // Size against the widest possible epoch so a takeover (new epoch) cannot change boundaries.
-    const fits = parameterCount <= LIMITS.parameters && batch.length <= LIMITS.statements && end - start <= LIMITS.rows &&
+    // Epoch digits are plain ASCII inside the JSON param (never escaped): +1 wire byte per digit.
+    const fits = valueCount <= LIMITS.values && parameterCount <= LIMITS.parameters && batch.length <= LIMITS.statements && end - start <= LIMITS.rows &&
       bodyBytes + epochSlack <= LIMITS.bodyBytes && batch.every((s) => utf8Bytes(s.sql) <= LIMITS.statementBytes);
-    return { fits, chunk: { ordinal, stage, table, startCursor: start, endCursor: end, nextStage, nextCursor, rowCount: end - start, prevChunkSha256: previous, chunkSha256, statementCount: batch.length, parameterCount, bodyBytes, batch } };
+    return { fits, ops, chunk: { ordinal, stage, table, startCursor: start, endCursor: end, nextStage, nextCursor, rowCount: end - start, prevChunkSha256: previous, chunkSha256, statementCount: batch.length, valueCount, parameterCount, bodyBytes, batch } };
+  };
+  // Self-check: the chosen chunk must round-trip through the public decoder to exactly the
+  // logical values it was built from; any mismatch is an internal defect, never a send.
+  const verifyChunk = (chunk, expected) => {
+    try {
+      check(chunk.batch.length === expected.length, 'INTERNAL');
+      chunk.batch.forEach((s, index) => {
+        const decoded = decodeStatement(s), want = expected[index];
+        check(decoded.kind === want.kind && decoded.table === want.table && decoded.values.length === want.values.length &&
+          decoded.values.every((value, k) => Object.is(value, want.values[k])), 'INTERNAL');
+      });
+    } catch { fail('INTERNAL'); }
   };
   for (let stage = 0; stage < IMPORT_TABLES.length; stage++) {
     const rows = tables[IMPORT_TABLES[stage]];
     let cursor = 0;
     do {
       // Stage 0 first chunk removes only the matrix rows of imported jenis ids (no-op skipped).
-      const seed = stage === 0 && cursor === 0 && seedIds.length ? [statement(SQL.seedDelete, [JSON.stringify(seedIds)])] : [];
+      const seed = stage === 0 && cursor === 0 && seedIds.length ? [op(SQL.seedDelete, [...seedIds])] : [];
       let best = null;
       if (cursor === rows.length) {
         const candidate = build(stage, cursor, cursor, seed);
-        if (candidate.fits) best = candidate.chunk;
+        if (candidate.fits) best = candidate;
       } else {
         for (let end = cursor + 1; end <= rows.length; end++) {
           const candidate = build(stage, cursor, end, seed);
           if (!candidate.fits) break;
-          best = candidate.chunk;
+          best = candidate;
         }
       }
       check(best !== null, 'ROWS_DO_NOT_FIT');
+      verifyChunk(best.chunk, best.ops);
+      best = best.chunk;
       chunks.push(best);
       previous = best.chunkSha256;
       cursor = best.endCursor;
@@ -337,16 +427,17 @@ export const compileChunks = guarded((input, rawDescriptor, options) => {
 export const summarize = guarded((artifact) => {
   check(ARTIFACTS.has(artifact), 'ARTIFACT_UNKNOWN');
   const rowsPerTable = Object.fromEntries(IMPORT_TABLES.map((table) => [table, 0]));
-  let statements = 0, maxBodyBytes = 0, maxParameters = 0;
+  let statements = 0, maxBodyBytes = 0, maxParameters = 0, maxValues = 0;
   for (const chunk of artifact.chunks) {
     rowsPerTable[chunk.table] += chunk.rowCount;
     statements += chunk.statementCount;
     maxBodyBytes = Math.max(maxBodyBytes, chunk.bodyBytes);
     maxParameters = Math.max(maxParameters, chunk.parameterCount);
+    maxValues = Math.max(maxValues, chunk.valueCount);
   }
   return deepFreeze({
     coreVersion: CORE_VERSION, chunkCount: artifact.chunkCount, rowCount: artifact.rowCount, rowsPerTable,
-    statementCount: statements, maxBodyBytes, maxParameters, ...SAFETY, semanticValidationRequired: true,
+    statementCount: statements, maxBodyBytes, maxParameters, maxValues, ...SAFETY, semanticValidationRequired: true,
     schemaRequired: true, planHashVerified: false, transportProven: false,
   });
 });

@@ -11,15 +11,17 @@ import { spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { UAT_ACCOUNT, UAT_DB } from './uat-constants.mjs';
+import { UAT_ACCOUNT } from './uat-constants.mjs';
+import { UAT_APP_DB, UAT_APP_DB_NAME, UAT_APP_FILES_BUCKET, UAT_APP_RETIRED_REFS } from './uat-app-constants.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const WRANGLER_BIN = path.join(root, 'node_modules/wrangler/bin/wrangler.js');
 const digest = (v) => createHash('sha256').update(v).digest('hex');
 const fail = (code) => { throw Error(code); };
 const DOMAIN = 'shy-thunder-ffc9.cloudflareaccess.com';
 const AUD = '50b2c68c92474c0232581b9641f9107836ca66939e439e2314f37384f4f2b3e9';
-const SOURCE_CONFIG_SHA = '54cb2348a8619f191418f897c26354577ee532699d4e6bf938bddcaf5d1a2de3';
-export const RELEASE_CONFIG_SHA = 'e7e57f3b2379089122e22e9e0ba9774da66188feef38b8875213d596aed3c6be';
+// LF-normalized digests of ops/uat-app/wrangler.toml (rebound to the verified import target) and its rendered release copy.
+export const SOURCE_CONFIG_SHA = '5cbefa7f6975b9e0aea1b7f890dab20a508c9b199896fb0eb0cb79c2946faa07';
+export const RELEASE_CONFIG_SHA = 'c87c60ae24aa4024e9df6ac4987d698f4c0ba5987f1a95a7eb5f7ec52fe91aa6';
 const SRC_OUTPUT_LINE = 'pages_build_output_dir = "../../dist-uat-app"';
 const SRC_MIGRATIONS_LINE = 'migrations_dir = "../../migrations"';
 const RELEASE_OUTPUT_LINE = 'pages_build_output_dir = "./public"';
@@ -59,13 +61,28 @@ async function verifyBundle(dir) {
   if (JSON.stringify(routes.include) !== '["/*"]' || JSON.stringify(routes.exclude) !== '[]') fail('UAT_ALL_ROUTES_REQUIRED');
   if (!(await readFile(path.join(dir, '_worker.js'), 'utf8')).includes('SIKAP_UAT_ALL_ROUTES_V1')) fail('UAT_ENTRY_REQUIRED');
 }
+// Exactly one DB (import target) + one FILES (import bucket) binding and one Access var set;
+// no BACKUPS, retired UAT resources, [env.*] sections, or cron triggers. Independent of the digest.
+const EXACT_ONCE = Object.freeze(['[[d1_databases]]', 'binding = "DB"', `database_name = "${UAT_APP_DB_NAME}"`,
+  `database_id = "${UAT_APP_DB}"`, '[[r2_buckets]]', 'binding = "FILES"', `bucket_name = "${UAT_APP_FILES_BUCKET}"`,
+  'ACCESS_REQUIRED = "1"', `ACCESS_TEAM_DOMAIN = "${DOMAIN}"`, `ACCESS_AUDIENCE = "${AUD}"`, 'name = "sikap-uat"']);
+export function appBindingsValid(text) {
+  if (typeof text !== 'string') return false;
+  const lines = text.split('\n');
+  const lower = text.toLowerCase();
+  return EXACT_ONCE.every((l) => lines.filter((x) => x === l).length === 1) &&
+    lines.filter((l) => /^\s*binding\s*=/.test(l)).length === 2 &&
+    lines.filter((l) => /^\s*(database_id|database_name|bucket_name|preview_bucket_name|preview_database_id)\s*=/.test(l)).length === 3 &&
+    lines.filter((l) => /^\s*ACCESS_/.test(l)).length === 3 &&
+    !UAT_APP_RETIRED_REFS.some((r) => lower.includes(r.toLowerCase())) &&
+    !lower.includes('[env') && !lower.includes('[triggers') && !lower.includes('crons');
+}
 export async function verifyAppTarget(base = root, env = process.env) {
   if (env.CLOUDFLARE_ACCOUNT_ID !== UAT_ACCOUNT) fail('UAT_ACCOUNT_REQUIRED');
   const config = path.join(base, 'ops/uat-app/wrangler.toml');
   await assertPlainFile(config, 'UAT_CONFIG_UNSAFE');
   const configText = (await readFile(config, 'utf8')).replaceAll('\r\n', '\n');
-  if (digest(configText) !== SOURCE_CONFIG_SHA || !configText.includes(`database_id = "${UAT_DB}"`) ||
-      !configText.includes('ACCESS_REQUIRED = "1"') || !configText.includes(DOMAIN) || !configText.includes(AUD)) fail('UAT_CONFIG_MISMATCH');
+  if (digest(configText) !== SOURCE_CONFIG_SHA || !appBindingsValid(configText)) fail('UAT_CONFIG_MISMATCH');
   const output = path.join(base, 'dist-uat-app');
   await verifyBundle(output);
   return { config, configText, output };
@@ -75,8 +92,7 @@ export function renderReleaseConfig(text) {
   const lines = text.split('\n');
   if (lines.filter((l) => l === SRC_OUTPUT_LINE).length !== 1 || lines.filter((l) => l === SRC_MIGRATIONS_LINE).length !== 1) fail('UAT_CONFIG_MISMATCH');
   const out = lines.filter((l) => l !== SRC_MIGRATIONS_LINE).map((l) => (l === SRC_OUTPUT_LINE ? RELEASE_OUTPUT_LINE : l)).join('\n');
-  if (out.includes('..') || out.includes('[env') || !out.includes('name = "sikap-uat"') || !out.includes(`database_id = "${UAT_DB}"`) ||
-      !out.includes('ACCESS_REQUIRED = "1"') || !out.includes(DOMAIN) || !out.includes(AUD) ||
+  if (out.includes('..') || !appBindingsValid(out) ||
       DENIED_REFS.some((r) => out.toLowerCase().includes(r)) || /"sikap-(files|backup)/.test(out) || digest(out) !== RELEASE_CONFIG_SHA) fail('UAT_RELEASE_CONFIG_INVALID');
   return out;
 }
