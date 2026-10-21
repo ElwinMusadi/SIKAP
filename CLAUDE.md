@@ -40,7 +40,7 @@ CI (`.github/workflows/ci.yml`): job `verify` (typecheck, lint, test api/web/mig
 
 ## Deploy produksi (penting)
 
-- **Hanya ada branch `main`; setiap push/merge ke `main` = deploy produksi** lewat GitHub Actions (job `deploy`, environment GitHub `production`). Kerjakan perubahan di branch singkat + PR, lalu merge (merge hanya atas persetujuan pemilik). Panduan lengkap, penyiapan secret, dan rollback: [`docs/DEPLOY.md`](docs/DEPLOY.md).
+- **Hanya ada branch `main`; setiap push/merge ke `main` = deploy produksi** lewat GitHub Actions (job `deploy`, environment GitHub `production`). Sejak 22 Okt 2026 (instruksi pemilik) semua perubahan dikerjakan **langsung di `main`**, tanpa branch atau PR; jalankan typecheck, lint, tes, dan build lokal sebelum push karena tidak ada PR yang menyaring. Panduan lengkap, penyiapan secret, dan rollback: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - `sikap-v2` proyek *Direct Upload*; deploy memakai `wrangler pages deploy` dari Actions. Dashboard menawarkan *Connect to a repository*, tetapi **jangan dipakai**: build Git Cloudflare menjadikan `wrangler.toml` root (punya `pages_build_output_dir`) sumber konfigurasi sehingga produksi pindah ke binding historis, tidak menunggu tes CI, dan bersama Actions men-deploy dobel. Secret GitHub: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `PROD_D1_DATABASE_ID`. Tanpa ketiganya job deploy dilewati dengan peringatan.
 - **Jangan** deploy dari root repo atau memakai `wrangler.toml` root `--env production` / `db:migrate:production`: binding `env.production` di root dan `workers/cron` adalah **historis**, dan deploy berkonfigurasi menulis ulang binding proyek. `scripts/deploy/pages-release.mjs` menyusun paket rilis **di luar checkout** dengan `wrangler.toml` yang mencerminkan pengaturan live (D1 `sikap-import-prod-20261020`, R2 `sikap-import-prod-20261020-files`, `APP_URL` domain kustom; preview tetap di binding preview).
 - Migrasi D1 **tidak** dijalankan oleh deploy; migrasi baru butuh keputusan + backup terpisah.
@@ -59,7 +59,7 @@ CI (`.github/workflows/ci.yml`): job `verify` (typecheck, lint, test api/web/mig
 
 ## Batasan kerja dengan pemilik
 
-- Komunikasi dalam Bahasa Indonesia. Commit/push hanya bila diminta; merge ke `main` hanya atas persetujuan eksplisit.
+- Komunikasi dalam Bahasa Indonesia. Kerjakan langsung di `main`; commit/push hanya bila diminta, karena setiap push ke `main` = deploy produksi.
 - Jangan menempel atau membaca nilai rahasia (pepper, salt, token, `credentials.env`, Script Properties produksi). Jangan meng-commit snapshot, plan, ekspor, atau berkas apa pun dengan PII (`.gitignore` sudah menolak pola `*.sikap-*`, `/snapshot-*/`).
 - Aksi di produksi (D1/R2 remote, deploy, DNS, Access, Drive, GAS) butuh persetujuan per aksi. Data asli yang dipakai pemilik tidak boleh disimpan/diubah saat menguji.
 - Pengaman auto-mode bisa menolak aksi (mis. editor Script Properties produksi, penghapusan massal di Drive): hormati, jangan dicari jalan pintasnya; minta pemilik melakukannya.

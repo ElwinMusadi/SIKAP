@@ -46,7 +46,7 @@ selama alur GitHub Actions ini aktif:
 - Build Cloudflare tidak menunggu job `verify`; commit yang gagal tes tetap tayang.
 - Bersama job `deploy` di Actions, setiap commit akan di-deploy dua kali.
 
-Pindah ke integrasi Git hanya lewat PR yang lebih dulu mengganti `[env.production]` ke binding
+Pindah ke integrasi Git hanya setelah commit di `main` yang lebih dulu mengganti `[env.production]` ke binding
 aktif (ID D1 produksi jadi tercatat di repo publik), menghapus `BACKUPS`, dan mematikan job `deploy`.
 
 ## Penyiapan satu kali (pemilik)
@@ -86,7 +86,7 @@ Nilai-nilai ini tidak pernah ditulis ke repo (repo publik) dan tidak dicetak di 
 
 Dashboard Cloudflare → *Workers & Pages* → `sikap-v2` → *Deployments* → pilih deployment
 produksi sebelumnya → **Rollback to this deployment**. Rollback hanya mengganti kode/aset; data
-D1/R2 tidak berubah. Setelah itu perbaiki di `main` lewat PR seperti biasa.
+D1/R2 tidak berubah. Setelah itu perbaiki langsung di `main`; push berikutnya men-deploy perbaikan.
 
 ## Deploy manual (cadangan, bila GitHub Actions tidak tersedia)
 
