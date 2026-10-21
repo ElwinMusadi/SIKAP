@@ -1,0 +1,74 @@
+# Companion to Pages: no HTTP route. All schedules disabled until explicitly enabled.
+# Always specify --env preview or --env production for remote commands. The root
+# bindings/localhost URL exist only for local simulation, never for deployment.
+# Set SETTINGS_ENC_KEY with `wrangler secret put ... --env preview|production`.
+# It MUST match Pages' encryption key for that environment. Never commit the key.
+name = "sikap-cron"
+main = "entry.ts"
+compatibility_date = "2026-10-16"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+preview_urls = false
+
+[vars]
+APP_URL = "http://localhost:8788"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sikap-db-preview"
+database_id = "1bd39313-4072-43a7-a183-7544c8264c46"
+migrations_dir = "../../migrations"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "sikap-files-preview"
+[[r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "sikap-backup-preview"
+
+[triggers]
+crons = []
+
+[observability]
+enabled = true
+[observability.logs]
+enabled = true
+invocation_logs = true
+[observability.traces]
+enabled = true
+
+[env.preview.vars]
+APP_URL = "https://feat-cloudflare-migration.sikap-v2.pages.dev"
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "sikap-db-preview"
+database_id = "1bd39313-4072-43a7-a183-7544c8264c46"
+migrations_dir = "../../migrations"
+[env.preview.triggers]
+crons = []
+
+[[env.preview.r2_buckets]]
+binding = "FILES"
+bucket_name = "sikap-files-preview"
+# BACKUPS intentionally absent until a separate private preview bucket is provisioned.
+
+[env.production.vars]
+# HISTORICAL BINDINGS ONLY. Do not deploy/enable production cron until the owner-approved
+# final target, backup and secrets are aligned with Pages; see MIGRATION_PLAN.md cutover prep.
+APP_URL = "https://sikap.uptdpenda-kupang.web.id"
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "sikap-db"
+database_id = "b8611b82-8067-4153-ae5e-d6a0b94be7a6"
+migrations_dir = "../../migrations"
+[env.production.triggers]
+# Enable AFTER cutover and checking the account's 5-trigger Free quota:
+# crons = ["*/10 * * * *", "0 18 * * *"]
+crons = []
+
+[[env.production.r2_buckets]]
+binding = "FILES"
+bucket_name = "sikap-files"
+[[env.production.r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "sikap-backup"

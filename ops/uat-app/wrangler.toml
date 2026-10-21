@@ -1,0 +1,22 @@
+# Isolated UAT FULL APP bound to the verified private import target. Never use the root config or production resources.
+name = "sikap-uat"
+compatibility_date = "2026-10-17"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "../../dist-uat-app"
+
+[vars]
+APP_URL = "https://sikap-uat.pages.dev"
+SESSION_TTL_HOURS = "12"
+ACCESS_REQUIRED = "1"
+ACCESS_TEAM_DOMAIN = "shy-thunder-ffc9.cloudflareaccess.com"
+ACCESS_AUDIENCE = "50b2c68c92474c0232581b9641f9107836ca66939e439e2314f37384f4f2b3e9"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sikap-import-uat-20261018"
+database_id = "885b655b-3482-44fc-9d01-56ad0204bb35"
+migrations_dir = "../../migrations"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "sikap-import-uat-20261018-files"

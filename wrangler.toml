@@ -1,6 +1,87 @@
-name = "sikap"
-compatibility_date = "2026-08-15"
+# SIKAP v2 — Cloudflare Pages project (React SPA + Pages Functions /api/*)
+# Docs: MIGRATION_PLAN.md §1.2
+#
+# IMPORTANT: the project name is "sikap-v2", NOT "sikap". The existing "sikap"
+# Pages project serves the legacy GAS frontend in production
+# (sikap.uptdpenda-kupang.web.id) and must not be touched until cutover.
+#
+# Pages environments:
+#   production = branch "main" of project sikap-v2 (empty until cutover)
+#   preview    = every other branch, e.g. feat/cloudflare-migration
+name = "sikap-v2"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
+# ---------------------------------------------------------------------------
+# Local development (`wrangler pages dev`): local D1/R2 under .wrangler/
+# ---------------------------------------------------------------------------
 [vars]
-GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxgtqzd0pU96Z7MChma9GwfW-ESy-7PDPAlsUSPMl6-oh78m1aVJ5BRl5cdyWnhfgue/exec"
+APP_URL = "http://localhost:8788"
+SESSION_TTL_HOURS = "12"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sikap-db-preview"
+database_id = "1bd39313-4072-43a7-a183-7544c8264c46"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "sikap-files-preview"
+
+# Local simulation only unless explicitly configured in a remote environment below.
+[[r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "sikap-backup-preview"
+
+# ---------------------------------------------------------------------------
+# Preview environment (separate DB + bucket — never test against production)
+# ---------------------------------------------------------------------------
+[env.preview.vars]
+APP_URL = "https://feat-cloudflare-migration.sikap-v2.pages.dev"
+SESSION_TTL_HOURS = "12"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "sikap-db-preview"
+database_id = "1bd39313-4072-43a7-a183-7544c8264c46"
+migrations_dir = "migrations"
+
+[[env.preview.r2_buckets]]
+binding = "FILES"
+bucket_name = "sikap-files-preview"
+
+# Provision a SEPARATE private preview bucket before adding env.preview BACKUPS.
+# Until then GET /admin/backup reports configured:false; never use the production bucket.
+
+# ---------------------------------------------------------------------------
+# Production (used only after cutover)
+# HISTORICAL BINDINGS ONLY: not approved for the final production import or deployment.
+# Do not run --env production until an owner-approved fresh target, backup and reviewed
+# production capability replace these pins. Existing resources remain denied by import core.
+# ---------------------------------------------------------------------------
+[env.production.vars]
+APP_URL = "https://sikap.uptdpenda-kupang.web.id"
+SESSION_TTL_HOURS = "12"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "sikap-db"
+database_id = "b8611b82-8067-4153-ae5e-d6a0b94be7a6"
+migrations_dir = "migrations"
+
+[[env.production.r2_buckets]]
+binding = "FILES"
+bucket_name = "sikap-files"
+
+[[env.production.r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "sikap-backup"
+
+# Backups (cron Worker, phase 7): R2 bucket "sikap-backup" — private, no r2.dev URL.
+#
+# Secrets (per environment, set in the dashboard or with wrangler; locally in .dev.vars):
+#   PASSWORD_PEPPER   — HMAC key mixed into every password hash (>= 32 random bytes, base64).
+#                       PRODUCTION VALUE MUST BE BACKED UP: losing it invalidates every password.
+#   SETTINGS_ENC_KEY  — AES-GCM key for WhatsApp tokens (phase 5)

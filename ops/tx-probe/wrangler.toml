@@ -1,0 +1,11 @@
+# Isolated D1 transaction-atomicity probe database. NOT the SIKAP app, NOT UAT data, NOT production.
+# Config only: no worker main, Pages output, routes, cron, R2, vars, env or preview database.
+# Pinned by scripts/staging/d1-tx-probe-target.mjs (sha256 of LF-normalized text). Any edit breaks the pin.
+name = "sikap-uat-tx-probe"
+compatibility_date = "2026-10-17"
+account_id = "04b8b2073be2f1aa21fc6489e0db36f6"
+
+[[d1_databases]]
+binding = "PROBE_DB"
+database_name = "sikap-uat-tx-probe"
+database_id = "95f86a58-578b-44ac-9016-8472522e8be4"

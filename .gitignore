@@ -1,6 +1,49 @@
 node_modules/
-gas-dist/
 dist/
-.dev.vars
+dist-uat/
+dist-uat-app/
+.dist-uat-app-staging-*/
 .wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+# Wrangler 4 auto-loads .env/.env.local (and .env.<env>) into its process env; never commit them.
+.env
+.env.*
+*.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+
+# Legacy GAS build outputs
+gas-dist/
 .clasprc.json
+
+# Sensitive offline migration artifacts (exports, password hashes, PII, SQL, checkpoints).
+# Source code stays in scripts/migrate/ and synthetic fixtures must be explicitly named.
+migration-data/
+.migration-private/
+*.sikap-export.json
+*.sikap-plan.json
+*.sikap-files.json
+*.sikap-import.sql
+*.sikap-checkpoint.json
+*.sikap-copy.json
+/sikap-private-copy-*/
+/sikap-private-copy-*.zip
+*.sikap-reconcile.json
+*.sikap-report.json
+*.sikap-pepper
+*.sikap-salt
+# Operator-specific UAT inventory/target/policy files, never bearer credentials in examples.
+*.sikap-uat-target.json
+*.sikap-uat-policy.json
+*.sikap-access-inventory.json
+*.sikap-access-report.json
+*.sikap-fixture.json
+migration-export*.zip
+migration-files*.zip
+# Downloaded GAS snapshots include confidential binary documents, not only JSON.
+/snapshot-*/
+/snapshot-*.zip
