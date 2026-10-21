@@ -1,33 +1,22 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  ChevronDown,
-  CircleCheck,
-  Clock,
-  DatabaseBackup,
-  Download,
-  FileJson,
-  Pause,
-  Play,
-  RefreshCw,
-  ShieldAlert,
-  TriangleAlert,
-} from 'lucide-react';
-import type { BackupJob, BackupListResponse, BackupStatus } from '@shared/backup';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ChevronDown, DatabaseBackup, Download, FileJson, History, Pause, Play, ShieldAlert, TriangleAlert } from 'lucide-react';
+import type { BackupJob, BackupListResponse } from '@shared/backup';
+import { SectionCard } from '@/components/section-card';
+import { EmptyState, ErrorState } from '@/components/states';
+import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { errorMessage, isApiError } from '@/lib/api';
 import { formatDateTimeWITA } from '@/lib/format';
+import { TONE_CLASSES } from '@/lib/status';
+import { cn } from '@/lib/utils';
 import { formatBytes, formatCountdown } from '@/features/dokumen/dokumen-utils';
 import {
-  BACKUP_STATUS_LABEL,
   MAX_STEP_ITERATIONS,
   backupErrorLabel,
   backupProgressPercent,
@@ -157,54 +146,64 @@ export function BackupPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Alert>
-        <ShieldAlert aria-hidden="true" />
-        <AlertTitle>Backup logis berisi data sensitif</AlertTitle>
-        <AlertDescription>
-          <ul className="list-disc space-y-1 pl-4">
+      <div className="flex max-w-3xl gap-3 rounded-xl border bg-muted/40 p-4 text-sm">
+        <ShieldAlert className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <div className="flex flex-col gap-2">
+          <p className="font-medium text-foreground">Backup logis berisi data sensitif</p>
+          <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
             <li>
-              Ekspor dibuat bertahap per tabel, sehingga <strong>bukan salinan pada satu titik waktu</strong> yang
+              Ekspor dibuat bertahap per tabel, sehingga <strong className="text-foreground">bukan salinan pada satu titik waktu</strong> yang
               konsisten. Untuk pemulihan bencana gunakan D1 Time Travel atau <code>wrangler d1 export</code>.
             </li>
             <li>
-              <strong>Isi file dokumen (R2) tidak ikut dicadangkan</strong>; yang tercatat hanya kunci objek dan
+              <strong className="text-foreground">Isi file dokumen (R2) tidak ikut dicadangkan</strong>; yang tercatat hanya kunci objek dan
               checksum sebagai inventaris. Simpan backup file secara terpisah bila diperlukan.
             </li>
             <li>
-              Berisi hash password dan token penyedia terenkripsi. Kunci <code>PASSWORD_PEPPER</code> dan{' '}
-              <code>SETTINGS_ENC_KEY</code> tidak diekspor dan diperlukan terpisah untuk pemulihan.
+              Berisi hash password dan token penyedia terenkripsi. Kunci <code>PASSWORD_PEPPER</code> dan <code>SETTINGS_ENC_KEY</code> tidak
+              diekspor dan diperlukan terpisah untuk pemulihan.
             </li>
             <li>Unduhan hanya untuk admin. Simpan file di lokasi privat dan jangan dibagikan.</li>
           </ul>
-        </AlertDescription>
-      </Alert>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h2 className="text-base font-medium">Buat backup</h2>
-          </CardTitle>
-          <CardDescription>
-            Backup diproses per bagian selama halaman ini terbuka. Meninggalkan halaman akan menjeda proses; Anda dapat
-            melanjutkannya nanti dari posisi terakhir. File tersimpan selama 30 hari.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="flex flex-col gap-4">
+      <SectionCard
+        headingLevel="h3"
+        title="Buat backup"
+        description="Backup diproses per bagian selama halaman ini terbuka. Meninggalkan halaman akan menjeda proses; Anda dapat melanjutkannya nanti dari posisi terakhir. File tersimpan selama 30 hari."
+        footer={
+          <div className="mr-auto flex flex-wrap items-center gap-2">
+            {busy ? (
+              <Button variant="outline" className="bg-card" onClick={pause} disabled={phase !== 'running'}>
+                {phase === 'pausing' ? <Spinner data-icon="inline-start" /> : <Pause data-icon="inline-start" />}
+                {phase === 'pausing' ? 'Menjeda…' : 'Jeda'}
+              </Button>
+            ) : (
+              <Button onClick={() => void start()} disabled={!configured || list.isPending || list.isError}>
+                {canResume ? <Play data-icon="inline-start" /> : <DatabaseBackup data-icon="inline-start" />}
+                {primaryLabel}
+              </Button>
+            )}
+            {busy && phase !== 'pausing' ? (
+              <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Spinner aria-hidden="true" /> Memproses…
+              </span>
+            ) : null}
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
           {list.isPending ? (
             <Skeleton className="h-16 w-full" />
           ) : list.isError ? null : !configured ? (
-            <Empty className="border">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <DatabaseBackup aria-hidden="true" />
-                </EmptyMedia>
-                <EmptyTitle>Penyimpanan backup belum dikonfigurasi</EmptyTitle>
-                <EmptyDescription>
-                  Hubungi pengelola sistem untuk menghubungkan penyimpanan backup sebelum membuat backup.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <EmptyState
+              icon={DatabaseBackup}
+              size="inline"
+              title="Penyimpanan backup belum dikonfigurasi"
+              description="Hubungi pengelola sistem untuk menghubungkan penyimpanan backup sebelum membuat backup."
+              className="rounded-lg border border-dashed"
+            />
           ) : showProgress && displayJob ? (
             <BackupProgress job={displayJob} phase={phase} />
           ) : (
@@ -215,206 +214,194 @@ export function BackupPanel() {
             {PHASE_MESSAGE[phase]}
           </p>
 
-          {phase === 'failed' && activeJob?.errorCode ? (
-            <Alert variant="destructive">
-              <TriangleAlert aria-hidden="true" />
-              <AlertTitle>Backup gagal</AlertTitle>
-              <AlertDescription>{backupErrorLabel(activeJob.errorCode)}</AlertDescription>
-            </Alert>
-          ) : null}
-          {phase === 'error' && runError ? (
-            <Alert variant="destructive">
-              <TriangleAlert aria-hidden="true" />
-              <AlertTitle>Backup terhenti</AlertTitle>
-              <AlertDescription>{runError}</AlertDescription>
-            </Alert>
-          ) : null}
-        </CardContent>
+          {phase === 'failed' && activeJob?.errorCode ? <FailureCallout title="Backup gagal">{backupErrorLabel(activeJob.errorCode)}</FailureCallout> : null}
+          {phase === 'error' && runError ? <FailureCallout title="Backup terhenti">{runError}</FailureCallout> : null}
+        </div>
+      </SectionCard>
 
-        <CardFooter className="flex flex-wrap gap-2">
-          {busy ? (
-            <Button variant="outline" onClick={pause} disabled={phase !== 'running'}>
-              {phase === 'pausing' ? <Spinner data-icon="inline-start" /> : <Pause data-icon="inline-start" />}
-              {phase === 'pausing' ? 'Menjeda…' : 'Jeda'}
-            </Button>
-          ) : (
-            <Button onClick={() => void start()} disabled={!configured || list.isPending || list.isError}>
-              {canResume ? <Play data-icon="inline-start" /> : <DatabaseBackup data-icon="inline-start" />}
-              {primaryLabel}
-            </Button>
-          )}
-          {busy && phase !== 'pausing' ? (
-            <span className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Spinner aria-hidden="true" /> Memproses…
-            </span>
-          ) : null}
-        </CardFooter>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h2 className="text-base font-medium">Riwayat backup</h2>
-          </CardTitle>
-          <CardDescription>20 backup terbaru yang belum kedaluwarsa.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {list.isPending ? (
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-            </div>
-          ) : list.isError ? (
-            <Alert variant="destructive">
-              <TriangleAlert aria-hidden="true" />
-              <AlertTitle>Gagal memuat data backup</AlertTitle>
-              <AlertDescription>
-                <p>{errorMessage(list.error)}</p>
-                <Button variant="outline" size="sm" onClick={() => void list.refetch()} disabled={list.isFetching}>
-                  <RefreshCw data-icon="inline-start" />
-                  Coba lagi
-                </Button>
-              </AlertDescription>
-            </Alert>
-          ) : jobs.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              {configured ? 'Belum ada backup. Buat backup pertama dengan tombol di atas.' : 'Belum ada backup.'}
-            </p>
-          ) : (
-            <BackupHistory jobs={jobs} />
-          )}
-        </CardContent>
-      </Card>
+      <SectionCard headingLevel="h3" title="Riwayat backup" description="20 backup terbaru yang belum kedaluwarsa." flush>
+        {list.isPending ? (
+          <div className="flex flex-col gap-2 p-5">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ) : list.isError ? (
+          <ErrorState error={list.error} title="Gagal memuat data backup" size="inline" onRetry={() => void list.refetch()} retrying={list.isFetching} />
+        ) : jobs.length === 0 ? (
+          <EmptyState
+            icon={History}
+            size="inline"
+            title="Belum ada backup"
+            description={configured ? 'Buat backup pertama dengan tombol di atas.' : undefined}
+          />
+        ) : (
+          <BackupHistory jobs={jobs} />
+        )}
+      </SectionCard>
     </div>
   );
 }
 
+function FailureCallout({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div role="alert" className={cn('flex gap-2.5 rounded-lg border p-3 text-sm', TONE_CLASSES.rejected.badge)}>
+      <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      <div className="flex flex-col gap-0.5">
+        <p className="font-medium">{title}</p>
+        <p className="text-foreground">{children}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Registry badge, except a RUNNING job this tab is not driving, which reads "Dijeda". */
+function JobStatus({ job, paused }: { job: BackupJob; paused?: boolean }) {
+  if (paused) {
+    return (
+      <Badge variant="outline" className={TONE_CLASSES.neutral.badge}>
+        <Pause data-icon="inline-start" aria-hidden="true" />
+        Dijeda
+      </Badge>
+    );
+  }
+  return <StatusBadge domain="backup" status={job.status} />;
+}
+
 function BackupProgress({ job, phase }: { job: BackupJob; phase: Phase }) {
   const percent = backupProgressPercent(job);
-  const stateLabel =
-    job.status === 'RUNNING' && !BUSY_PHASES.has(phase) ? 'Dijeda' : BACKUP_STATUS_LABEL[job.status];
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-3">
+    <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-medium" id={`backup-progress-${job.id}`}>
-          {formatCount(job.tablesCompleted)} dari {formatCount(job.totalTables)} tabel
+        <span className="text-sm font-medium tabular-nums" id={`backup-progress-${job.id}`}>
+          {formatCount(job.tablesCompleted)} dari {formatCount(job.totalTables)} tabel · {percent}%
         </span>
-        <StatusBadge status={job.status} label={stateLabel} />
+        <JobStatus job={job} paused={job.status === 'RUNNING' && !BUSY_PHASES.has(phase)} />
       </div>
       <Progress value={percent} aria-labelledby={`backup-progress-${job.id}`} />
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
         <div>
-          <dt className="text-muted-foreground">Tabel saat ini</dt>
+          <dt className="text-eyebrow text-muted-foreground uppercase">Tabel saat ini</dt>
           <dd className="truncate font-mono text-xs leading-5">{job.currentTable ?? '-'}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Baris</dt>
+          <dt className="text-eyebrow text-muted-foreground uppercase">Baris</dt>
           <dd className="tabular-nums">{formatCount(job.rowCount)}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Ukuran</dt>
+          <dt className="text-eyebrow text-muted-foreground uppercase">Ukuran</dt>
           <dd className="tabular-nums">{formatBytes(job.byteCount)}</dd>
         </div>
       </dl>
       {phase === 'limit' ? (
-        <p className="text-xs text-muted-foreground">
-          Satu sesi dibatasi {formatCount(MAX_STEP_ITERATIONS)} langkah demi keamanan.
-        </p>
+        <p className="text-xs text-muted-foreground">Satu sesi dibatasi {formatCount(MAX_STEP_ITERATIONS)} langkah demi keamanan.</p>
       ) : null}
     </div>
   );
 }
 
-const STATUS_ICON: Record<BackupStatus, typeof Clock> = {
-  RUNNING: Clock,
-  DONE: CircleCheck,
-  FAILED: TriangleAlert,
-};
-
-function StatusBadge({ status, label }: { status: BackupStatus; label?: string }) {
-  const Icon = STATUS_ICON[status];
+function FilesToggle({ job, open, panelId, onToggle }: { job: BackupJob; open: boolean; panelId: string; onToggle: () => void }) {
   return (
-    <Badge variant={status === 'FAILED' ? 'destructive' : status === 'DONE' ? 'secondary' : 'outline'}>
-      <Icon data-icon="inline-start" aria-hidden="true" />
-      {label ?? BACKUP_STATUS_LABEL[status]}
-    </Badge>
+    <Button variant="ghost" size="sm" aria-expanded={open} aria-controls={open ? panelId : undefined} onClick={onToggle}>
+      File ({formatCount(job.parts.length)})
+      <ChevronDown data-icon="inline-end" aria-hidden="true" className={cn('transition-transform motion-reduce:transition-none', open && 'rotate-180')} />
+    </Button>
   );
 }
 
+/** Table on md+, one card per job on phones; both expand the same file list. */
 function BackupHistory({ jobs }: { jobs: readonly BackupJob[] }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const toggle = (id: string) => setExpanded((current) => (current === id ? null : id));
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Dimulai</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Tabel</TableHead>
-          <TableHead className="text-right">Baris</TableHead>
-          <TableHead className="text-right">Ukuran</TableHead>
-          <TableHead>Kedaluwarsa</TableHead>
-          <TableHead>
-            <span className="sr-only">File</span>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+    <>
+      <div className="max-md:hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="pl-5">Dimulai</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Tabel</TableHead>
+              <TableHead className="text-right">Baris</TableHead>
+              <TableHead className="text-right">Ukuran</TableHead>
+              <TableHead>Kedaluwarsa</TableHead>
+              <TableHead className="pr-5">
+                <span className="sr-only">File</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {jobs.map((job) => {
+              const open = expanded === job.id;
+              const expired = isBackupExpired(job.purgeAfter);
+              const panelId = `backup-files-${job.id}`;
+              return (
+                <Fragment key={job.id}>
+                  <TableRow>
+                    <TableCell className="pl-5">
+                      <div className="flex flex-col">
+                        <span>{formatDateTimeWITA(job.startedAt)}</span>
+                        {job.startedBy?.nama ? <span className="text-xs text-muted-foreground">oleh {job.startedBy.nama}</span> : null}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <JobStatus job={job} />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatCount(job.tablesCompleted)}/{formatCount(job.totalTables)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCount(job.rowCount)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatBytes(job.byteCount)}</TableCell>
+                    <TableCell className="text-muted-foreground">{expired ? 'Kedaluwarsa' : formatCountdown(job.purgeAfter)}</TableCell>
+                    <TableCell className="pr-5 text-right">
+                      <FilesToggle job={job} open={open} panelId={panelId} onToggle={() => toggle(job.id)} />
+                    </TableCell>
+                  </TableRow>
+                  {open ? (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={7} className="bg-muted/40 px-5 whitespace-normal">
+                        <BackupFiles job={job} expired={expired} id={panelId} />
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </Fragment>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      <ul className="divide-y md:hidden">
         {jobs.map((job) => {
           const open = expanded === job.id;
           const expired = isBackupExpired(job.purgeAfter);
-          const panelId = `backup-files-${job.id}`;
+          const panelId = `backup-files-m-${job.id}`;
           return (
-            <Fragment key={job.id}>
-              <TableRow>
-                <TableCell>
-                  <div className="flex flex-col">
-                    <span>{formatDateTimeWITA(job.startedAt)}</span>
-                    {job.startedBy?.nama ? (
-                      <span className="text-xs text-muted-foreground">oleh {job.startedBy.nama}</span>
-                    ) : null}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={job.status} />
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatCount(job.tablesCompleted)}/{formatCount(job.totalTables)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">{formatCount(job.rowCount)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatBytes(job.byteCount)}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {expired ? 'Kedaluwarsa' : formatCountdown(job.purgeAfter)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-expanded={open}
-                    aria-controls={open ? panelId : undefined}
-                    onClick={() => setExpanded(open ? null : job.id)}
-                  >
-                    File ({formatCount(job.parts.length)})
-                    <ChevronDown
-                      data-icon="inline-end"
-                      aria-hidden="true"
-                      className={open ? 'rotate-180 transition-transform' : 'transition-transform'}
-                    />
-                  </Button>
-                </TableCell>
-              </TableRow>
+            <li key={job.id} className="flex flex-col gap-3 px-5 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-col">
+                  <span className="text-sm font-medium">{formatDateTimeWITA(job.startedAt)}</span>
+                  {job.startedBy?.nama ? <span className="text-xs text-muted-foreground">oleh {job.startedBy.nama}</span> : null}
+                </div>
+                <JobStatus job={job} />
+              </div>
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {formatCount(job.tablesCompleted)}/{formatCount(job.totalTables)} tabel · {formatCount(job.rowCount)} baris · {formatBytes(job.byteCount)} ·{' '}
+                {expired ? 'kedaluwarsa' : `dihapus ${formatCountdown(job.purgeAfter)}`}
+              </p>
+              <div>
+                <FilesToggle job={job} open={open} panelId={panelId} onToggle={() => toggle(job.id)} />
+              </div>
               {open ? (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={7} className="bg-muted/40 whitespace-normal">
-                    <BackupFiles job={job} expired={expired} id={panelId} />
-                  </TableCell>
-                </TableRow>
+                <div className="rounded-lg bg-muted/40 px-3">
+                  <BackupFiles job={job} expired={expired} id={panelId} />
+                </div>
               ) : null}
-            </Fragment>
+            </li>
           );
         })}
-      </TableBody>
-    </Table>
+      </ul>
+    </>
   );
 }
 
@@ -422,19 +409,15 @@ function BackupFiles({ job, expired, id }: { job: BackupJob; expired: boolean; i
   const errorLabel = backupErrorLabel(job.errorCode);
   const manifest = manifestUrl(job.id);
   return (
-    <div id={id} className="flex flex-col gap-3 py-1">
-      {expired ? (
-        <p className="text-sm text-muted-foreground">File backup ini sudah kedaluwarsa dan tidak dapat diunduh.</p>
-      ) : null}
+    <div id={id} className="flex flex-col gap-3 py-3">
+      {expired ? <p className="text-sm text-muted-foreground">File backup ini sudah kedaluwarsa dan tidak dapat diunduh.</p> : null}
       {job.status === 'FAILED' && errorLabel ? <p className="text-sm text-destructive">{errorLabel}</p> : null}
       {job.status === 'RUNNING' ? (
-        <p className="text-sm text-muted-foreground">
-          Backup belum selesai; bagian di bawah belum lengkap dan manifest belum tersedia.
-        </p>
+        <p className="text-sm text-muted-foreground">Backup belum selesai; bagian di bawah belum lengkap dan manifest belum tersedia.</p>
       ) : null}
       {job.status === 'DONE' && !expired && manifest ? (
         <div>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" className="bg-card" asChild>
             <a href={manifest} download>
               <FileJson data-icon="inline-start" aria-hidden="true" />
               Unduh manifest

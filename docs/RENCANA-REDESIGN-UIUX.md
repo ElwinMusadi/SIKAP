@@ -2,7 +2,7 @@
 
 Disusun 21 Oktober 2026 dari tiga sumber: (1) penelusuran visual aplikasi lokal dengan data fiktif (`scripts/dev-seed.mjs`) di desktop 1440 px dan ponsel 375 px, (2) audit kode `src/` (±15 ribu baris, 13 fitur), (3) perbandingan dengan proyek lain pemilik (PINTU `portal-uptdkotakupang`, `laravel-finance-tracker`, `SIP-IKP`, `kalkulator-pajak`) serta mockup `UIUX Stitch/` dan `Blueprint Product/Step 06`.
 
-Status: semua keputusan §11 disetujui pemilik (21 Okt 2026). **Fase 0–4 selesai di branch `feat/redesign-uiux`** (belum dirilis), fase 5–6 belum. Produksi hidup, jadi redesign hanya menyentuh frontend (`src/`), tanpa perubahan API, skema D1, atau perilaku bisnis.
+Status: semua keputusan §11 disetujui pemilik (21 Okt 2026). **Fase 0–5 selesai di branch `feat/redesign-uiux`** (belum dirilis), fase 6 belum. Produksi hidup, jadi redesign hanya menyentuh frontend (`src/`), tanpa perubahan API, skema D1, atau perilaku bisnis.
 
 Catatan implementasi fase 0–1:
 
@@ -48,6 +48,18 @@ Catatan implementasi fase 4 (layar pegawai, tanpa perubahan API):
 | Login | Foto kantor dengan overlay tinta (token tetap `ink`, tidak ikut mode gelap), "SIKAP" display, kartu `shadow-pop` dengan `h1`, input 40 px, petunjuk lupa password. Di ponsel lambang di atas |
 
 Perbaikan pola: `StickySaveBar` hanya menempel saat ada perubahan dan teks statusnya tidak lagi menimpa tombol di layar sempit; `SectionCard` punya `wideAction` (aksi berlabel pindah ke bawah deskripsi di ponsel); `SelectControl` meneruskan `ref` agar select yang tidak valid mendapat fokus; sheet pratinjau dokumen dan form pegawai kini selebar layar di ponsel. QA: tanpa overflow horizontal di 375 px, tata letak 1440 px diukur, dan pemindaian kontras otomatis seluruh teks keempat layar lolos AA di terang dan gelap. Tes baru: `pegawai-tasks` (3) dan ringkasan dokumen di `dokumen-utils` (3).
+
+Catatan implementasi fase 5 (layar admin sekunder, tanpa perubahan API):
+
+| Layar | Isi |
+|---|---|
+| Pengajuan Perubahan | Tab status dengan hitungan, `DataTable` (pegawai, data yang diubah sebagai chip, diajukan, status + tanda "Data berubah"), kartu di ponsel. **Sheet tinjauan**: alasan pegawai, diff berdampingan lama → diajukan (`PerubahanDiff`), riwayat tinjauan, tautan ke data pegawai, tombol **Tolak** merah / **Setujui** hijau seragam dengan Verifikasi; tolak memakai `FormDialog` |
+| Log Aktivitas | `FilterBar` (cari, Kategori, Hasil) + **`DateRangePicker`** baru (preset Hari ini/7/30 hari, Terapkan/Hapus), `DataTable` rapat dengan ikon kategori dan `StatusBadge` domain `log`, kartu di ponsel, "Muat lebih banyak" tetap. Kode aksi server kini dipetakan ke kategori dan diberi nama yang terbaca ("Setujui pengajuan"); kode mentah tetap di tooltip |
+| Jenis Dokumen | `FilterBar` sisi klien (cari nama/ID, Kategori, Wajib untuk, Status), `DataTable` dengan urutan, **matriks wajib** berupa chip bertanda centang per status kepegawaian; di dialog, pilihan wajib berupa kartu. Logika simpan/409/konfirmasi tidak berubah |
+| Pengaturan Sistem | Navigasi seksi di kiri (vertikal ≥1024 px, gulir horizontal di ponsel), seksi bisa ditautkan dengan `?bagian=whatsapp|referensi|backup`. Referensi: tiga `DataTable` + kartu ponsel. Backup: status dari registri (domain `backup`), riwayat berupa tabel di desktop dan kartu di ponsel, callout menggantikan Alert |
+| 404 / 403 / galat | `StatusPage` (`src/components/status-page.tsx`): ilustrasi garis tipis, kode kecil, tombol Kembali/Ke Beranda; dipakai `NotFound`, `RequireRole`, dan galat rute |
+
+Perbaikan pola: wrapper shadcn `Tabs` kini meneruskan `orientation` ke Radix (sebelumnya hanya atribut data, sehingga tombol panah dan `aria-orientation` selalu horizontal). Registri status bertambah domain `log` dan `backup`. QA: alur setujui pengajuan diuji ujung ke ujung dengan data fiktif lokal, filter rentang tanggal tersimpan di URL, pemindaian kontras otomatis semua layar fase 5 lolos AA di terang dan gelap. Tes baru: registri (2 domain), `filterJenis` (2), nama/kategori aksi log (1).
 
 ---
 

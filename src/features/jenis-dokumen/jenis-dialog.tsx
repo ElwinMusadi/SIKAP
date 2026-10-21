@@ -337,15 +337,19 @@ function JenisFormBody({ state, latest, nextUrutan, onRefetch, onClose, kategori
         <FieldSet disabled={busy} data-invalid={errors.wajibUntuk ? true : undefined}>
           <FieldLegend variant="label">Wajib untuk status kepegawaian</FieldLegend>
           <FieldDescription>Kosongkan jika dokumen bersifat opsional untuk semua pegawai.</FieldDescription>
-          <FieldGroup data-slot="checkbox-group" className="flex-row flex-wrap gap-x-6">
+          <FieldGroup data-slot="checkbox-group" className="grid grid-cols-3 gap-2">
             {STATUS_KEPEGAWAIAN.map((status) => (
-              <Field key={status} orientation="horizontal" className="w-auto">
+              <Field
+                key={status}
+                orientation="horizontal"
+                className="rounded-lg border px-3 py-2.5 has-data-[state=checked]:border-primary/40 has-data-[state=checked]:bg-accent-soft"
+              >
                 <Checkbox
                   id={`${id}-wajib-${status}`}
                   checked={form.wajibUntuk.includes(status)}
                   onCheckedChange={(checked) => toggleStatus(status, checked === true)}
                 />
-                <FieldLabel htmlFor={`${id}-wajib-${status}`} className="font-normal">{status}</FieldLabel>
+                <FieldLabel htmlFor={`${id}-wajib-${status}`} className="font-medium">{status}</FieldLabel>
               </Field>
             ))}
           </FieldGroup>

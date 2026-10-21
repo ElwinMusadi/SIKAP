@@ -9,8 +9,10 @@ function Tabs({
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Root>) {
   return (
+    // orientation must reach Radix too (arrow-key direction, aria-orientation), not only the data attribute.
     <TabsPrimitive.Root
       data-slot="tabs"
+      orientation={orientation}
       data-orientation={orientation}
       className={cn(
         "group/tabs flex gap-2 data-horizontal:flex-col",

@@ -2,16 +2,19 @@
 // label, one tone and one icon here, so the same word never changes colour or icon between screens.
 // Red is reserved for failed/rejected states; "not yet uploaded"/inactive/cancelled are neutral.
 import {
+  CircleAlert,
   CircleCheck,
   CircleDashed,
   CircleMinus,
   CircleX,
   Clock,
   RotateCcw,
+  TriangleAlert,
   Undo2,
   type LucideIcon,
 } from 'lucide-react';
-import type { StatusAkun, StatusDokumen, StatusPengajuan } from '@shared/enums';
+import type { BackupStatus } from '@shared/backup';
+import type { LogResult, StatusAkun, StatusDokumen, StatusPengajuan } from '@shared/enums';
 import type { Kelengkapan } from '@shared/pegawai';
 
 export type StatusTone = 'verified' | 'pending' | 'rejected' | 'neutral';
@@ -89,6 +92,19 @@ export const STATUS_REGISTRY = {
     Aktif: { label: 'Aktif', tone: 'verified', icon: CircleCheck },
     Nonaktif: { label: 'Nonaktif', tone: 'neutral', icon: CircleMinus },
   },
+  /** Backup job status (BackupStatus codes). */
+  backup: {
+    RUNNING: { label: 'Belum selesai', tone: 'pending', icon: Clock },
+    DONE: { label: 'Selesai', tone: 'verified', icon: CircleCheck },
+    FAILED: { label: 'Gagal', tone: 'rejected', icon: CircleX },
+  },
+  /** Audit log result (LOG_RESULT codes). */
+  log: {
+    SUCCESS: { label: 'Berhasil', tone: 'verified', icon: CircleCheck },
+    FAILURE: { label: 'Gagal', tone: 'rejected', icon: CircleX },
+    WARNING: { label: 'Peringatan', tone: 'pending', icon: TriangleAlert },
+    PARTIAL: { label: 'Sebagian', tone: 'pending', icon: CircleAlert },
+  },
 } as const satisfies {
   dokumen: Record<DokumenStatus, StatusSpec>;
   pengajuan: Record<StatusPengajuan, StatusSpec>;
@@ -96,6 +112,8 @@ export const STATUS_REGISTRY = {
   kelengkapan: Record<Kelengkapan, StatusSpec>;
   hasil: Record<HasilStatus, StatusSpec>;
   aktif: Record<AktifStatus, StatusSpec>;
+  backup: Record<BackupStatus, StatusSpec>;
+  log: Record<LogResult, StatusSpec>;
 };
 
 export type StatusDomain = keyof typeof STATUS_REGISTRY;

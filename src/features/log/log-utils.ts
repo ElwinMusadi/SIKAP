@@ -90,10 +90,73 @@ export function actorLabel(actor: LogItem['actor']): { name: string; detail: str
   return { name: 'Sistem', detail: null };
 }
 
-/** "dokumen.approve" -> "Dokumen · approve" for readability; the raw code stays available as a title. */
+/** Action-code prefixes per category. Keep in sync with LOG_CATEGORY_PREFIXES in server/services/administrasi.ts. */
+const CATEGORY_PREFIXES: Record<LogCategory, readonly string[]> = {
+  auth: ['LOGIN', 'LOGOUT', 'PASSWORD', 'SESSION', 'ACCOUNT'],
+  pegawai: ['PEGAWAI', 'PROFILE', 'FOTO'],
+  dokumen: ['DOKUMEN'],
+  pengajuan: ['PENGAJUAN'],
+  sistem: ['CONFIG', 'WA', 'BACKUP', 'REF', 'JENIS'],
+};
+
+/** Readable names for the audit action codes the server writes; the raw code stays available as a title. */
+const ACTION_LABELS: Record<string, string> = {
+  LOGIN: 'Masuk',
+  LOGOUT: 'Keluar',
+  LOGIN_FAILED: 'Gagal masuk',
+  LOGIN_RATE_LIMITED: 'Percobaan masuk dibatasi',
+  ACCOUNT_LOCKED: 'Akun terkunci',
+  ACCOUNT_UNLOCK: 'Buka kunci akun',
+  PASSWORD_CHANGE: 'Ganti password',
+  PASSWORD_RESET: 'Reset password',
+  SESSION_REVOKE: 'Keluarkan sesi',
+  SESSION_REVOKE_OTHERS: 'Keluarkan sesi lain',
+  PEGAWAI_CREATE: 'Tambah pegawai',
+  PEGAWAI_UPDATE: 'Ubah data pegawai',
+  PEGAWAI_DEACTIVATE: 'Nonaktifkan akun',
+  PEGAWAI_REACTIVATE: 'Aktifkan akun',
+  PEGAWAI_DELETE: 'Hapus pegawai',
+  PEGAWAI_RESTORE: 'Pulihkan pegawai',
+  PROFILE_UPDATE: 'Ubah profil',
+  FOTO_PROFIL_UPLOAD: 'Unggah foto profil',
+  DOKUMEN_UPLOAD: 'Unggah dokumen',
+  DOKUMEN_REUPLOAD: 'Unggah ulang dokumen',
+  DOKUMEN_APPROVE: 'Setujui dokumen',
+  DOKUMEN_REJECT: 'Tolak dokumen',
+  DOKUMEN_DELETE: 'Hapus dokumen',
+  DOKUMEN_RESTORE: 'Pulihkan dokumen',
+  DOKUMEN_ROLLBACK: 'Pulihkan versi dokumen',
+  PENGAJUAN_CREATE: 'Ajukan perubahan data',
+  PENGAJUAN_CANCEL: 'Batalkan pengajuan',
+  PENGAJUAN_APPROVE: 'Setujui pengajuan',
+  PENGAJUAN_REJECT: 'Tolak pengajuan',
+  REF_CREATE: 'Tambah data referensi',
+  REF_UPDATE: 'Ubah data referensi',
+  JENIS_DOKUMEN_CREATE: 'Tambah jenis dokumen',
+  JENIS_DOKUMEN_UPDATE: 'Ubah jenis dokumen',
+  CONFIG_UPDATE: 'Ubah pengaturan',
+  WA_TEST: 'Uji pesan WhatsApp',
+  BACKUP_CREATE: 'Mulai backup',
+  BACKUP_DONE: 'Backup selesai',
+  BACKUP_FAILED: 'Backup gagal',
+};
+
+/** Category of an action code ("PENGAJUAN_APPROVE" → pengajuan; also "dokumen.approve"). */
+export function actionCategory(action: string): LogCategory | null {
+  const head = action.split(/[._:]/)[0] ?? '';
+  const upper = head.toUpperCase();
+  for (const category of LOG_CATEGORIES) {
+    if (CATEGORY_PREFIXES[category].includes(upper)) return category;
+  }
+  return pick(head, LOG_CATEGORIES);
+}
+
+/** "DOKUMEN_APPROVE" → "Setujui dokumen"; unknown codes → "Dokumen · approve"; anything else unchanged. */
 export function actionLabel(action: string): string {
-  const [prefix, ...rest] = action.split(/[._:]/);
-  const category = pick(prefix ?? null, LOG_CATEGORIES);
+  const known = ACTION_LABELS[action];
+  if (known) return known;
+  const [, ...rest] = action.split(/[._:]/);
+  const category = actionCategory(action);
   if (!category || rest.length === 0) return action;
-  return `${CATEGORY_LABELS[category]} · ${rest.join(' ')}`;
+  return `${CATEGORY_LABELS[category]} · ${rest.join(' ').toLowerCase()}`;
 }

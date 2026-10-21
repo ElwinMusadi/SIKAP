@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { STATUS_AKUN, STATUS_DOKUMEN, STATUS_PENGAJUAN } from '@shared/enums';
+import { LOG_RESULT, STATUS_AKUN, STATUS_DOKUMEN, STATUS_PENGAJUAN } from '@shared/enums';
 import { KELENGKAPAN } from '@shared/pegawai';
+import { BACKUP_STATUS_LABEL } from '@/features/backup/backup-utils';
 import { STATUS_REGISTRY, TONE_CLASSES, statusSpec } from './status';
 
 describe('status registry', () => {
@@ -9,6 +10,11 @@ describe('status registry', () => {
     expect(Object.keys(STATUS_REGISTRY.pengajuan).sort()).toEqual([...STATUS_PENGAJUAN].sort());
     expect(Object.keys(STATUS_REGISTRY.akun).sort()).toEqual([...STATUS_AKUN].sort());
     expect(Object.keys(STATUS_REGISTRY.kelengkapan).sort()).toEqual([...KELENGKAPAN].sort());
+    expect(Object.keys(STATUS_REGISTRY.log).sort()).toEqual([...LOG_RESULT].sort());
+    expect(Object.keys(STATUS_REGISTRY.backup).sort()).toEqual(Object.keys(BACKUP_STATUS_LABEL).sort());
+    for (const [status, label] of Object.entries(BACKUP_STATUS_LABEL)) {
+      expect(statusSpec('backup', status as keyof typeof BACKUP_STATUS_LABEL).label).toBe(label);
+    }
   });
 
   it('uses only known tones with literal classes', () => {

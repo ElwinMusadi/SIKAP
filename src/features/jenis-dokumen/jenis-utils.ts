@@ -139,3 +139,26 @@ export function isFormDirty(form: JenisForm, initial: JenisForm): boolean {
     !sameStatuses(form.wajibUntuk, initial.wajibUntuk)
   );
 }
+
+export interface JenisFilters {
+  q: string;
+  kategori: string | null;
+  /** 'aktif' | 'nonaktif' */
+  status: string | null;
+  /** A status kepegawaian the type must be mandatory for. */
+  wajib: string | null;
+}
+
+export const EMPTY_JENIS_FILTERS: JenisFilters = { q: '', kategori: null, status: null, wajib: null };
+
+/** Client-side filtering of the (small) jenis list: search in nama/ID, then the facets. */
+export function filterJenis(items: readonly AdminJenisDokumen[], filters: JenisFilters): AdminJenisDokumen[] {
+  const q = filters.q.trim().toLowerCase();
+  return items.filter(
+    (item) =>
+      (!q || item.nama.toLowerCase().includes(q) || item.id.toLowerCase().includes(q)) &&
+      (!filters.kategori || item.kategori === filters.kategori) &&
+      (!filters.status || (filters.status === 'aktif') === item.aktif) &&
+      (!filters.wajib || (item.wajibUntuk as string[]).includes(filters.wajib)),
+  );
+}

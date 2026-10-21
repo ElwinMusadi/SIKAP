@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { Check, Inbox, RefreshCw, TriangleAlert, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Check, ChevronRight, FileClock, Inbox, ShieldAlert, TriangleAlert, X } from 'lucide-react';
+import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { STATUS_PENGAJUAN, type StatusPengajuan } from '@shared/enums';
-import { rejectPengajuanRequestSchema, type AdminPengajuanItem, type RefResponse } from '@shared/profile';
+import { KEPEGAWAIAN_LABELS, rejectPengajuanRequestSchema, type AdminPengajuanItem, type RefResponse } from '@shared/profile';
+import { DataTable, SortableHeader, columnHelper, type DataTableColumn } from '@/components/data-table/data-table';
+import { FormDialog } from '@/components/form-patterns';
 import { PageHeader } from '@/components/page-header';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,31 +16,22 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useMe } from '@/features/auth/queries';
 import { Textarea } from '@/components/ui/textarea';
-import { PengajuanStatusBadge, PerubahanTable } from '@/features/pengajuan/pengajuan-ui';
+import { useMe } from '@/features/auth/queries';
+import { PengajuanStatusBadge, PerubahanDiff, perubahanEntries } from '@/features/pengajuan/pengajuan-ui';
 import { useAdminPengajuan, useApprovePengajuan, useRefData, useRejectPengajuan } from '@/features/profil/queries';
 import { errorMessage, isApiError } from '@/lib/api';
-import { formatDateTimeWITA, formatRelative } from '@/lib/format';
+import { formatDateTimeWITA, formatRelative, initials } from '@/lib/format';
+import { TONE_CLASSES } from '@/lib/status';
+import { cn } from '@/lib/utils';
 
 const CATATAN_MAX = 500;
 /** Server returns at most this many rows per status (newest first). */
@@ -56,61 +49,151 @@ function reviewErrorMessage(error: unknown): string {
   return errorMessage(error);
 }
 
+const col = columnHelper<AdminPengajuanItem>();
+
+/** Changed field names as small chips (max three, then "+n"). */
+function ChangedFields({ item }: { item: AdminPengajuanItem }) {
+  const fields = perubahanEntries(item.perubahan).map((entry) => KEPEGAWAIAN_LABELS[entry.field]);
+  const shown = fields.slice(0, 3);
+  return (
+    <div className="flex flex-wrap gap-1">
+      {shown.map((label) => (
+        <Badge key={label} variant="secondary" className="font-normal">
+          {label}
+        </Badge>
+      ))}
+      {fields.length > shown.length ? (
+        <Badge variant="outline" className="font-normal text-muted-foreground" title={fields.slice(3).join(', ')}>
+          +{fields.length - shown.length}
+        </Badge>
+      ) : null}
+    </div>
+  );
+}
+
+function PegawaiCell({ item }: { item: AdminPengajuanItem }) {
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <Avatar className="size-8 shrink-0">
+        <AvatarFallback className="text-xs">{initials(item.pegawai.nama)}</AvatarFallback>
+      </Avatar>
+      <div className="flex min-w-0 flex-col">
+        <span className="truncate font-medium text-foreground">{item.pegawai.nama}</span>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {item.pegawai.nip}
+          {item.pegawai.statusKepegawaian ? ` · ${item.pegawai.statusKepegawaian}` : ''}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function StaleBadge() {
+  return (
+    <Badge variant="outline" className={TONE_CLASSES.pending.badge} title="Data pegawai sudah berubah sejak pengajuan dibuat">
+      <TriangleAlert data-icon="inline-start" aria-hidden="true" />
+      Data berubah
+    </Badge>
+  );
+}
+
 export default function AdminPengajuanPage() {
   const [status, setStatus] = useState<StatusPengajuan>('Menunggu');
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const query = useAdminPengajuan(status);
   const refQuery = useRefData();
   const counts = query.data?.counts;
-  const showSkeleton = query.isPending || query.isPlaceholderData;
+  const loading = query.isPending || query.isPlaceholderData;
   const { data: me } = useMe();
+  const items = loading ? undefined : query.data?.items;
+  const selected = items?.find((item) => item.id === selectedId) ?? null;
 
-  const panel = showSkeleton ? (
-    <div className="flex flex-col gap-4" aria-busy="true" aria-label="Memuat pengajuan">
-      {[0, 1].map((i) => (
-        <Card key={i}>
-          <CardHeader>
-            <Skeleton className="h-5 w-56" />
-            <Skeleton className="h-4 w-40" />
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <Skeleton className="h-4 w-full max-w-lg" />
-            <Skeleton className="h-24 w-full" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  ) : query.isError ? (
-    <Alert variant="destructive" role="alert">
-      <TriangleAlert />
-      <AlertTitle>Gagal memuat pengajuan</AlertTitle>
-      <AlertDescription>
-        <p>{errorMessage(query.error)}</p>
-        <Button size="sm" variant="outline" className="mt-2" onClick={() => void query.refetch()}>
-          <RefreshCw data-icon="inline-start" />
-          Coba lagi
-        </Button>
-      </AlertDescription>
-    </Alert>
-  ) : query.data.items.length === 0 ? (
-    <Empty className="border border-dashed">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <Inbox />
-        </EmptyMedia>
-        <EmptyTitle>{EMPTY_COPY[status].title}</EmptyTitle>
-        <EmptyDescription>{EMPTY_COPY[status].description}</EmptyDescription>
-      </EmptyHeader>
-    </Empty>
-  ) : (
-    <div className="flex flex-col gap-4">
-      <ul className="flex flex-col gap-4">
-        {query.data.items.map((item) => (
-          <li key={item.id}>
-            <PengajuanCard item={item} refData={refQuery.data} isOwn={me?.id === item.pegawai.id} />
-          </li>
-        ))}
-      </ul>
-      {status !== 'Menunggu' && query.data.items.length >= LIST_CAP ? (
+  const columns = useMemo<DataTableColumn<AdminPengajuanItem>[]>(
+    () => [
+      col.accessor((row) => row.pegawai.nama, {
+        id: 'pegawai',
+        header: ({ column }) => <SortableHeader column={column} title="Pegawai" />,
+        cell: ({ row }) => <PegawaiCell item={row.original} />,
+      }),
+      col.display({
+        id: 'perubahan',
+        header: 'Data yang diubah',
+        meta: { cellClassName: 'whitespace-normal' },
+        cell: ({ row }) => <ChangedFields item={row.original} />,
+      }),
+      col.accessor('createdAt', {
+        id: 'createdAt',
+        header: ({ column }) => <SortableHeader column={column} title="Diajukan" />,
+        sortFn: 'datetime',
+        meta: { headerClassName: 'hidden lg:table-cell', cellClassName: 'hidden lg:table-cell' },
+        cell: (info) => (
+          <time dateTime={info.getValue()} title={formatDateTimeWITA(info.getValue())} className="text-sm text-muted-foreground">
+            {formatRelative(info.getValue())}
+          </time>
+        ),
+      }),
+      col.accessor('status', {
+        header: 'Status',
+        cell: ({ row }) => (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <PengajuanStatusBadge status={row.original.status} />
+            {row.original.stale && row.original.status === 'Menunggu' ? <StaleBadge /> : null}
+          </div>
+        ),
+      }),
+      col.display({
+        id: 'aksi',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { headerClassName: 'w-28', cellClassName: 'text-right' },
+        cell: ({ row }) => (
+          <Button
+            size="sm"
+            variant={row.original.status === 'Menunggu' ? 'outline' : 'ghost'}
+            onClick={(event) => {
+              event.stopPropagation();
+              setSelectedId(row.original.id);
+            }}
+          >
+            {row.original.status === 'Menunggu' ? 'Tinjau' : 'Lihat'}
+            <ChevronRight data-icon="inline-end" />
+          </Button>
+        ),
+      }),
+    ],
+    [],
+  );
+
+  const table = (
+    <div className="flex flex-col gap-3">
+      <DataTable
+        label={`Pengajuan ${status.toLowerCase()}`}
+        data={items}
+        columns={columns}
+        getRowId={(row) => String(row.id)}
+        loading={loading}
+        error={query.isError ? query.error : undefined}
+        onRetry={() => void query.refetch()}
+        empty={{ icon: Inbox, ...EMPTY_COPY[status] }}
+        onRowClick={(row) => setSelectedId(row.id)}
+        mobileCard={(item) => (
+          <button
+            type="button"
+            onClick={() => setSelectedId(item.id)}
+            className="flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-left shadow-card outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <PegawaiCell item={item} />
+              <PengajuanStatusBadge status={item.status} className="shrink-0" />
+            </div>
+            <ChangedFields item={item} />
+            <span className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              Diajukan {formatRelative(item.createdAt)}
+              {item.stale && item.status === 'Menunggu' ? <StaleBadge /> : null}
+            </span>
+          </button>
+        )}
+      />
+      {status !== 'Menunggu' && (items?.length ?? 0) >= LIST_CAP ? (
         <p className="text-center text-sm text-muted-foreground">Menampilkan {LIST_CAP} pengajuan terbaru.</p>
       ) : null}
     </div>
@@ -118,21 +201,30 @@ export default function AdminPengajuanPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Pengajuan Perubahan Data"
-        description="Tinjau pengajuan perubahan data kepegawaian dari pegawai."
-      />
+      <PageHeader title="Pengajuan Perubahan Data" description="Tinjau pengajuan perubahan data kepegawaian dari pegawai." />
 
-      <Tabs value={status} onValueChange={(value) => setStatus(value as StatusPengajuan)} className="gap-6">
+      <Tabs
+        value={status}
+        onValueChange={(value) => {
+          setStatus(value as StatusPengajuan);
+          setSelectedId(null);
+        }}
+        className="gap-4"
+      >
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <TabsList>
             {STATUS_PENGAJUAN.map((s) => (
-              <TabsTrigger key={s} value={s} className="px-3">
+              <TabsTrigger key={s} value={s} className="gap-1.5 px-3">
                 {s}
                 {counts ? (
-                  <Badge variant={s === 'Menunggu' && counts[s] > 0 ? 'default' : 'secondary'} className="tabular-nums">
+                  <span
+                    className={cn(
+                      'rounded-full px-1.5 text-xs tabular-nums',
+                      s === 'Menunggu' && counts[s] > 0 ? 'bg-status-pending-muted font-medium text-status-pending' : 'bg-muted text-muted-foreground',
+                    )}
+                  >
                     {counts[s]}
-                  </Badge>
+                  </span>
                 ) : null}
               </TabsTrigger>
             ))}
@@ -141,90 +233,172 @@ export default function AdminPengajuanPage() {
         {/* One panel per tab so every trigger's aria-controls resolves; only the active one has content. */}
         {STATUS_PENGAJUAN.map((s) => (
           <TabsContent key={s} value={s}>
-            {s === status ? panel : null}
+            {s === status ? table : null}
           </TabsContent>
         ))}
       </Tabs>
+
+      <ReviewSheet
+        item={selected}
+        refData={refQuery.data}
+        isOwn={selected !== null && me?.id === selected.pegawai.id}
+        onOpenChange={(open) => !open && setSelectedId(null)}
+        onDone={() => setSelectedId(null)}
+      />
     </div>
   );
 }
 
-function PengajuanCard({
+/* ------------------------------------------------------------------ */
+/* Review sheet                                                        */
+/* ------------------------------------------------------------------ */
+
+function ReviewSheet({
   item,
   refData,
   isOwn,
+  onOpenChange,
+  onDone,
 }: {
-  item: AdminPengajuanItem;
+  item: AdminPengajuanItem | null;
   refData: RefResponse | undefined;
   isOwn: boolean;
+  onOpenChange: (open: boolean) => void;
+  onDone: () => void;
 }) {
-  const pending = item.status === 'Menunggu';
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const pending = item?.status === 'Menunggu';
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="truncate">{item.pegawai.nama}</CardTitle>
-        <CardDescription>
-          NIP <span className="font-mono tabular-nums">{item.pegawai.nip}</span>
-          {item.pegawai.statusKepegawaian ? <> · {item.pegawai.statusKepegawaian}</> : null}
-        </CardDescription>
-        <CardAction>
-          <PengajuanStatusBadge status={item.status} />
-        </CardAction>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-          <span title={formatDateTimeWITA(item.createdAt)}>
-            Diajukan {formatRelative(item.createdAt)} · {formatDateTimeWITA(item.createdAt)}
-          </span>
-          {item.stale && pending ? (
-            <Badge variant="outline" className="border-status-pending/30 bg-status-pending-muted text-status-pending">
-              <TriangleAlert data-icon="inline-start" aria-hidden="true" />
-              Data sudah berubah sejak diajukan
-            </Badge>
-          ) : null}
-        </div>
+    <Sheet open={item !== null} onOpenChange={onOpenChange}>
+      {/* Same data-[side] variants as the base classes, otherwise the default w-3/4 wins on phones. */}
+      <SheetContent side="right" className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
+        {item ? (
+          <>
+            <SheetHeader className="gap-3 border-b pr-12">
+              <div className="flex items-center gap-3">
+                <Avatar className="size-10 shrink-0">
+                  <AvatarFallback>{initials(item.pegawai.nama)}</AvatarFallback>
+                </Avatar>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <SheetTitle className="truncate text-base">{item.pegawai.nama}</SheetTitle>
+                  <SheetDescription className="tabular-nums">
+                    NIP {item.pegawai.nip}
+                    {item.pegawai.statusKepegawaian ? ` · ${item.pegawai.statusKepegawaian}` : ''}
+                  </SheetDescription>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <PengajuanStatusBadge status={item.status} />
+                <span className="text-xs text-muted-foreground" title={formatDateTimeWITA(item.createdAt)}>
+                  Diajukan {formatRelative(item.createdAt)} · {formatDateTimeWITA(item.createdAt)}
+                </span>
+              </div>
+            </SheetHeader>
 
-        {item.alasan ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-medium text-muted-foreground">Alasan</p>
-            <p className="text-sm whitespace-pre-line text-foreground">{item.alasan}</p>
-          </div>
-        ) : null}
+            <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">
+              {item.stale && pending ? (
+                <div className={cn('flex gap-2.5 rounded-lg border border-status-pending/25 p-3 text-sm', TONE_CLASSES.pending.soft)}>
+                  <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  <p>
+                    <span className="font-medium">Data pegawai sudah berubah sejak pengajuan dibuat.</span>{' '}
+                    <span className="text-foreground">Periksa kolom "Data lama" sebelum menyetujui.</span>
+                  </p>
+                </div>
+              ) : null}
 
-        <PerubahanTable perubahan={item.perubahan} refData={refData} />
+              {item.alasan ? (
+                <section className="flex flex-col gap-1.5">
+                  <h3 className="text-eyebrow text-muted-foreground uppercase">Alasan pegawai</h3>
+                  <p className="rounded-lg bg-muted/40 px-3 py-2 text-sm whitespace-pre-line text-foreground">{item.alasan}</p>
+                </section>
+              ) : null}
 
-        {item.reviewedAt ? (
-          <p className="text-sm text-muted-foreground">
-            {item.status === 'Dibatalkan'
-              ? `Dibatalkan pegawai pada ${formatDateTimeWITA(item.reviewedAt)}`
-              : `Ditinjau${item.reviewedBy ? ` oleh ${item.reviewedBy.nama}` : ''} pada ${formatDateTimeWITA(item.reviewedAt)}`}
-            {item.catatanAdmin ? (
-              <>
-                <br />
-                <span className="font-medium text-foreground">Catatan:</span> {item.catatanAdmin}
-              </>
+              <section className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-h3">Perubahan</h3>
+                  <span className="text-xs text-muted-foreground">Data lama → diajukan</span>
+                </div>
+                <PerubahanDiff perubahan={item.perubahan} refData={refData} />
+              </section>
+
+              {item.reviewedAt ? (
+                <section className="flex gap-2.5 rounded-lg border p-3 text-sm">
+                  <FileClock className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <p className="text-muted-foreground">
+                    {item.status === 'Dibatalkan'
+                      ? `Dibatalkan pegawai pada ${formatDateTimeWITA(item.reviewedAt)}.`
+                      : `Ditinjau${item.reviewedBy ? ` oleh ${item.reviewedBy.nama}` : ''} pada ${formatDateTimeWITA(item.reviewedAt)}.`}
+                    {item.catatanAdmin ? (
+                      <>
+                        <br />
+                        <span className="font-medium text-foreground">Catatan:</span> <span className="text-foreground">{item.catatanAdmin}</span>
+                      </>
+                    ) : null}
+                  </p>
+                </section>
+              ) : null}
+
+              <Link
+                to={`/admin/pegawai/${item.pegawai.id}`}
+                className="w-fit rounded-sm text-sm text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Buka data pegawai
+              </Link>
+            </div>
+
+            {pending ? (
+              <SheetFooter className="border-t bg-muted/40">
+                {isOwn ? (
+                  <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <ShieldAlert className="size-4 shrink-0" aria-hidden="true" />
+                    Pengajuan Anda sendiri harus diverifikasi admin lain.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      className="border-destructive/40 bg-card text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setRejectOpen(true)}
+                    >
+                      <X data-icon="inline-start" />
+                      Tolak
+                    </Button>
+                    <Button variant="success" onClick={() => setApproveOpen(true)}>
+                      <Check data-icon="inline-start" />
+                      Setujui
+                    </Button>
+                  </div>
+                )}
+              </SheetFooter>
             ) : null}
-          </p>
-        ) : null}
-      </CardContent>
-      {pending && isOwn ? (
-        <CardFooter className="border-t">
-          <p className="text-sm text-muted-foreground">Pengajuan Anda sendiri — harus diverifikasi admin lain.</p>
-        </CardFooter>
-      ) : pending ? (
-        <CardFooter className="flex flex-col-reverse gap-2 border-t sm:flex-row sm:justify-end">
-          <RejectDialog item={item} />
-          <ApproveDialog item={item} />
-        </CardFooter>
-      ) : null}
-    </Card>
+
+            <ApproveDialog item={item} open={approveOpen} onOpenChange={setApproveOpen} onDone={onDone} />
+            <RejectDialog item={item} open={rejectOpen} onOpenChange={setRejectOpen} onDone={onDone} />
+          </>
+        ) : (
+          <SheetHeader>
+            <SheetTitle>Tinjau pengajuan</SheetTitle>
+          </SheetHeader>
+        )}
+      </SheetContent>
+    </Sheet>
   );
 }
 
-function ApproveDialog({ item }: { item: AdminPengajuanItem }) {
+function ApproveDialog({
+  item,
+  open,
+  onOpenChange,
+  onDone,
+}: {
+  item: AdminPengajuanItem;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onDone: () => void;
+}) {
   const approve = useApprovePengajuan();
-  const [open, setOpen] = useState(false);
   const [catatan, setCatatan] = useState('');
 
   const confirm = (event: React.MouseEvent) => {
@@ -234,11 +408,12 @@ function ApproveDialog({ item }: { item: AdminPengajuanItem }) {
       {
         onSuccess: () => {
           toast.success(`Pengajuan ${item.pegawai.nama} disetujui. Data kepegawaian telah diperbarui.`);
-          setOpen(false);
+          onOpenChange(false);
+          onDone();
         },
         onError: (error) => {
           toast.error(reviewErrorMessage(error));
-          setOpen(false);
+          onOpenChange(false);
         },
       },
     );
@@ -249,16 +424,10 @@ function ApproveDialog({ item }: { item: AdminPengajuanItem }) {
       open={open}
       onOpenChange={(next) => {
         if (approve.isPending) return;
-        setOpen(next);
+        onOpenChange(next);
         if (next) setCatatan('');
       }}
     >
-      <AlertDialogTrigger asChild>
-        <Button className="w-full sm:w-auto">
-          <Check data-icon="inline-start" />
-          Setujui
-        </Button>
-      </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Setujui pengajuan ini?</AlertDialogTitle>
@@ -269,17 +438,11 @@ function ApproveDialog({ item }: { item: AdminPengajuanItem }) {
         </AlertDialogHeader>
         <Field>
           <FieldLabel htmlFor={`approve-catatan-${item.id}`}>Catatan (opsional)</FieldLabel>
-          <Textarea
-            id={`approve-catatan-${item.id}`}
-            rows={2}
-            maxLength={CATATAN_MAX}
-            value={catatan}
-            onChange={(event) => setCatatan(event.target.value)}
-          />
+          <Textarea id={`approve-catatan-${item.id}`} rows={2} maxLength={CATATAN_MAX} value={catatan} onChange={(event) => setCatatan(event.target.value)} />
         </Field>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={approve.isPending}>Batal</AlertDialogCancel>
-          <AlertDialogAction disabled={approve.isPending} onClick={confirm}>
+          <AlertDialogAction variant="success" disabled={approve.isPending} onClick={confirm}>
             {approve.isPending ? <Spinner data-icon="inline-start" /> : <Check data-icon="inline-start" />}
             Setujui
           </AlertDialogAction>
@@ -289,11 +452,22 @@ function ApproveDialog({ item }: { item: AdminPengajuanItem }) {
   );
 }
 
-function RejectDialog({ item }: { item: AdminPengajuanItem }) {
+function RejectDialog({
+  item,
+  open,
+  onOpenChange,
+  onDone,
+}: {
+  item: AdminPengajuanItem;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onDone: () => void;
+}) {
   const reject = useRejectPengajuan();
-  const [open, setOpen] = useState(false);
   const [catatan, setCatatan] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const fieldId = `reject-catatan-${item.id}`;
+  const formId = `reject-form-${item.id}`;
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -308,7 +482,8 @@ function RejectDialog({ item }: { item: AdminPengajuanItem }) {
       {
         onSuccess: () => {
           toast.success(`Pengajuan ${item.pegawai.nama} ditolak.`);
-          setOpen(false);
+          onOpenChange(false);
+          onDone();
         },
         onError: (err) => {
           if (isApiError(err, 'VALIDATION_ERROR') && err.fields?.catatan) {
@@ -316,73 +491,62 @@ function RejectDialog({ item }: { item: AdminPengajuanItem }) {
             return;
           }
           toast.error(reviewErrorMessage(err));
-          setOpen(false);
+          onOpenChange(false);
         },
       },
     );
   };
 
-  const fieldId = `reject-catatan-${item.id}`;
-
   return (
-    <Dialog
+    <FormDialog
       open={open}
       onOpenChange={(next) => {
         if (reject.isPending) return;
-        setOpen(next);
+        onOpenChange(next);
         if (next) {
           setCatatan('');
           setError(null);
         }
       }}
-    >
-      <DialogTrigger asChild>
-        <Button variant="outline" className="w-full sm:w-auto">
-          <X data-icon="inline-start" />
-          Tolak
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Tolak pengajuan</DialogTitle>
-          <DialogDescription>
-            Catatan akan ditampilkan kepada {item.pegawai.nama} sebagai alasan penolakan.
-          </DialogDescription>
-        </DialogHeader>
-        <form id={`reject-form-${item.id}`} noValidate onSubmit={submit}>
-          <Field data-invalid={error ? true : undefined}>
-            <FieldLabel htmlFor={fieldId}>Catatan penolakan</FieldLabel>
-            <Textarea
-              id={fieldId}
-              rows={4}
-              maxLength={CATATAN_MAX}
-              value={catatan}
-              aria-invalid={error ? true : undefined}
-              aria-describedby={error ? `${fieldId}-counter ${fieldId}-error` : `${fieldId}-counter`}
-              onChange={(event) => {
-                setCatatan(event.target.value);
-                if (error) setError(null);
-              }}
-            />
-            <FieldDescription id={`${fieldId}-counter`} className="flex justify-between">
-              <span>Minimal 5 karakter.</span>
-              <span className="tabular-nums">
-                {catatan.length}/{CATATAN_MAX}
-              </span>
-            </FieldDescription>
-            <FieldError id={`${fieldId}-error`}>{error}</FieldError>
-          </Field>
-        </form>
-        <DialogFooter>
-          <Button variant="outline" disabled={reject.isPending} onClick={() => setOpen(false)}>
+      title="Tolak pengajuan"
+      description={`Catatan akan ditampilkan kepada ${item.pegawai.nama} sebagai alasan penolakan.`}
+      footer={
+        <>
+          <Button variant="outline" disabled={reject.isPending} onClick={() => onOpenChange(false)}>
             Batal
           </Button>
-          <Button type="submit" form={`reject-form-${item.id}`} variant="destructive" disabled={reject.isPending}>
+          <Button type="submit" form={formId} variant="destructive" disabled={reject.isPending}>
             {reject.isPending ? <Spinner data-icon="inline-start" /> : <X data-icon="inline-start" />}
-            Tolak Pengajuan
+            Tolak pengajuan
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <form id={formId} noValidate onSubmit={submit}>
+        <Field data-invalid={error ? true : undefined}>
+          <FieldLabel htmlFor={fieldId}>Catatan penolakan</FieldLabel>
+          <Textarea
+            id={fieldId}
+            rows={4}
+            maxLength={CATATAN_MAX}
+            value={catatan}
+            autoFocus
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${fieldId}-counter ${fieldId}-error` : `${fieldId}-counter`}
+            onChange={(event) => {
+              setCatatan(event.target.value);
+              if (error) setError(null);
+            }}
+          />
+          <FieldDescription id={`${fieldId}-counter`} className="flex justify-between">
+            <span>Minimal 5 karakter.</span>
+            <span className="tabular-nums">
+              {catatan.length}/{CATATAN_MAX}
+            </span>
+          </FieldDescription>
+          <FieldError id={`${fieldId}-error`}>{error}</FieldError>
+        </Field>
+      </form>
+    </FormDialog>
   );
 }

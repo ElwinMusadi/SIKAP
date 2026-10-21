@@ -50,6 +50,30 @@ export function PerubahanList({ perubahan, refData }: { perubahan: PerubahanMap;
   );
 }
 
+/** Side-by-side "lama → baru" per field (admin review sheet). Stacks on phones. */
+export function PerubahanDiff({ perubahan, refData }: { perubahan: PerubahanMap; refData: RefResponse | undefined }) {
+  return (
+    <ul className="flex flex-col gap-3">
+      {perubahanEntries(perubahan).map(({ field, lama, baru }) => (
+        <li key={field} className="flex flex-col gap-1.5">
+          <p className="text-eyebrow text-muted-foreground uppercase">{KEPEGAWAIAN_LABELS[field]}</p>
+          <div className="grid items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
+            <div className="rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+              <span className="sr-only">Data lama: </span>
+              <span className="text-muted-foreground">{formatKepegawaianValue(field, lama, refData)}</span>
+            </div>
+            <ArrowRight aria-hidden="true" className="hidden size-4 text-muted-foreground sm:block" />
+            <div className="rounded-lg border border-primary/25 bg-accent-soft px-3 py-2 text-sm">
+              <span className="sr-only">Diajukan: </span>
+              <span className="font-medium text-foreground">{formatKepegawaianValue(field, baru, refData)}</span>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Field | Data lama | Diajukan table (admin view). */
 export function PerubahanTable({ perubahan, refData }: { perubahan: PerubahanMap; refData: RefResponse | undefined }) {
   return (

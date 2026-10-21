@@ -77,7 +77,7 @@ CI (`.github/workflows/ci.yml`, job `verify`): typecheck, lint, test api/web/mig
 
 ## TODO / pekerjaan terbuka
 
-- **Redesign UI/UX** frontend — rencana di [`docs/RENCANA-REDESIGN-UIUX.md`](docs/RENCANA-REDESIGN-UIUX.md) (design system, pustaka pola, fase 0–6). §11 disetujui; fase 0–4 selesai di branch `feat/redesign-uiux` (belum dirilis), fase 5 (layar admin sekunder) dan 6 (polish) belum.
+- **Redesign UI/UX** frontend — rencana di [`docs/RENCANA-REDESIGN-UIUX.md`](docs/RENCANA-REDESIGN-UIUX.md) (design system, pustaka pola, fase 0–6). §11 disetujui; fase 0–5 selesai di branch `feat/redesign-uiux` (belum dirilis), fase 6 (polish: QA per layar, aksesibilitas, komponen mati) belum.
 - **Backup otomatis belum ada**: binding `BACKUPS` + bucket privat + Worker cron (`workers/cron`) + kebijakan retensi ≥ 30 hari; D1 Time Travel sebagai pemulihan konsisten.
 - WAF Rate Limiting untuk `/api/auth/login`.
 - WhatsApp tetap nonaktif sampai diminta pemilik.
