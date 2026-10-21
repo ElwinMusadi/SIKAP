@@ -1,15 +1,25 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 
+// SIKAP callout (docs/RENCANA-REDESIGN-UIUX.md §5): tones follow the status registry. Title takes the
+// tone colour, body text stays foreground for contrast on the tinted backgrounds.
 const alertVariants = cva(
-  "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
+  "group/alert relative grid w-full gap-0.5 rounded-lg border p-3 text-left text-sm text-foreground has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2.5 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-card text-card-foreground",
+        /** Neutral information. */
+        default: "bg-muted/40 *:[svg]:text-muted-foreground",
+        /** Needs attention / waiting (amber). */
+        pending:
+          "border-status-pending/25 bg-status-pending-muted *:[svg]:text-status-pending *:data-[slot=alert-title]:text-status-pending *:data-[slot=alert-description]:text-foreground",
+        /** Failed / rejected (red is reserved for these). */
         destructive:
-          "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
+          "border-status-rejected/25 bg-status-rejected-muted *:[svg]:text-status-rejected *:data-[slot=alert-title]:text-status-rejected *:data-[slot=alert-description]:text-foreground",
+        /** Succeeded / verified (green). */
+        success:
+          "border-status-verified/25 bg-status-verified-muted *:[svg]:text-status-verified *:data-[slot=alert-title]:text-status-verified *:data-[slot=alert-description]:text-foreground",
       },
     },
     defaultVariants: {
@@ -18,6 +28,7 @@ const alertVariants = cva(
   }
 )
 
+/** No implicit role: pass role="alert" for errors that appear after an action, role="status" for live notes. */
 function Alert({
   className,
   variant,
@@ -26,7 +37,6 @@ function Alert({
   return (
     <div
       data-slot="alert"
-      role="alert"
       className={cn(alertVariants({ variant }), className)}
       {...props}
     />

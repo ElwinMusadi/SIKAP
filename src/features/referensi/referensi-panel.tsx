@@ -1,5 +1,5 @@
-import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { Info, Pencil, Plus, RefreshCw, Save, TriangleAlert } from 'lucide-react';
+import { useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { GraduationCap, Info, ListTree, Network, Pencil, Plus, Save, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   createPangkatSchema,
@@ -11,10 +11,13 @@ import {
   type UpdatePangkatRequest,
   type UpdateUnitRequest,
 } from '@shared/administrasi';
+import { DataTable, SortableHeader, columnHelper, type DataTableColumn } from '@/components/data-table/data-table';
+import { ErrorState } from '@/components/states';
+import { StatusBadge } from '@/components/status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -22,17 +25,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { errorMessage, isApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAdminRef, useCreatePangkat, useCreateUnit, useUpdatePangkat, useUpdateUnit } from './queries';
 
 type Errors = Record<string, string | undefined>;
+type Pendidikan = { kode: string; nama: string; urutan: number };
 
 function issuesToErrors(issues: readonly { path: readonly PropertyKey[]; message: string }[]): Errors {
   const errors: Errors = {};
   for (const issue of issues) errors[String(issue.path[0] ?? 'form')] ??= issue.message;
   return errors;
+}
+
+const pangkatCol = columnHelper<AdminPangkat>();
+const unitCol = columnHelper<AdminUnit>();
+const pendidikanCol = columnHelper<Pendidikan>();
+
+function aktifCell(aktif: boolean) {
+  return <StatusBadge domain="aktif" status={aktif ? 'Aktif' : 'Nonaktif'} />;
+}
+
+function EditButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <Button variant="ghost" size="sm" onClick={onClick}>
+      <Pencil data-icon="inline-start" />
+      Ubah<span className="sr-only"> {label}</span>
+    </Button>
+  );
 }
 
 export function ReferensiPanel() {
@@ -45,128 +65,154 @@ export function ReferensiPanel() {
   const pangkatBusy = pangkatMutations.create.isPending || pangkatMutations.update.isPending;
   const unitBusy = unitMutations.create.isPending || unitMutations.update.isPending;
 
+  const pangkatColumns = useMemo<DataTableColumn<AdminPangkat>[]>(
+    () => [
+      pangkatCol.accessor('urutan', {
+        header: ({ column }) => <SortableHeader column={column} title="Urutan" />,
+        sortFn: 'basic',
+        meta: { headerClassName: 'w-24', cellClassName: 'text-muted-foreground tabular-nums' },
+      }),
+      pangkatCol.accessor('kode', { header: 'Kode', meta: { headerClassName: 'w-24', cellClassName: 'font-mono' } }),
+      pangkatCol.accessor('nama', {
+        header: ({ column }) => <SortableHeader column={column} title="Nama" />,
+        sortFn: 'text',
+        meta: { cellClassName: 'max-w-64 truncate' },
+      }),
+      pangkatCol.accessor('jenisAsn', { header: 'ASN', meta: { headerClassName: 'w-20' }, cell: (info) => <Badge variant="outline">{info.getValue()}</Badge> }),
+      pangkatCol.accessor('aktif', { header: 'Status', meta: { headerClassName: 'w-28' }, cell: (info) => aktifCell(info.getValue()) }),
+      pangkatCol.display({
+        id: 'aksi',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { headerClassName: 'w-24', cellClassName: 'text-right' },
+        cell: ({ row }) => <EditButton label={`pangkat ${row.original.kode}`} onClick={() => setPangkatDialog({ item: row.original })} />,
+      }),
+    ],
+    [],
+  );
+
+  const unitColumns = useMemo<DataTableColumn<AdminUnit>[]>(
+    () => [
+      unitCol.accessor('id', {
+        header: ({ column }) => <SortableHeader column={column} title="ID" />,
+        sortFn: 'basic',
+        meta: { headerClassName: 'w-20', cellClassName: 'text-muted-foreground tabular-nums' },
+      }),
+      unitCol.accessor('nama', {
+        header: ({ column }) => <SortableHeader column={column} title="Nama" />,
+        sortFn: 'text',
+        meta: { cellClassName: 'max-w-96 truncate' },
+      }),
+      unitCol.accessor('aktif', { header: 'Status', meta: { headerClassName: 'w-28' }, cell: (info) => aktifCell(info.getValue()) }),
+      unitCol.display({
+        id: 'aksi',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { headerClassName: 'w-24', cellClassName: 'text-right' },
+        cell: ({ row }) => <EditButton label={`unit ${row.original.nama}`} onClick={() => setUnitDialog({ item: row.original })} />,
+      }),
+    ],
+    [],
+  );
+
+  const pendidikanColumns = useMemo<DataTableColumn<Pendidikan>[]>(
+    () => [
+      pendidikanCol.accessor('urutan', { header: 'Urutan', meta: { headerClassName: 'w-24', cellClassName: 'text-muted-foreground tabular-nums' } }),
+      pendidikanCol.accessor('kode', { header: 'Kode', meta: { headerClassName: 'w-24', cellClassName: 'font-mono' } }),
+      pendidikanCol.accessor('nama', { header: 'Nama' }),
+    ],
+    [],
+  );
+
   if (query.isPending) {
     return (
       <div className="flex flex-col gap-4" aria-busy="true" aria-label="Memuat data referensi">
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-xl" />
       </div>
     );
   }
   if (query.isError) {
     return (
-      <Alert variant="destructive" role="alert">
-        <TriangleAlert />
-        <AlertTitle>Gagal memuat data referensi</AlertTitle>
-        <AlertDescription>
-          <p>{errorMessage(query.error)}</p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={() => void query.refetch()} disabled={query.isFetching}>
-            {query.isFetching ? <Spinner data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" />}Coba lagi
-          </Button>
-        </AlertDescription>
-      </Alert>
+      <Card className="py-0">
+        <ErrorState error={query.error} title="Gagal memuat data referensi" onRetry={() => void query.refetch()} retrying={query.isFetching} />
+      </Card>
     );
   }
 
   const { pangkat, unit, pendidikan } = query.data;
   const nextUrutan = pangkat.reduce((max, p) => Math.max(max, p.urutan), 0) + 1;
   return (
-    <div className="flex flex-col gap-6" aria-busy={query.isFetching || undefined}>
-      <Alert>
-        <Info />
+    <div className="flex flex-col gap-8" aria-busy={query.isFetching || undefined}>
+      <Alert className="max-w-3xl">
+        <Info aria-hidden="true" />
         <AlertTitle>Data referensi tidak dapat dihapus</AlertTitle>
         <AlertDescription>
-          Nonaktifkan pangkat atau unit yang tidak dipakai lagi. Nilai yang sudah tercatat pada data pegawai tetap berlaku sebagai data historis,
-          tetapi pilihan nonaktif tidak muncul untuk input baru.
+          Nonaktifkan pangkat atau unit yang tidak dipakai lagi; nilai yang sudah tercatat pada data pegawai tetap berlaku sebagai data historis,
+          tetapi tidak muncul untuk input baru.
         </AlertDescription>
       </Alert>
 
-      <RefCard
+      <RefSection
         title="Pangkat / golongan"
         description="Kode dan jenis ASN tidak dapat diubah setelah dibuat."
-        action={<Button size="sm" onClick={() => setPangkatDialog({ item: null })}><Plus data-icon="inline-start" />Tambah pangkat</Button>}
+        action={
+          <Button size="sm" onClick={() => setPangkatDialog({ item: null })}>
+            <Plus data-icon="inline-start" />
+            Tambah pangkat
+          </Button>
+        }
       >
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-16 pl-4 text-right">Urutan</TableHead>
-              <TableHead className="w-24">Kode</TableHead>
-              <TableHead>Nama</TableHead>
-              <TableHead className="w-20">ASN</TableHead>
-              <TableHead className="w-24">Status</TableHead>
-              <TableHead className="w-24 pr-4 text-right"><span className="sr-only">Aksi</span></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {pangkat.length === 0 ? <EmptyRow colSpan={6} text="Belum ada pangkat." /> : pangkat.map((p) => (
-              <TableRow key={p.kode} className={cn(!p.aktif && 'bg-muted/30 text-muted-foreground')}>
-                <TableCell className="pl-4 text-right tabular-nums">{p.urutan}</TableCell>
-                <TableCell className="font-mono">{p.kode}</TableCell>
-                <TableCell className="max-w-64 truncate" title={p.nama}>{p.nama}</TableCell>
-                <TableCell><Badge variant="outline">{p.jenisAsn}</Badge></TableCell>
-                <TableCell><AktifBadge aktif={p.aktif} /></TableCell>
-                <TableCell className="pr-4 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => setPangkatDialog({ item: p })}>
-                    <Pencil data-icon="inline-start" />Ubah<span className="sr-only"> pangkat {p.kode}</span>
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </RefCard>
+        <DataTable
+          label="Pangkat / golongan"
+          data={pangkat}
+          columns={pangkatColumns}
+          getRowId={(row) => row.kode}
+          density="compact"
+          empty={{ icon: ListTree, title: 'Belum ada pangkat' }}
+          mobileCard={(p) => (
+            <RefMobileCard
+              title={p.nama}
+              meta={`${p.kode} · ${p.jenisAsn} · urutan ${p.urutan}`}
+              aktif={p.aktif}
+              onEdit={() => setPangkatDialog({ item: p })}
+              editLabel={`pangkat ${p.kode}`}
+            />
+          )}
+        />
+      </RefSection>
 
-      <RefCard
+      <RefSection
         title="Unit kerja"
         description="ID unit dibuat otomatis oleh sistem."
-        action={<Button size="sm" onClick={() => setUnitDialog({ item: null })}><Plus data-icon="inline-start" />Tambah unit</Button>}
+        action={
+          <Button size="sm" onClick={() => setUnitDialog({ item: null })}>
+            <Plus data-icon="inline-start" />
+            Tambah unit
+          </Button>
+        }
       >
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-16 pl-4 text-right">ID</TableHead>
-              <TableHead>Nama</TableHead>
-              <TableHead className="w-24">Status</TableHead>
-              <TableHead className="w-24 pr-4 text-right"><span className="sr-only">Aksi</span></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {unit.length === 0 ? <EmptyRow colSpan={4} text="Belum ada unit kerja." /> : unit.map((u) => (
-              <TableRow key={u.id} className={cn(!u.aktif && 'bg-muted/30 text-muted-foreground')}>
-                <TableCell className="pl-4 text-right tabular-nums">{u.id}</TableCell>
-                <TableCell className="max-w-96 truncate" title={u.nama}>{u.nama}</TableCell>
-                <TableCell><AktifBadge aktif={u.aktif} /></TableCell>
-                <TableCell className="pr-4 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => setUnitDialog({ item: u })}>
-                    <Pencil data-icon="inline-start" />Ubah<span className="sr-only"> unit {u.nama}</span>
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </RefCard>
+        <DataTable
+          label="Unit kerja"
+          data={unit}
+          columns={unitColumns}
+          getRowId={(row) => String(row.id)}
+          density="compact"
+          empty={{ icon: Network, title: 'Belum ada unit kerja' }}
+          mobileCard={(u) => (
+            <RefMobileCard title={u.nama} meta={`ID ${u.id}`} aktif={u.aktif} onEdit={() => setUnitDialog({ item: u })} editLabel={`unit ${u.nama}`} />
+          )}
+        />
+      </RefSection>
 
-      <RefCard title="Pendidikan" description="Hanya baca. Daftar jenjang pendidikan dikelola oleh sistem.">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-16 pl-4 text-right">Urutan</TableHead>
-              <TableHead className="w-24">Kode</TableHead>
-              <TableHead className="pr-4">Nama</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {pendidikan.length === 0 ? <EmptyRow colSpan={3} text="Belum ada data pendidikan." /> : pendidikan.map((p) => (
-              <TableRow key={p.kode}>
-                <TableCell className="pl-4 text-right tabular-nums">{p.urutan}</TableCell>
-                <TableCell className="font-mono">{p.kode}</TableCell>
-                <TableCell className="pr-4">{p.nama}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </RefCard>
+      <RefSection title="Pendidikan" description="Hanya baca. Daftar jenjang pendidikan dikelola oleh sistem.">
+        <DataTable
+          label="Pendidikan"
+          data={pendidikan}
+          columns={pendidikanColumns}
+          getRowId={(row) => row.kode}
+          density="compact"
+          empty={{ icon: GraduationCap, title: 'Belum ada data pendidikan' }}
+        />
+      </RefSection>
 
       <RefDialog open={pangkatDialog !== null} busy={pangkatBusy} onClose={() => setPangkatDialog(null)}>
         {pangkatDialog ? (
@@ -188,34 +234,31 @@ export function ReferensiPanel() {
   );
 }
 
-function RefCard({ title, description, action, children }: { title: string; description: string; action?: ReactNode; children: ReactNode }) {
+function RefSection({ title, description, action, children }: { title: string; description: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <Card className="gap-0 pb-0">
-      <CardHeader className="flex flex-row items-start justify-between gap-3 pb-4">
-        <div className="flex flex-col gap-1">
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h3 className="text-h3 text-foreground">{title}</h3>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
         {action}
-      </CardHeader>
-      <CardContent className="overflow-x-auto border-t px-0">{children}</CardContent>
-    </Card>
+      </div>
+      {children}
+    </section>
   );
 }
 
-function EmptyRow({ colSpan, text }: { colSpan: number; text: string }) {
+function RefMobileCard({ title, meta, aktif, onEdit, editLabel }: { title: string; meta: string; aktif: boolean; onEdit: () => void; editLabel: string }) {
   return (
-    <TableRow>
-      <TableCell colSpan={colSpan} className="py-6 text-center text-muted-foreground">{text}</TableCell>
-    </TableRow>
-  );
-}
-
-function AktifBadge({ aktif }: { aktif: boolean }) {
-  return aktif ? (
-    <Badge variant="outline" className="border-status-verified/30 bg-status-verified-muted text-status-verified">Aktif</Badge>
-  ) : (
-    <Badge variant="outline" className="text-muted-foreground">Nonaktif</Badge>
+    <div className={cn('flex items-center gap-3 rounded-xl border bg-card p-4 shadow-card', !aktif && 'bg-muted/40')}>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="truncate font-medium">{title}</span>
+        <span className="text-xs text-muted-foreground tabular-nums">{meta}</span>
+        <span className="w-fit">{aktifCell(aktif)}</span>
+      </div>
+      <EditButton label={editLabel} onClick={onEdit} />
+    </div>
   );
 }
 
@@ -239,8 +282,8 @@ function RefDialog({ open, busy, onClose, children }: { open: boolean; busy: boo
 function DeactivateWarning({ show, label }: { show: boolean; label: string }) {
   if (!show) return null;
   return (
-    <Alert role="status" className="border-status-pending/30 bg-status-pending-muted">
-      <TriangleAlert className="text-status-pending" />
+    <Alert variant="pending" role="status">
+      <TriangleAlert aria-hidden="true" />
       <AlertTitle>{label} akan dinonaktifkan</AlertTitle>
       <AlertDescription>
         Pegawai yang sudah memakai nilai ini tetap menyimpannya sebagai data historis yang sah. Nilai nonaktif tidak dapat dipilih untuk input atau
@@ -266,7 +309,7 @@ function FormAlert({ message }: { message: string | null }) {
   if (!message) return null;
   return (
     <Alert variant="destructive" role="alert">
-      <TriangleAlert />
+      <TriangleAlert aria-hidden="true" />
       <AlertTitle>Gagal menyimpan</AlertTitle>
       <AlertDescription>{message}</AlertDescription>
     </Alert>

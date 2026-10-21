@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { AdminJenisDokumen } from '@shared/administrasi';
-import { buildCreatePayload, buildUpdatePayload, emptyJenisForm, impactfulChanges, jenisToForm, mapFieldErrors } from './jenis-utils';
+import {
+  EMPTY_JENIS_FILTERS,
+  buildCreatePayload,
+  buildUpdatePayload,
+  emptyJenisForm,
+  filterJenis,
+  impactfulChanges,
+  jenisToForm,
+  mapFieldErrors,
+} from './jenis-utils';
 
 const item: AdminJenisDokumen = {
   id: 'DOC-SK-CPNS',
@@ -43,5 +52,25 @@ describe('jenis form', () => {
 
   it('maps server fields to form fields', () => {
     expect(mapFieldErrors({ maxSizeBytes: 'x', id: 'y', other: 'z' })).toEqual({ maxMb: 'x', id: 'y', form: 'z' });
+  });
+});
+
+describe('filterJenis', () => {
+  const list: AdminJenisDokumen[] = [
+    item,
+    { ...item, id: 'DOC-KTP', nama: 'Kartu Tanda Penduduk', kategori: 'Pribadi', wajibUntuk: ['PNS', 'CPNS', 'PPPK'] },
+    { ...item, id: 'DOC-KARPEG', nama: 'Kartu Pegawai', aktif: false, wajibUntuk: [] },
+  ];
+  const ids = (filters: Partial<typeof EMPTY_JENIS_FILTERS>) => filterJenis(list, { ...EMPTY_JENIS_FILTERS, ...filters }).map((i) => i.id);
+
+  it('searches nama and ID case-insensitively', () => {
+    expect(ids({ q: 'kartu' })).toEqual(['DOC-KTP', 'DOC-KARPEG']);
+    expect(ids({ q: 'sk-cpns' })).toEqual(['DOC-SK-CPNS']);
+  });
+
+  it('combines kategori, status and wajib facets', () => {
+    expect(ids({ kategori: 'Kepegawaian', status: 'aktif' })).toEqual(['DOC-SK-CPNS']);
+    expect(ids({ status: 'nonaktif' })).toEqual(['DOC-KARPEG']);
+    expect(ids({ wajib: 'PPPK' })).toEqual(['DOC-KTP']);
   });
 });

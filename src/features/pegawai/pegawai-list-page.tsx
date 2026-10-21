@@ -1,30 +1,14 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  FilterX,
-  MoreHorizontal,
-  Pencil,
-  RefreshCw,
-  Search,
-  TriangleAlert,
-  Undo2,
-  UserPlus,
-  Users,
-  UserX,
-} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Eye, KeyRound, MoreHorizontal, Pencil, Undo2, UserPlus, Users, UserX } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { STATUS_AKUN, STATUS_KEPEGAWAIAN } from '@shared/enums';
-import { KELENGKAPAN, PAGE_SIZES, type PegawaiListItem, type PegawaiListResponse, type PegawaiSort } from '@shared/pegawai';
+import { KELENGKAPAN, PAGE_SIZES, type PegawaiListItem, type PegawaiSort } from '@shared/pegawai';
+import { DataTable, columnHelper, type DataTableColumn } from '@/components/data-table/data-table';
+import { FilterBar } from '@/components/data-table/filter-bar';
+import { DataTablePagination } from '@/components/data-table/pagination';
 import { PageHeader } from '@/components/page-header';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,19 +17,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
-import { Switch } from '@/components/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMe } from '@/features/auth/queries';
 import { useRefData } from '@/features/profil/queries';
 import { errorMessage } from '@/lib/api';
 import { formatDateTimeWITA, formatRelative } from '@/lib/format';
+import { STATUS_REGISTRY } from '@/lib/status';
 import { cn } from '@/lib/utils';
 import { ACTION_META, availableActions, useAccountActionDialog, type AccountAction } from './account-actions';
 import { PegawaiFormSheet } from './pegawai-form-sheet';
@@ -62,8 +40,9 @@ import {
 } from './pegawai-utils';
 import { usePegawaiList, useRestorePegawai } from './queries';
 
-const ALL = '__all__';
 const SEARCH_DEBOUNCE_MS = 300;
+
+type Update = (patch: Partial<PegawaiListParams>, replace?: boolean) => void;
 
 export default function PegawaiListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -73,14 +52,33 @@ export default function PegawaiListPage() {
   const { data: me } = useMe();
   const actions = useAccountActionDialog();
 
-  const update = useCallback(
-    (patch: Partial<PegawaiListParams>, replace = false) =>
-      setSearchParams((prev) => listParamsToSearch(patchListParams(parseListParams(prev), patch)), { replace }),
+  const update: Update = useCallback(
+    (patch, replace = false) => setSearchParams((prev) => listParamsToSearch(patchListParams(parseListParams(prev), patch)), { replace }),
     [setSearchParams],
   );
 
-  const summary = query.data?.summary;
+  // Deep link from Beranda / ⌘K: /admin/pegawai?tambah=1 opens the create sheet once.
+  const wantsCreate = searchParams.get('tambah') === '1';
+  const [createHandled, setCreateHandled] = useState(false);
+  if (wantsCreate && !createHandled) {
+    // Adjust state during render (no effect round-trip); the effect below only cleans the URL.
+    setCreateHandled(true);
+    setSheet({ open: true, id: null });
+  }
+  useEffect(() => {
+    if (!wantsCreate) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('tambah');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [wantsCreate, setSearchParams]);
+
   const data = query.data;
+  const summary = data?.summary;
 
   // A filter/delete can leave the current page past the end: jump to the last page that exists.
   const lastPage = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
@@ -89,82 +87,68 @@ export default function PegawaiListPage() {
     if (outOfRange) setSearchParams((prev) => listParamsToSearch({ ...parseListParams(prev), page: lastPage }), { replace: true });
   }, [outOfRange, lastPage, setSearchParams]);
 
+  const resetFilters = () => setSearchParams(listParamsToSearch(clearFilters(params)));
+  const openCreate = () => setSheet({ open: true, id: null });
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Master Data Pegawai"
-        description={
+        description="Kelola data, akun, dan kelengkapan dokumen pegawai."
+        meta={
           summary ? (
-            <span className="tabular-nums">
-              {summary.total} pegawai · {summary.aktif} aktif · {summary.nonaktif} nonaktif · {summary.passwordDefault} masih password
-              default
-            </span>
-          ) : (
-            'Kelola data, akun, dan kelengkapan dokumen pegawai.'
-          )
+            <p className="text-sm text-muted-foreground tabular-nums">
+              <span className="font-medium text-foreground">{summary.total}</span> pegawai · {summary.aktif} aktif · {summary.nonaktif}{' '}
+              nonaktif · {summary.passwordDefault} masih password default
+            </p>
+          ) : null
         }
         actions={
-          <Button onClick={() => setSheet({ open: true, id: null })}>
+          <Button onClick={openCreate}>
             <UserPlus data-icon="inline-start" />
-            Tambah Pegawai
+            Tambah pegawai
           </Button>
         }
       />
 
-      <Tabs value={params.terhapus ? 'terhapus' : 'aktif'} onValueChange={(v) => update({ terhapus: v === 'terhapus' })}>
+      <Tabs value={params.terhapus ? 'terhapus' : 'aktif'} onValueChange={(v) => update({ terhapus: v === 'terhapus' })} className="gap-4">
         <TabsList>
           <TabsTrigger value="aktif">Aktif</TabsTrigger>
           <TabsTrigger value="terhapus">
             Terhapus
-            {summary ? <span className="text-muted-foreground tabular-nums">({summary.terhapus})</span> : null}
+            {summary && summary.terhapus > 0 ? (
+              <span className="rounded-full bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">{summary.terhapus}</span>
+            ) : null}
           </TabsTrigger>
         </TabsList>
-      </Tabs>
 
-      <FilterBar params={params} update={update} />
-
-      {query.isPending ? (
-        <ListSkeleton />
-      ) : query.isError ? (
-        <Alert variant="destructive" role="alert">
-          <TriangleAlert />
-          <AlertTitle>Gagal memuat daftar pegawai</AlertTitle>
-          <AlertDescription>
-            <p>{errorMessage(query.error)}</p>
-            <Button size="sm" variant="outline" className="mt-2" onClick={() => void query.refetch()}>
-              <RefreshCw data-icon="inline-start" />
-              Coba lagi
-            </Button>
-          </AlertDescription>
-        </Alert>
-      ) : query.data.items.length === 0 ? (
-        <ListEmpty
-          params={params}
-          data={query.data}
-          onAdd={() => setSheet({ open: true, id: null })}
-          onClear={() => setSearchParams(listParamsToSearch(clearFilters(params)))}
-        />
-      ) : (
-        <section
-          aria-label="Daftar pegawai"
-          aria-busy={query.isPlaceholderData || undefined}
-          className={cn('flex flex-col gap-4 transition-opacity', query.isPlaceholderData && 'opacity-60')}
-        >
-          {params.terhapus ? (
-            <TerhapusList items={query.data.items} />
-          ) : (
-            <AktifList
-              items={query.data.items}
-              params={params}
-              selfId={me?.id}
-              onSort={(field) => update(toggleSort(params, field))}
-              onEdit={(id) => setSheet({ open: true, id })}
-              onAction={(item, action) => actions.request(item, action)}
-            />
+        {/* forceMount keeps both panels in the DOM so each tab's aria-controls resolves; only the active one has content. */}
+        <TabsContent value="aktif" forceMount className="flex flex-col gap-4 data-[state=inactive]:hidden">
+          {params.terhapus ? null : (
+            <>
+              <PegawaiFilters params={params} update={update} onReset={resetFilters} />
+              <AktifTable
+                params={params}
+                update={update}
+                query={query}
+                selfId={me?.id}
+                onReset={resetFilters}
+                onAdd={openCreate}
+                onEdit={(id) => setSheet({ open: true, id })}
+                onAction={(item, action) => actions.request(item, action)}
+              />
+            </>
           )}
-          <PaginationBar data={query.data} params={params} update={update} />
-        </section>
-      )}
+        </TabsContent>
+        <TabsContent value="terhapus" forceMount className="flex flex-col gap-4 data-[state=inactive]:hidden">
+          {params.terhapus ? (
+            <>
+              <PegawaiFilters params={params} update={update} onReset={resetFilters} />
+              <TerhapusTable params={params} update={update} query={query} onReset={resetFilters} />
+            </>
+          ) : null}
+        </TabsContent>
+      </Tabs>
 
       <PegawaiFormSheet open={sheet.open} pegawaiId={sheet.id} onOpenChange={(open) => setSheet((s) => ({ ...s, open }))} />
       {actions.dialog}
@@ -176,9 +160,7 @@ export default function PegawaiListPage() {
 /* Filters                                                                    */
 /* -------------------------------------------------------------------------- */
 
-type Update = (patch: Partial<PegawaiListParams>, replace?: boolean) => void;
-
-function FilterBar({ params, update }: { params: PegawaiListParams; update: Update }) {
+function PegawaiFilters({ params, update, onReset }: { params: PegawaiListParams; update: Update; onReset: () => void }) {
   const refQuery = useRefData();
   const [search, setSearch] = useState(params.q);
   const [syncedQ, setSyncedQ] = useState(params.q);
@@ -196,243 +178,230 @@ function FilterBar({ params, update }: { params: PegawaiListParams; update: Upda
     return () => window.clearTimeout(timer);
   }, [search, params.q, update]);
 
-  const jenisOptions = (refQuery.data?.jenisDokumen ?? [])
-    .filter((j) => j.wajibUntuk.length > 0)
-    .map((j) => ({ value: j.id, label: j.nama }));
+  const jenisOptions = (refQuery.data?.jenisDokumen ?? []).filter((j) => j.wajibUntuk.length > 0).map((j) => ({ value: j.id, label: j.nama }));
 
   return (
-    <div className="flex flex-col gap-3" role="search" aria-label="Filter pegawai">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <InputGroup className="lg:max-w-xs">
-          <InputGroupAddon>
-            <Search aria-hidden="true" />
-          </InputGroupAddon>
-          <InputGroupInput
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari nama atau NIP"
-            aria-label="Cari nama atau NIP"
-            maxLength={100}
-          />
-        </InputGroup>
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-          <FilterSelect
-            label="Status kepegawaian"
-            allLabel="Semua status"
-            value={params.statusKepegawaian}
-            options={STATUS_KEPEGAWAIAN.map((s) => ({ value: s, label: s }))}
-            onChange={(v) => update({ statusKepegawaian: v as PegawaiListParams['statusKepegawaian'] })}
-          />
-          <FilterSelect
-            label="Status akun"
-            allLabel="Semua akun"
-            value={params.statusAkun}
-            options={STATUS_AKUN.map((s) => ({ value: s, label: `Akun ${s.toLowerCase()}` }))}
-            onChange={(v) => update({ statusAkun: v as PegawaiListParams['statusAkun'] })}
-          />
-          <FilterSelect
-            label="Kelengkapan dokumen"
-            allLabel="Semua kelengkapan"
-            value={params.kelengkapan}
-            options={KELENGKAPAN.map((k) => ({ value: k, label: k }))}
-            onChange={(v) => update({ kelengkapan: v as PegawaiListParams['kelengkapan'] })}
-          />
-          <FilterSelect
-            label="Belum unggah dokumen"
-            allLabel="Belum unggah …"
-            value={params.belumUnggah}
-            options={jenisOptions.map((o) => ({ value: o.value, label: `Belum unggah ${o.label}` }))}
-            onChange={(v) => update({ belumUnggah: v })}
-            disabled={refQuery.isPending}
-          />
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <div className="flex items-center gap-2">
-          <Switch
-            id="filter-password-default"
-            checked={params.passwordDefault}
-            onCheckedChange={(checked) => update({ passwordDefault: checked })}
-          />
-          <Label htmlFor="filter-password-default" className="font-normal">
-            Masih password default
-          </Label>
-        </div>
-        {activeFilterCount(params) > 0 ? (
-          <Button variant="ghost" size="sm" onClick={() => update(clearFilters(params))}>
-            <FilterX data-icon="inline-start" />
-            Reset filter ({activeFilterCount(params)})
+    <div role="search" aria-label="Filter pegawai">
+      <FilterBar
+        search={{ value: search, onChange: setSearch, placeholder: 'Cari nama atau NIP' }}
+        facets={[
+          {
+            id: 'statusKepegawaian',
+            label: 'Status',
+            value: params.statusKepegawaian,
+            onChange: (v) => update({ statusKepegawaian: v as PegawaiListParams['statusKepegawaian'] }),
+            options: STATUS_KEPEGAWAIAN.map((s) => ({ value: s, label: s })),
+          },
+          {
+            id: 'statusAkun',
+            label: 'Akun',
+            value: params.statusAkun,
+            onChange: (v) => update({ statusAkun: v as PegawaiListParams['statusAkun'] }),
+            options: STATUS_AKUN.map((s) => ({ value: s, label: STATUS_REGISTRY.akun[s].label })),
+          },
+          {
+            id: 'kelengkapan',
+            label: 'Kelengkapan',
+            value: params.kelengkapan,
+            onChange: (v) => update({ kelengkapan: v as PegawaiListParams['kelengkapan'] }),
+            options: KELENGKAPAN.map((k) => ({ value: k, label: STATUS_REGISTRY.kelengkapan[k].label })),
+          },
+          {
+            id: 'belumUnggah',
+            label: 'Belum unggah',
+            value: params.belumUnggah,
+            onChange: (v) => update({ belumUnggah: v }),
+            options: jenisOptions,
+          },
+        ]}
+        extra={
+          <Button
+            variant="outline"
+            size="sm"
+            aria-pressed={params.passwordDefault}
+            onClick={() => update({ passwordDefault: !params.passwordDefault })}
+            className={cn(
+              'bg-card font-normal',
+              params.passwordDefault ? 'border-primary/40 bg-accent-soft font-medium text-primary' : 'border-dashed',
+            )}
+          >
+            <KeyRound data-icon="inline-start" />
+            Password default
           </Button>
-        ) : null}
-      </div>
+        }
+        onReset={activeFilterCount(params) > 0 ? onReset : undefined}
+      />
     </div>
   );
 }
 
-function FilterSelect({
-  label,
-  allLabel,
-  value,
-  options,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  allLabel: string;
-  value: string | null;
-  options: { value: string; label: string }[];
-  onChange: (value: string | null) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Select value={value ?? ALL} onValueChange={(v) => onChange(v === ALL ? null : v)} disabled={disabled}>
-      <SelectTrigger aria-label={label} className={cn('w-full sm:w-auto sm:min-w-40', value && 'border-primary/50 bg-primary/5')}>
-        <SelectValue placeholder={allLabel} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL}>{allLabel}</SelectItem>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
 /* -------------------------------------------------------------------------- */
-/* Aktif list                                                                 */
+/* Aktif table                                                                */
 /* -------------------------------------------------------------------------- */
 
-interface AktifListProps {
-  items: PegawaiListItem[];
-  params: PegawaiListParams;
-  selfId: number | undefined;
-  onSort: (field: PegawaiSort) => void;
-  onEdit: (id: number) => void;
-  onAction: (item: PegawaiListItem, action: AccountAction) => void;
-}
+const col = columnHelper<PegawaiListItem>();
 
-function ariaSort(params: PegawaiListParams, fields: PegawaiSort[]): 'ascending' | 'descending' | undefined {
-  if (!fields.includes(params.sort)) return undefined;
-  return params.dir === 'asc' ? 'ascending' : 'descending';
-}
-
-function SortButton({ field, label, params, onSort }: { field: PegawaiSort; label: string; params: PegawaiListParams; onSort: (f: PegawaiSort) => void }) {
+function SortToggle({ field, label, params, update }: { field: PegawaiSort; label: string; params: PegawaiListParams; update: Update }) {
   const active = params.sort === field;
   const Icon = !active ? ArrowUpDown : params.dir === 'asc' ? ArrowUp : ArrowDown;
   return (
-    <Button variant="ghost" size="sm" className={cn('-ml-2 text-muted-foreground', active && 'text-foreground')} onClick={() => onSort(field)}>
+    <Button
+      variant="ghost"
+      size="xs"
+      className={cn('-mx-2 text-eyebrow text-muted-foreground uppercase hover:text-foreground', active && 'text-foreground')}
+      onClick={() => update(toggleSort(params, field))}
+    >
       {label}
-      <Icon data-icon="inline-end" aria-hidden="true" />
-      <span className="sr-only">
-        {active ? `, diurutkan ${params.dir === 'asc' ? 'naik' : 'turun'}` : ', klik untuk mengurutkan'}
-      </span>
+      <Icon data-icon="inline-end" aria-hidden="true" className={cn(!active && 'opacity-50')} />
+      <span className="sr-only">{active ? `, diurutkan ${params.dir === 'asc' ? 'naik' : 'turun'}` : ', klik untuk mengurutkan'}</span>
     </Button>
   );
 }
 
-function AktifList({ items, params, selfId, onSort, onEdit, onAction }: AktifListProps) {
-  return (
-    <>
-      <Card className="hidden py-0 md:flex">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead aria-sort={ariaSort(params, ['nama', 'nip'])} className="pl-4">
-                <div className="flex items-center gap-1">
-                  <SortButton field="nama" label="Nama" params={params} onSort={onSort} />
-                  <span aria-hidden="true" className="text-muted-foreground">
-                    /
-                  </span>
-                  <SortButton field="nip" label="NIP" params={params} onSort={onSort} />
-                </div>
-              </TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden lg:table-cell">Jabatan</TableHead>
-              <TableHead aria-sort={ariaSort(params, ['kelengkapan'])}>
-                <SortButton field="kelengkapan" label="Kelengkapan" params={params} onSort={onSort} />
-              </TableHead>
-              <TableHead>Akun</TableHead>
-              <TableHead className="w-12 pr-4">
-                <span className="sr-only">Aksi</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="pl-4">
-                  <div className="flex items-center gap-3">
-                    <PegawaiAvatar nama={item.nama} fotoUrl={item.fotoUrl} />
-                    <div className="flex min-w-0 flex-col">
-                      <span className="flex items-center gap-2">
-                        <Link
-                          to={`/admin/pegawai/${item.id}`}
-                          className="max-w-64 truncate font-medium text-foreground underline-offset-4 hover:underline focus-visible:underline"
-                          title={item.nama}
-                        >
-                          {item.nama}
-                        </Link>
-                        <RoleBadge role={item.role} />
-                      </span>
-                      <span className="font-mono text-xs text-muted-foreground tabular-nums">{item.nip}</span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <StatusKepegawaianBadge status={item.statusKepegawaian} />
-                </TableCell>
-                <TableCell className="hidden max-w-48 lg:table-cell">
-                  <span className="block truncate" title={item.jabatan ?? undefined}>
-                    {item.jabatan ?? <span className="text-muted-foreground">—</span>}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <KelengkapanCell dokumen={item.dokumen} />
-                </TableCell>
-                <TableCell>
-                  <AkunFlags item={item} />
-                </TableCell>
-                <TableCell className="pr-4 text-right">
-                  <RowActions item={item} selfId={selfId} onEdit={onEdit} onAction={onAction} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+interface AktifTableProps {
+  params: PegawaiListParams;
+  update: Update;
+  query: ReturnType<typeof usePegawaiList>;
+  selfId: number | undefined;
+  onReset: () => void;
+  onAdd: () => void;
+  onEdit: (id: number) => void;
+  onAction: (item: PegawaiListItem, action: AccountAction) => void;
+}
 
-      <ul className="flex flex-col gap-3 md:hidden">
-        {items.map((item) => (
-          <li key={item.id}>
-            <Card size="sm">
-              <CardContent className="flex flex-col gap-3">
-                <div className="flex items-start gap-3">
-                  <PegawaiAvatar nama={item.nama} fotoUrl={item.fotoUrl} className="size-10" />
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <Link to={`/admin/pegawai/${item.id}`} className="truncate font-medium underline-offset-4 hover:underline">
-                      {item.nama}
-                    </Link>
-                    <span className="font-mono text-xs text-muted-foreground tabular-nums">{item.nip}</span>
-                    {item.jabatan ? <span className="truncate text-xs text-muted-foreground">{item.jabatan}</span> : null}
-                  </div>
-                  <RowActions item={item} selfId={selfId} onEdit={onEdit} onAction={onAction} />
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <StatusKepegawaianBadge status={item.statusKepegawaian} />
-                  <RoleBadge role={item.role} />
-                  <AkunFlags item={item} />
-                </div>
-                <KelengkapanCell dokumen={item.dokumen} />
-              </CardContent>
-            </Card>
-          </li>
-        ))}
-      </ul>
-    </>
+function AktifTable({ params, update, query, selfId, onReset, onAdd, onEdit, onAction }: AktifTableProps) {
+  const columns = useMemo<DataTableColumn<PegawaiListItem>[]>(
+    () => [
+      col.accessor('nama', {
+        id: 'nama',
+        header: () => (
+          <span className="flex items-center gap-2">
+            <SortToggle field="nama" label="Pegawai" params={params} update={update} />
+            <span aria-hidden="true" className="text-muted-foreground/60">
+              /
+            </span>
+            <SortToggle field="nip" label="NIP" params={params} update={update} />
+          </span>
+        ),
+        cell: ({ row }) => <PegawaiIdentity item={row.original} />,
+      }),
+      col.accessor('statusKepegawaian', {
+        header: 'Status',
+        cell: ({ row }) => (
+          <div className="flex flex-col items-start gap-1">
+            <StatusKepegawaianBadge status={row.original.statusKepegawaian} />
+            {row.original.pangkatKode ? <span className="text-xs text-muted-foreground">{row.original.pangkatKode}</span> : null}
+          </div>
+        ),
+      }),
+      col.accessor('jabatan', {
+        header: 'Jabatan',
+        meta: { headerClassName: 'hidden xl:table-cell', cellClassName: 'hidden max-w-56 xl:table-cell' },
+        cell: (info) => (
+          <span className="block truncate" title={info.getValue() ?? undefined}>
+            {info.getValue() ?? <span className="text-muted-foreground">—</span>}
+          </span>
+        ),
+      }),
+      col.display({
+        id: 'kelengkapan',
+        header: () => <SortToggle field="kelengkapan" label="Kelengkapan" params={params} update={update} />,
+        cell: ({ row }) => <KelengkapanCell dokumen={row.original.dokumen} />,
+      }),
+      col.display({
+        id: 'akun',
+        header: 'Akun',
+        meta: { headerClassName: 'hidden lg:table-cell', cellClassName: 'hidden lg:table-cell' },
+        cell: ({ row }) => <AkunFlags item={row.original} />,
+      }),
+      col.display({
+        id: 'aksi',
+        header: () => <span className="sr-only">Aksi</span>,
+        meta: { headerClassName: 'w-12', cellClassName: 'text-right' },
+        cell: ({ row }) => <RowActions item={row.original} selfId={selfId} onEdit={onEdit} onAction={onAction} />,
+      }),
+    ],
+    [params, update, selfId, onEdit, onAction],
+  );
+
+  const data = query.data;
+  const filtered = activeFilterCount(params) > 0;
+  return (
+    <DataTable
+      label="Daftar pegawai"
+      data={data?.items}
+      columns={columns}
+      getRowId={(item) => String(item.id)}
+      loading={query.isPending}
+      error={query.isError ? query.error : undefined}
+      onRetry={() => void query.refetch()}
+      manualSorting
+      manualPagination
+      sorting={[{ id: params.sort === 'nip' ? 'nama' : params.sort, desc: params.dir === 'desc' }]}
+      filtered={filtered}
+      onResetFilters={onReset}
+      empty={{
+        icon: Users,
+        title: 'Belum ada pegawai',
+        description: 'Tambahkan pegawai pertama. Akun dibuat otomatis dengan password default 6 digit terakhir NIP.',
+        action: (
+          <Button onClick={onAdd}>
+            <UserPlus data-icon="inline-start" />
+            Tambah pegawai
+          </Button>
+        ),
+      }}
+      className={cn('transition-opacity', query.isPlaceholderData && 'opacity-60')}
+      mobileCard={(item) => (
+        <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-card">
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <PegawaiIdentity item={item} />
+            </div>
+            <RowActions item={item} selfId={selfId} onEdit={onEdit} onAction={onAction} />
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <StatusKepegawaianBadge status={item.statusKepegawaian} />
+            <AkunFlags item={item} />
+          </div>
+          <KelengkapanCell dokumen={item.dokumen} />
+        </div>
+      )}
+      footer={
+        data && data.total > 0 ? (
+          <DataTablePagination
+            page={data.page}
+            pageSize={data.pageSize}
+            total={data.total}
+            busy={query.isPlaceholderData}
+            onPageChange={(page) => update({ page })}
+            pageSizes={PAGE_SIZES}
+            onPageSizeChange={(size) => update({ pageSize: size as PageSize })}
+          />
+        ) : null
+      }
+    />
+  );
+}
+
+function PegawaiIdentity({ item }: { item: PegawaiListItem }) {
+  return (
+    <div className="flex items-center gap-3">
+      <PegawaiAvatar nama={item.nama} fotoUrl={item.fotoUrl} className="size-9" />
+      <div className="flex min-w-0 flex-col">
+        <span className="flex items-center gap-2">
+          <Link
+            to={`/admin/pegawai/${item.id}`}
+            className="max-w-64 truncate py-0.5 font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:underline"
+            title={item.nama}
+          >
+            {item.nama}
+          </Link>
+          <RoleBadge role={item.role} />
+        </span>
+        <span className="text-xs text-muted-foreground tabular-nums">{item.nip}</span>
+      </div>
+    </div>
   );
 }
 
@@ -456,7 +425,7 @@ function RowActions({
           <MoreHorizontal />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuItem asChild>
           <Link to={`/admin/pegawai/${item.id}`}>
             <Eye />
@@ -465,12 +434,12 @@ function RowActions({
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onEdit(item.id)}>
           <Pencil />
-          Edit
+          Ubah data
         </DropdownMenuItem>
         {account.length > 0 ? (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-muted-foreground">Akun</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-eyebrow text-muted-foreground uppercase">Akun</DropdownMenuLabel>
             {account.map((action) => {
               const meta = ACTION_META[action];
               return (
@@ -497,7 +466,7 @@ function RowActions({
 }
 
 /* -------------------------------------------------------------------------- */
-/* Terhapus list                                                              */
+/* Terhapus table                                                             */
 /* -------------------------------------------------------------------------- */
 
 function RestoreButton({ item }: { item: PegawaiListItem }) {
@@ -540,193 +509,82 @@ function PurgeInfo({ item }: { item: PegawaiListItem }) {
   );
 }
 
-function TerhapusList({ items }: { items: PegawaiListItem[] }) {
-  return (
-    <>
-      <Card className="hidden py-0 md:flex">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-4">Pegawai</TableHead>
-              <TableHead>Dihapus</TableHead>
-              <TableHead>Batas pemulihan</TableHead>
-              <TableHead className="pr-4 text-right">
-                <span className="sr-only">Aksi</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="pl-4">
-                  <div className="flex items-center gap-3">
-                    <PegawaiAvatar nama={item.nama} fotoUrl={null} className="opacity-60" />
-                    <div className="flex min-w-0 flex-col">
-                      <span className="max-w-64 truncate font-medium">{item.nama}</span>
-                      <span className="font-mono text-xs text-muted-foreground tabular-nums">{item.nip}</span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <DeletedInfo item={item} />
-                </TableCell>
-                <TableCell>
-                  <PurgeInfo item={item} />
-                </TableCell>
-                <TableCell className="pr-4 text-right">
-                  <RestoreButton item={item} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
-      <ul className="flex flex-col gap-3 md:hidden">
-        {items.map((item) => (
-          <li key={item.id}>
-            <Card size="sm">
-              <CardContent className="flex flex-col gap-3">
-                <div className="flex flex-col">
-                  <span className="truncate font-medium">{item.nama}</span>
-                  <span className="font-mono text-xs text-muted-foreground tabular-nums">{item.nip}</span>
-                </div>
-                <DeletedInfo item={item} />
-                <PurgeInfo item={item} />
-                <div>
-                  <RestoreButton item={item} />
-                </div>
-              </CardContent>
-            </Card>
-          </li>
-        ))}
-      </ul>
-    </>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Pagination, empty, skeleton                                                */
-/* -------------------------------------------------------------------------- */
-
-function PaginationBar({ data, params, update }: { data: PegawaiListResponse; params: PegawaiListParams; update: Update }) {
-  const pages = Math.max(1, Math.ceil(data.total / data.pageSize));
-  const from = data.total === 0 ? 0 : (data.page - 1) * data.pageSize + 1;
-  const to = Math.min(data.total, data.page * data.pageSize);
-  return (
-    <nav aria-label="Navigasi halaman" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-sm text-muted-foreground tabular-nums" aria-live="polite">
-        Menampilkan {from}–{to} dari {data.total} pegawai
-      </p>
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="page-size" className="text-sm font-normal text-muted-foreground">
-            Per halaman
-          </Label>
-          <Select value={String(params.pageSize)} onValueChange={(v) => update({ pageSize: Number(v) as PageSize })}>
-            <SelectTrigger id="page-size" size="sm" className="w-18">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PAGE_SIZES.map((size) => (
-                <SelectItem key={size} value={String(size)}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="sm" disabled={params.page <= 1} onClick={() => update({ page: params.page - 1 })}>
-            <ChevronLeft data-icon="inline-start" />
-            Sebelumnya
-          </Button>
-          <span className="px-2 text-sm tabular-nums" aria-current="page">
-            {data.page} / {pages}
-          </span>
-          <Button variant="outline" size="sm" disabled={params.page >= pages} onClick={() => update({ page: params.page + 1 })}>
-            Berikutnya
-            <ChevronRight data-icon="inline-end" />
-          </Button>
+const terhapusCol = columnHelper<PegawaiListItem>();
+const TERHAPUS_COLUMNS: DataTableColumn<PegawaiListItem>[] = [
+  terhapusCol.accessor('nama', {
+    header: 'Pegawai',
+    cell: ({ row }) => (
+      <div className="flex items-center gap-3">
+        <PegawaiAvatar nama={row.original.nama} fotoUrl={null} className="size-9 opacity-60" />
+        <div className="flex min-w-0 flex-col">
+          <span className="max-w-64 truncate font-medium">{row.original.nama}</span>
+          <span className="text-xs text-muted-foreground tabular-nums">{row.original.nip}</span>
         </div>
       </div>
-    </nav>
-  );
-}
+    ),
+  }),
+  terhapusCol.display({ id: 'dihapus', header: 'Dihapus', cell: ({ row }) => <DeletedInfo item={row.original} /> }),
+  terhapusCol.display({ id: 'batas', header: 'Batas pemulihan', cell: ({ row }) => <PurgeInfo item={row.original} /> }),
+  terhapusCol.display({
+    id: 'aksi',
+    header: () => <span className="sr-only">Aksi</span>,
+    meta: { cellClassName: 'text-right' },
+    cell: ({ row }) => <RestoreButton item={row.original} />,
+  }),
+];
 
-function ListEmpty({
+function TerhapusTable({
   params,
-  data,
-  onAdd,
-  onClear,
+  update,
+  query,
+  onReset,
 }: {
   params: PegawaiListParams;
-  data: PegawaiListResponse;
-  onAdd: () => void;
-  onClear: () => void;
+  update: Update;
+  query: ReturnType<typeof usePegawaiList>;
+  onReset: () => void;
 }) {
-  const filtered = activeFilterCount(params) > 0;
-  let icon = <Users />;
-  let title = 'Belum ada pegawai';
-  let description = 'Tambahkan pegawai pertama. Akun dibuat otomatis dengan password default 6 digit terakhir NIP.';
-  let action: ReactNode = (
-    <Button onClick={onAdd}>
-      <UserPlus data-icon="inline-start" />
-      Tambah Pegawai
-    </Button>
-  );
-  if (filtered) {
-    icon = <Search />;
-    title = 'Tidak ada pegawai yang cocok';
-    description = params.q ? `Tidak ditemukan pegawai untuk “${params.q}” dengan filter yang dipilih.` : 'Tidak ada pegawai yang sesuai dengan filter yang dipilih.';
-    action = (
-      <Button variant="outline" onClick={onClear}>
-        <FilterX data-icon="inline-start" />
-        Reset filter
-      </Button>
-    );
-  } else if (params.terhapus) {
-    icon = <UserX />;
-    title = 'Tidak ada pegawai terhapus';
-    description = 'Pegawai yang dihapus muncul di sini dan dapat dipulihkan selama 7 hari.';
-    action = null;
-  } else if (data.summary.total > 0) {
-    title = 'Halaman ini kosong';
-    description = 'Kembali ke halaman pertama untuk melihat daftar pegawai.';
-    action = (
-      <Button variant="outline" onClick={onClear}>
-        Ke halaman pertama
-      </Button>
-    );
-  }
+  const data = query.data;
   return (
-    <Empty className="border border-dashed">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">{icon}</EmptyMedia>
-        <EmptyTitle>{title}</EmptyTitle>
-        <EmptyDescription>{description}</EmptyDescription>
-      </EmptyHeader>
-      {action ? <EmptyContent>{action}</EmptyContent> : null}
-    </Empty>
-  );
-}
-
-function ListSkeleton() {
-  return (
-    <Card className="py-0" aria-busy="true" aria-label="Memuat daftar pegawai">
-      <div className="flex flex-col divide-y">
-        {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className="flex items-center gap-3 p-4">
-            <Skeleton className="size-8 rounded-full" />
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-3 w-36" />
-            </div>
-            <Skeleton className="hidden h-5 w-14 md:block" />
-            <Skeleton className="hidden h-6 w-36 md:block" />
-            <Skeleton className="hidden h-5 w-16 md:block" />
+    <DataTable
+      label="Pegawai terhapus"
+      data={data?.items}
+      columns={TERHAPUS_COLUMNS}
+      getRowId={(item) => String(item.id)}
+      loading={query.isPending}
+      error={query.isError ? query.error : undefined}
+      onRetry={() => void query.refetch()}
+      manualSorting
+      manualPagination
+      filtered={activeFilterCount(params) > 0}
+      onResetFilters={onReset}
+      empty={{ icon: UserX, title: 'Tidak ada pegawai terhapus', description: 'Pegawai yang dihapus muncul di sini dan dapat dipulihkan selama 7 hari.' }}
+      mobileCard={(item) => (
+        <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-card">
+          <div className="flex flex-col">
+            <span className="truncate font-medium">{item.nama}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{item.nip}</span>
           </div>
-        ))}
-      </div>
-    </Card>
+          <DeletedInfo item={item} />
+          <PurgeInfo item={item} />
+          <div>
+            <RestoreButton item={item} />
+          </div>
+        </div>
+      )}
+      footer={
+        data && data.total > 0 ? (
+          <DataTablePagination
+            page={data.page}
+            pageSize={data.pageSize}
+            total={data.total}
+            busy={query.isPlaceholderData}
+            onPageChange={(page) => update({ page })}
+            pageSizes={PAGE_SIZES}
+            onPageSizeChange={(size) => update({ pageSize: size as PageSize })}
+          />
+        ) : null
+      }
+    />
   );
 }

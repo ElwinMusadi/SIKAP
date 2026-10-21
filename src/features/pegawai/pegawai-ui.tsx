@@ -1,25 +1,23 @@
 import { KeyRound, Lock } from 'lucide-react';
 import type { Role, StatusAkun } from '@shared/enums';
 import type { Kelengkapan, PegawaiListItem } from '@shared/pegawai';
+import { ProgressMeter } from '@/components/progress-meter';
+import { StatusBadge } from '@/components/status-badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { initials } from '@/lib/format';
+import { countsFromSummary } from '@/lib/progress';
+import { STATUS_REGISTRY, statusSpec, TONE_CLASSES } from '@/lib/status';
 import { cn } from '@/lib/utils';
 
-const TONE = {
-  verified: 'border-status-verified/30 bg-status-verified-muted text-status-verified',
-  pending: 'border-status-pending/30 bg-status-pending-muted text-status-pending',
-  rejected: 'border-status-rejected/30 bg-status-rejected-muted text-status-rejected',
-  missing: 'border-status-missing/30 bg-status-missing-muted text-status-missing',
-} as const;
-
-export const KELENGKAPAN_STYLE: Record<Kelengkapan, { badge: string; bar: string }> = {
-  Lengkap: { badge: TONE.verified, bar: '*:bg-status-verified' },
-  'Belum Lengkap': { badge: TONE.pending, bar: '*:bg-status-pending' },
-  'Perlu Revisi': { badge: TONE.rejected, bar: '*:bg-status-rejected' },
-};
+/** Kelengkapan badge/bar classes, derived from the single status registry. */
+export const KELENGKAPAN_STYLE = Object.fromEntries(
+  (Object.keys(STATUS_REGISTRY.kelengkapan) as Kelengkapan[]).map((k) => {
+    const tone = TONE_CLASSES[statusSpec('kelengkapan', k).tone];
+    return [k, { badge: tone.badge, bar: tone.bar }];
+  }),
+) as Record<Kelengkapan, { badge: string; bar: string }>;
 
 export function PegawaiAvatar({ nama, fotoUrl, className }: { nama: string; fotoUrl: string | null; className?: string }) {
   return (
@@ -31,11 +29,7 @@ export function PegawaiAvatar({ nama, fotoUrl, className }: { nama: string; foto
 }
 
 export function StatusAkunBadge({ status }: { status: StatusAkun }) {
-  return (
-    <Badge variant="outline" className={status === 'Aktif' ? TONE.verified : TONE.missing}>
-      {status}
-    </Badge>
-  );
+  return <StatusBadge domain="akun" status={status} />;
 }
 
 export function StatusKepegawaianBadge({ status }: { status: string | null }) {
@@ -90,22 +84,10 @@ export function KelengkapanCell({ dokumen, className }: { dokumen: PegawaiListIt
   if (dokumen.wajibTotal === 0) {
     return <span className={cn('text-xs text-muted-foreground', className)}>Status kepegawaian belum diisi</span>;
   }
-  const style = KELENGKAPAN_STYLE[dokumen.kelengkapan];
   return (
-    <div className={cn('flex min-w-36 flex-col gap-1.5', className)}>
-      <div className="flex items-center justify-between gap-2">
-        <Badge variant="outline" className={style.badge}>
-          {dokumen.kelengkapan}
-        </Badge>
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {dokumen.wajibTerverifikasi}/{dokumen.wajibTotal}
-        </span>
-      </div>
-      <Progress
-        value={dokumen.persen}
-        className={cn('h-1.5', style.bar)}
-        aria-label={`Dokumen wajib terverifikasi ${dokumen.wajibTerverifikasi} dari ${dokumen.wajibTotal}`}
-      />
+    <div className={cn('flex min-w-40 flex-col gap-1.5', className)}>
+      <StatusBadge domain="kelengkapan" status={dokumen.kelengkapan} className="w-fit" />
+      <ProgressMeter variant="compact" counts={countsFromSummary(dokumen)} label="Dokumen wajib" />
       {dokumen.menunggu > 0 ? (
         <span className="text-xs text-status-pending tabular-nums">{dokumen.menunggu} menunggu verifikasi</span>
       ) : null}

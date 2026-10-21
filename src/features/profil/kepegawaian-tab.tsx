@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FileClock, History, Pencil, RefreshCw, Send, TriangleAlert, X } from 'lucide-react';
+import { FileClock, History, Lock, Pencil, Send, TriangleAlert, X } from 'lucide-react';
 import { Controller, useForm, useWatch, type FieldError as RhfFieldError, type Path, type Resolver } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
@@ -17,7 +17,9 @@ import {
   type RefResponse,
 } from '@shared/profile';
 import { DatePicker } from '@/components/date-picker';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { SectionCard } from '@/components/section-card';
+import { EmptyState, ErrorState } from '@/components/states';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,13 +32,10 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from '@/components/ui/item';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,42 +46,42 @@ import { formatKepegawaianValue } from './format-values';
 import { useCancelPengajuan, useCreatePengajuan, useMyPengajuan } from './queries';
 import { enumOptions, SelectControl } from './select-control';
 
-interface KepegawaianTabProps {
+interface KepegawaianCardProps {
   profile: Profile;
   pengajuanAktif: Pengajuan | null;
   refData: RefResponse | undefined;
+  id?: string;
+  className?: string;
 }
 
-export function KepegawaianTab({ profile, pengajuanAktif, refData }: KepegawaianTabProps) {
+/** Read-only employment data; changes go through a pengajuan reviewed by the Administrator TU. */
+export function KepegawaianCard({ profile, pengajuanAktif, refData, id, className }: KepegawaianCardProps) {
   return (
-    <div className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Data Kepegawaian</CardTitle>
-          <CardDescription>Perubahan data ini diajukan ke Administrator TU untuk diverifikasi.</CardDescription>
-          {pengajuanAktif ? null : (
-            <CardAction>
-              <AjukanPerubahanDialog profile={profile} refData={refData} />
-            </CardAction>
-          )}
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6">
-          {pengajuanAktif ? <PengajuanAktifAlert pengajuan={pengajuanAktif} refData={refData} /> : null}
-          <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-            {KEPEGAWAIAN_FIELDS.map((field) => (
-              <div key={field} className="flex flex-col gap-1">
-                <dt className="text-xs font-medium text-muted-foreground">{KEPEGAWAIAN_LABELS[field]}</dt>
-                <dd className="text-sm font-medium break-words text-foreground">
-                  {formatKepegawaianValue(field, profile[field], refData)}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </CardContent>
-      </Card>
-
-      <RiwayatPengajuanCard refData={refData} />
-    </div>
+    <SectionCard
+      id={id}
+      className={className}
+      title="Kepegawaian"
+      description={
+        <>
+          <Lock className="mr-1 inline size-3.5 align-[-2px]" aria-hidden="true" />
+          Diubah melalui pengajuan yang diverifikasi Administrator TU.
+        </>
+      }
+      action={pengajuanAktif ? null : <AjukanPerubahanDialog profile={profile} refData={refData} />}
+      wideAction
+    >
+      <div className="flex flex-col gap-6">
+        {pengajuanAktif ? <PengajuanAktifCallout pengajuan={pengajuanAktif} refData={refData} /> : null}
+        <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
+          {KEPEGAWAIAN_FIELDS.map((field) => (
+            <div key={field} className="flex flex-col gap-1">
+              <dt className="text-eyebrow text-muted-foreground uppercase">{KEPEGAWAIAN_LABELS[field]}</dt>
+              <dd className="text-sm font-medium break-words text-foreground">{formatKepegawaianValue(field, profile[field], refData)}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </SectionCard>
   );
 }
 
@@ -90,7 +89,7 @@ export function KepegawaianTab({ profile, pengajuanAktif, refData }: Kepegawaian
 /* Pengajuan aktif                                                            */
 /* -------------------------------------------------------------------------- */
 
-function PengajuanAktifAlert({ pengajuan, refData }: { pengajuan: Pengajuan; refData: RefResponse | undefined }) {
+function PengajuanAktifCallout({ pengajuan, refData }: { pengajuan: Pengajuan; refData: RefResponse | undefined }) {
   const cancel = useCancelPengajuan();
   const [open, setOpen] = useState(false);
 
@@ -109,14 +108,16 @@ function PengajuanAktifAlert({ pengajuan, refData }: { pengajuan: Pengajuan; ref
   };
 
   return (
-    <Alert className="border-status-pending/30 bg-status-pending-muted">
-      <FileClock className="text-status-pending" />
-      <AlertTitle>Pengajuan perubahan sedang menunggu verifikasi</AlertTitle>
-      <AlertDescription className="flex flex-col gap-3">
-        <p>
-          Diajukan {formatRelative(pengajuan.createdAt)} ({formatDateTimeWITA(pengajuan.createdAt)}).
-        </p>
-        <div className="w-full rounded-lg border bg-background p-3">
+    <div className="flex gap-3 rounded-xl border border-status-pending/25 bg-status-pending-muted p-4 text-sm">
+      <FileClock className="mt-0.5 size-4 shrink-0 text-status-pending" aria-hidden="true" />
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className="flex flex-col gap-0.5">
+          <p className="font-medium text-status-pending">Pengajuan perubahan sedang menunggu verifikasi</p>
+          <p className="text-muted-foreground">
+            Diajukan {formatRelative(pengajuan.createdAt)} ({formatDateTimeWITA(pengajuan.createdAt)}).
+          </p>
+        </div>
+        <div className="w-full rounded-lg border bg-card p-3">
           <PerubahanList perubahan={pengajuan.perubahan} refData={refData} />
         </div>
         {pengajuan.alasan ? (
@@ -127,7 +128,7 @@ function PengajuanAktifAlert({ pengajuan, refData }: { pengajuan: Pengajuan; ref
         ) : null}
         <AlertDialog open={open} onOpenChange={(next) => !cancel.isPending && setOpen(next)}>
           <AlertDialogTrigger asChild>
-            <Button size="sm" variant="outline" className="w-fit bg-background">
+            <Button size="sm" variant="outline" className="w-fit bg-card">
               <X data-icon="inline-start" />
               Batalkan Pengajuan
             </Button>
@@ -148,8 +149,8 @@ function PengajuanAktifAlert({ pengajuan, refData }: { pengajuan: Pengajuan; ref
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </AlertDescription>
-    </Alert>
+      </div>
+    </div>
   );
 }
 
@@ -399,9 +400,9 @@ function AjukanPerubahanDialog({ profile, refData }: { profile: Profile; refData
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <Button variant="outline" onClick={() => onOpenChange(true)}>
+      <Button variant="outline" size="sm" onClick={() => onOpenChange(true)}>
         <Pencil data-icon="inline-start" />
-        Ajukan Perubahan
+        Ajukan perubahan
       </Button>
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
@@ -423,7 +424,7 @@ function AjukanPerubahanDialog({ profile, refData }: { profile: Profile; refData
                   return (
                     <div
                       key={field}
-                      className="flex flex-col gap-3 rounded-lg border p-3 has-data-[state=checked]:border-primary/30 has-data-[state=checked]:bg-primary/5"
+                      className="flex flex-col gap-3 rounded-lg border p-3 has-data-[state=checked]:border-primary/30 has-data-[state=checked]:bg-accent-soft"
                     >
                       <Field orientation="horizontal">
                         <Controller
@@ -506,82 +507,62 @@ function AjukanPerubahanDialog({ profile, refData }: { profile: Profile; refData
 /* Riwayat                                                                    */
 /* -------------------------------------------------------------------------- */
 
-function RiwayatPengajuanCard({ refData }: { refData: RefResponse | undefined }) {
+export function RiwayatPengajuanCard({ refData, id, className }: { refData: RefResponse | undefined; id?: string; className?: string }) {
   const query = useMyPengajuan();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Riwayat Pengajuan</CardTitle>
-        <CardDescription>Pengajuan perubahan data kepegawaian yang pernah Anda kirim.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {query.isPending ? (
-          <div className="flex flex-col gap-3" aria-busy="true" aria-label="Memuat riwayat pengajuan">
-            {[0, 1].map((i) => (
-              <div key={i} className="flex flex-col gap-2 rounded-lg border p-3">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-3 w-full max-w-md" />
+    <SectionCard id={id} className={className} title="Riwayat pengajuan" description="Pengajuan perubahan data kepegawaian yang pernah Anda kirim." flush>
+      {query.isPending ? (
+        <div className="flex flex-col gap-3 p-5" aria-busy="true" aria-label="Memuat riwayat pengajuan">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex flex-col gap-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-full max-w-md" />
+            </div>
+          ))}
+        </div>
+      ) : query.isError ? (
+        <ErrorState
+          error={query.error}
+          title="Gagal memuat riwayat pengajuan"
+          size="inline"
+          onRetry={() => void query.refetch()}
+          retrying={query.isFetching}
+        />
+      ) : query.data.items.length === 0 ? (
+        <EmptyState icon={History} size="inline" title="Belum ada pengajuan" description="Pengajuan perubahan data kepegawaian Anda akan tampil di sini." />
+      ) : (
+        <ul className="divide-y">
+          {query.data.items.map((item) => (
+            <li key={item.id} className="flex flex-col gap-3 px-5 py-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <PengajuanStatusBadge status={item.status} />
+                <span className="text-xs text-muted-foreground" title={formatDateTimeWITA(item.createdAt)}>
+                  Diajukan {formatRelative(item.createdAt)}
+                </span>
               </div>
-            ))}
-          </div>
-        ) : query.isError ? (
-          <Alert variant="destructive" role="alert">
-            <TriangleAlert />
-            <AlertTitle>Gagal memuat riwayat pengajuan</AlertTitle>
-            <AlertDescription>
-              <p>{errorMessage(query.error)}</p>
-              <Button size="sm" variant="outline" className="mt-2" onClick={() => void query.refetch()}>
-                <RefreshCw data-icon="inline-start" />
-                Coba lagi
-              </Button>
-            </AlertDescription>
-          </Alert>
-        ) : query.data.items.length === 0 ? (
-          <Empty className="border border-dashed">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <History />
-              </EmptyMedia>
-              <EmptyTitle>Belum ada pengajuan</EmptyTitle>
-              <EmptyDescription>Pengajuan perubahan data kepegawaian Anda akan tampil di sini.</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          <ItemGroup className="gap-3">
-            {query.data.items.map((item) => (
-              <Item key={item.id} variant="outline" className="items-start">
-                <ItemContent className="gap-3">
-                  <ItemTitle className="flex-wrap">
-                    <PengajuanStatusBadge status={item.status} />
-                    <span className="text-xs font-normal text-muted-foreground" title={formatDateTimeWITA(item.createdAt)}>
-                      Diajukan {formatRelative(item.createdAt)}
-                    </span>
-                  </ItemTitle>
-                  <PerubahanList perubahan={item.perubahan} refData={refData} />
-                  {item.alasan ? (
-                    <ItemDescription className="line-clamp-none">
-                      <span className="font-medium text-foreground">Alasan:</span> {item.alasan}
-                    </ItemDescription>
+              <PerubahanList perubahan={item.perubahan} refData={refData} />
+              {item.alasan ? (
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Alasan:</span> {item.alasan}
+                </p>
+              ) : null}
+              {item.reviewedAt ? (
+                <p className="text-sm text-muted-foreground">
+                  {item.status === 'Dibatalkan' ? 'Dibatalkan' : `Ditinjau${item.reviewedBy ? ` oleh ${item.reviewedBy.nama}` : ''}`} pada{' '}
+                  {formatDateTimeWITA(item.reviewedAt)}
+                  {item.catatanAdmin ? (
+                    <>
+                      <br />
+                      <span className="font-medium text-foreground">Catatan admin:</span> {item.catatanAdmin}
+                    </>
                   ) : null}
-                  {item.reviewedAt ? (
-                    <ItemDescription className="line-clamp-none">
-                      {item.status === 'Dibatalkan' ? 'Dibatalkan' : `Ditinjau${item.reviewedBy ? ` oleh ${item.reviewedBy.nama}` : ''}`}{' '}
-                      pada {formatDateTimeWITA(item.reviewedAt)}
-                      {item.catatanAdmin ? (
-                        <>
-                          <br />
-                          <span className="font-medium text-foreground">Catatan admin:</span> {item.catatanAdmin}
-                        </>
-                      ) : null}
-                    </ItemDescription>
-                  ) : null}
-                </ItemContent>
-              </Item>
-            ))}
-          </ItemGroup>
-        )}
-      </CardContent>
-    </Card>
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </SectionCard>
   );
 }

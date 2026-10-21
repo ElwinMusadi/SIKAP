@@ -1,11 +1,13 @@
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
+import { useTheme } from "@/app/theme"
 
-// SIKAP is light-theme only (no next-themes in a Vite SPA).
+// Follows the app's own ThemeProvider (no next-themes in a Vite SPA).
 const Toaster = ({ ...props }: ToasterProps) => {
+  const { resolved } = useTheme()
   return (
     <Sonner
-      theme="light"
+      theme={resolved}
       className="toaster group"
       icons={{
         success: (

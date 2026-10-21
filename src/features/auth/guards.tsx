@@ -2,8 +2,8 @@ import { ShieldAlert } from 'lucide-react';
 import { Link, Navigate, Outlet, useLocation, useSearchParams } from 'react-router';
 import type { Role } from '@shared/enums';
 import { FullPageLoader } from '@/components/full-page-loader';
+import { StatusPage } from '@/components/status-page';
 import { Button } from '@/components/ui/button';
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { useMe, wasSignedOutIntentionally } from '@/features/auth/queries';
 import { safeNextPath } from '@/lib/safe-next';
 
@@ -30,22 +30,17 @@ export function RequireRole({ role }: { role: Role }) {
 
   if (user?.role !== role) {
     return (
-      <Empty className="min-h-[60vh]">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <ShieldAlert />
-          </EmptyMedia>
-          <EmptyTitle>Akses ditolak</EmptyTitle>
-          <EmptyDescription>
-            {ROLE_DENIED_MESSAGE[role] ?? 'Anda tidak memiliki akses ke halaman ini.'}
-          </EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <Button asChild variant="outline">
+      <StatusPage
+        code="403"
+        icon={ShieldAlert}
+        title="Akses ditolak"
+        description={ROLE_DENIED_MESSAGE[role] ?? 'Anda tidak memiliki akses ke halaman ini.'}
+        actions={
+          <Button asChild>
             <Link to="/">Kembali ke Beranda</Link>
           </Button>
-        </EmptyContent>
-      </Empty>
+        }
+      />
     );
   }
   return <Outlet />;

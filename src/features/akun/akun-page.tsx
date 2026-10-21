@@ -1,6 +1,6 @@
 import { useMemo, useState, type ComponentProps } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CircleCheck, CircleX, Eye, EyeOff, KeyRound, LogOut, Monitor, Smartphone } from 'lucide-react';
+import { CircleCheck, CircleX, Eye, EyeOff, KeyRound, LogOut, Monitor, MonitorSmartphone, Moon, Smartphone, Sun, TriangleAlert } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -13,7 +13,10 @@ import {
 } from '@shared/api';
 import { defaultPasswordFor, PASSWORD_RULES } from '@shared/validators';
 
+import { useTheme, type ThemePreference } from '@/app/theme';
 import { PageHeader } from '@/components/page-header';
+import { SectionCard } from '@/components/section-card';
+import { ErrorState } from '@/components/states';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -28,16 +31,24 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from '@/components/ui/item';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { useChangePassword, useMe, useRevokeOtherSessions, useRevokeSession, useSessions } from '@/features/auth/queries';
 import { errorMessage, isApiError } from '@/lib/api';
 import { formatDateTimeWITA, formatRelative } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { describeUserAgent } from './user-agent';
+
+const SECTIONS = [
+  { id: 'keamanan', label: 'Keamanan' },
+  { id: 'sesi', label: 'Sesi aktif' },
+  { id: 'tampilan', label: 'Tampilan' },
+  { id: 'informasi', label: 'Informasi akun' },
+] as const;
 
 export default function AkunPage() {
   const { data: user } = useMe();
@@ -45,11 +56,25 @@ export default function AkunPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Pengaturan Akun" description="Kelola password dan sesi login Anda." />
-      <div className="grid items-start gap-6 lg:grid-cols-5">
-        <ChangePasswordCard user={user} className="lg:col-span-3" />
-        <AccountInfoCard user={user} className="lg:col-span-2" />
-        <SessionsCard className="lg:col-span-full" />
+      <PageHeader title="Pengaturan Akun" description="Kelola password, perangkat yang masuk, dan tampilan aplikasi." />
+      <div className="grid items-start gap-6 lg:grid-cols-[12rem_minmax(0,1fr)]">
+        <nav aria-label="Bagian pengaturan" className="hidden flex-col gap-0.5 lg:sticky lg:top-20 lg:flex">
+          {SECTIONS.map((section) => (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {section.label}
+            </a>
+          ))}
+        </nav>
+        <div className="flex max-w-3xl min-w-0 flex-col gap-6">
+          <ChangePasswordCard user={user} />
+          <SessionsCard />
+          <ThemeCard />
+          <AccountInfoCard user={user} />
+        </div>
       </div>
     </div>
   );
@@ -93,13 +118,7 @@ function PasswordField({ id, label, autoComplete, error, inputProps, children }:
     <Field data-invalid={invalid}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <InputGroup>
-        <InputGroupInput
-          id={id}
-          type={visible ? 'text' : 'password'}
-          autoComplete={autoComplete}
-          aria-invalid={invalid}
-          {...inputProps}
-        />
+        <InputGroupInput id={id} type={visible ? 'text' : 'password'} autoComplete={autoComplete} aria-invalid={invalid} {...inputProps} />
         <InputGroupAddon align="inline-end">
           <InputGroupButton
             size="icon-xs"
@@ -117,18 +136,35 @@ function PasswordField({ id, label, autoComplete, error, inputProps, children }:
   );
 }
 
+/** Rule checklist with a segmented meter (one segment per rule; amber while incomplete, green when all pass). */
 function PasswordChecklist({ value, nip }: { value: string; nip: string }) {
   const rules = [
     ...PASSWORD_RULES.map((rule) => ({ id: rule.id, label: rule.label, passed: rule.test(value) })),
     { id: 'not-default', label: 'Berbeda dari password default', passed: value.length > 0 && value !== defaultPasswordFor(nip) },
   ];
-
   const passedCount = rules.filter((rule) => rule.passed).length;
+  const complete = passedCount === rules.length;
 
   return (
-    <>
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-3" aria-hidden="true">
+        <div className="flex flex-1 gap-1">
+          {rules.map((rule, index) => (
+            <span
+              key={rule.id}
+              className={cn(
+                'h-1.5 flex-1 rounded-full transition-colors motion-reduce:transition-none',
+                index < passedCount ? (complete ? 'bg-status-verified' : 'bg-status-pending') : 'bg-muted',
+              )}
+            />
+          ))}
+        </div>
+        <span className={cn('text-xs tabular-nums', complete ? 'font-medium text-status-verified' : 'text-muted-foreground')}>
+          {value.length === 0 ? '' : complete ? 'Memenuhi syarat' : `${passedCount}/${rules.length} syarat`}
+        </span>
+      </div>
       {/* Visible list is static for assistive tech; only the count summary is announced. */}
-      <ul aria-label="Syarat password baru" className="flex flex-col gap-1 text-sm">
+      <ul aria-label="Syarat password baru" className="grid gap-1 text-sm sm:grid-cols-2">
         {rules.map((rule) => (
           <li key={rule.id} className="flex items-center gap-2">
             {rule.passed ? (
@@ -146,11 +182,11 @@ function PasswordChecklist({ value, nip }: { value: string; nip: string }) {
       <p className="sr-only" aria-live="polite" aria-atomic="true">
         {value.length > 0 ? `${passedCount} dari ${rules.length} syarat password terpenuhi` : ''}
       </p>
-    </>
+    </div>
   );
 }
 
-function ChangePasswordCard({ user, className }: { user: SessionUser; className?: string }) {
+function ChangePasswordCard({ user }: { user: SessionUser }) {
   const changePassword = useChangePassword();
   const navigate = useNavigate();
   const schema = useMemo(() => changePasswordRequestSchema(user.nip), [user.nip]);
@@ -164,47 +200,46 @@ function ChangePasswordCard({ user, className }: { user: SessionUser; className?
 
   const onSubmit = form.handleSubmit((values) => {
     // Owner rule (MIGRATION_PLAN §3.1 rule 3): a password change always signs out other devices.
-    changePassword.mutate({ ...values, revokeOtherSessions: true }, {
-      onSuccess: (data) => {
-        const n = data.revokedSessions;
-        toast.success(n > 0 ? `Password berhasil diubah. ${n} sesi lain telah dikeluarkan.` : 'Password berhasil diubah.');
-        form.reset(DEFAULT_VALUES);
-      },
-      onError: (error) => {
-        if (isApiError(error, 'VALIDATION_ERROR') && error.fields) {
-          for (const [key, message] of Object.entries(error.fields)) {
-            form.setError(isFormField(key) ? key : 'root', { message });
+    changePassword.mutate(
+      { ...values, revokeOtherSessions: true },
+      {
+        onSuccess: (data) => {
+          const n = data.revokedSessions;
+          toast.success(n > 0 ? `Password berhasil diubah. ${n} sesi lain telah dikeluarkan.` : 'Password berhasil diubah.');
+          form.reset(DEFAULT_VALUES);
+        },
+        onError: (error) => {
+          if (isApiError(error, 'VALIDATION_ERROR') && error.fields) {
+            for (const [key, message] of Object.entries(error.fields)) {
+              form.setError(isFormField(key) ? key : 'root', { message });
+            }
+            return;
           }
-          return;
-        }
-        if (isApiError(error, 'ACCOUNT_LOCKED')) {
-          // useChangePassword already cleared the cache (server revoked every session).
-          toast.error('Terlalu banyak percobaan password salah. Akun dikunci sementara dan Anda telah dikeluarkan.');
-          void navigate('/login', { replace: true });
-          return;
-        }
-        form.setError('root', { message: errorMessage(error) });
+          if (isApiError(error, 'ACCOUNT_LOCKED')) {
+            // useChangePassword already cleared the cache (server revoked every session).
+            toast.error('Terlalu banyak percobaan password salah. Akun dikunci sementara dan Anda telah dikeluarkan.');
+            void navigate('/login', { replace: true });
+            return;
+          }
+          form.setError('root', { message: errorMessage(error) });
+        },
       },
-    });
+    );
   });
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>Ganti Password</CardTitle>
-        <CardDescription>Gunakan password yang kuat dan tidak dipakai di layanan lain.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
+    <SectionCard id="keamanan" className="scroll-mt-20" title="Ganti password" description="Gunakan password yang kuat dan tidak dipakai di layanan lain.">
+      <div className="flex flex-col gap-6">
         {user.isDefaultPassword ? (
-          <Alert>
-            <KeyRound />
-            <AlertTitle>Anda masih menggunakan password default.</AlertTitle>
-            <AlertDescription>Segera ganti password untuk menjaga keamanan akun Anda.</AlertDescription>
+          <Alert variant="pending">
+            <KeyRound aria-hidden="true" />
+            <AlertTitle>Anda masih memakai password default</AlertTitle>
+            <AlertDescription>Password ini mudah ditebak (6 digit terakhir NIP); segera ganti.</AlertDescription>
           </Alert>
         ) : null}
 
         <form noValidate onSubmit={onSubmit}>
-          <FieldGroup>
+          <FieldGroup className="max-w-lg">
             <PasswordField
               id="currentPassword"
               label="Password saat ini"
@@ -212,13 +247,7 @@ function ChangePasswordCard({ user, className }: { user: SessionUser; className?
               error={errors.currentPassword}
               inputProps={form.register('currentPassword')}
             />
-            <PasswordField
-              id="newPassword"
-              label="Password baru"
-              autoComplete="new-password"
-              error={errors.newPassword}
-              inputProps={form.register('newPassword')}
-            >
+            <PasswordField id="newPassword" label="Password baru" autoComplete="new-password" error={errors.newPassword} inputProps={form.register('newPassword')}>
               <PasswordChecklist value={newPassword} nip={user.nip} />
             </PasswordField>
             <PasswordField
@@ -233,75 +262,21 @@ function ChangePasswordCard({ user, className }: { user: SessionUser; className?
 
             {errors.root?.message ? (
               <Alert variant="destructive" role="alert">
+                <TriangleAlert aria-hidden="true" />
                 <AlertDescription>{errors.root.message}</AlertDescription>
               </Alert>
             ) : null}
 
-            <Field orientation="horizontal" className="justify-end">
+            <Field orientation="horizontal">
               <Button type="submit" disabled={changePassword.isPending}>
-                {changePassword.isPending ? (
-                  <>
-                    <Spinner data-icon="inline-start" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <KeyRound data-icon="inline-start" />
-                    Ganti password
-                  </>
-                )}
+                {changePassword.isPending ? <Spinner data-icon="inline-start" /> : <KeyRound data-icon="inline-start" />}
+                {changePassword.isPending ? 'Menyimpan…' : 'Ganti password'}
               </Button>
             </Field>
           </FieldGroup>
         </form>
-      </CardContent>
-    </Card>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Informasi akun                                                             */
-/* -------------------------------------------------------------------------- */
-
-function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-      <dd className="text-sm font-medium break-words text-foreground">{children}</dd>
-    </div>
-  );
-}
-
-function AccountInfoCard({ user, className }: { user: SessionUser; className?: string }) {
-  return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>Informasi Akun</CardTitle>
-        <CardDescription>Data akun yang sedang digunakan.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-          <InfoRow label="NIP">
-            <span className="font-mono tabular-nums">{user.nip}</span>
-          </InfoRow>
-          <InfoRow label="Nama">{user.nama}</InfoRow>
-          <InfoRow label="Peran">{user.role === 'Admin' ? 'Administrator TU' : 'Pegawai'}</InfoRow>
-          <InfoRow label="Status Kepegawaian">{user.statusKepegawaian ?? '—'}</InfoRow>
-          <InfoRow label="Jabatan">{user.jabatan ?? '—'}</InfoRow>
-          <InfoRow label="Status Password">
-            {user.isDefaultPassword ? (
-              <Badge variant="outline" className="border-transparent bg-status-pending-muted text-status-pending">
-                Default
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="border-transparent bg-status-verified-muted text-status-verified">
-                Sudah diganti
-              </Badge>
-            )}
-          </InfoRow>
-        </dl>
-      </CardContent>
-    </Card>
+      </div>
+    </SectionCard>
   );
 }
 
@@ -337,46 +312,44 @@ function SessionRow({ session }: { session: SessionInfo }) {
   };
 
   return (
-    <Item variant="outline">
-      <ItemMedia variant="icon">
-        <DeviceIcon />
-      </ItemMedia>
-      <ItemContent>
-        <ItemTitle>
+    <li className="flex items-center gap-3 px-5 py-3.5">
+      <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg', session.current ? 'bg-accent-soft text-primary' : 'bg-muted text-muted-foreground')}>
+        <DeviceIcon className="size-4" aria-hidden="true" />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
           {device.label}
           {session.current ? <Badge variant="secondary">Perangkat ini</Badge> : null}
-        </ItemTitle>
-        <ItemDescription title={`${formatDateTimeWITA(session.lastSeenAt)} WITA`}>
-          IP {session.ip ?? 'tidak diketahui'} · Aktif {formatRelative(session.lastSeenAt)}
-        </ItemDescription>
-      </ItemContent>
+        </p>
+        <p className="text-xs text-muted-foreground" title={formatDateTimeWITA(session.lastSeenAt)}>
+          IP {session.ip ?? 'tidak diketahui'} · aktif {formatRelative(session.lastSeenAt)}
+        </p>
+      </div>
       {session.current ? null : (
-        <ItemActions>
-          <AlertDialog open={open} onOpenChange={(next) => !revoke.isPending && setOpen(next)}>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm">
+        <AlertDialog open={open} onOpenChange={(next) => !revoke.isPending && setOpen(next)}>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="sm">
+              Keluarkan
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Keluarkan perangkat ini?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {device.label} akan dikeluarkan dari akun Anda dan harus masuk kembali untuk mengakses SIKAP.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={revoke.isPending}>Batal</AlertDialogCancel>
+              <AlertDialogAction variant="destructive" disabled={revoke.isPending} onClick={confirm}>
+                {revoke.isPending ? <Spinner data-icon="inline-start" /> : null}
                 Keluarkan
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Keluarkan perangkat ini?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {device.label} akan dikeluarkan dari akun Anda dan harus masuk kembali untuk mengakses SIKAP.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={revoke.isPending}>Batal</AlertDialogCancel>
-                <AlertDialogAction variant="destructive" disabled={revoke.isPending} onClick={confirm}>
-                  {revoke.isPending ? <Spinner data-icon="inline-start" /> : null}
-                  Keluarkan
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </ItemActions>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
-    </Item>
+    </li>
   );
 }
 
@@ -388,9 +361,7 @@ function RevokeOthersButton({ disabled }: { disabled: boolean }) {
     event.preventDefault();
     revokeOthers.mutate(undefined, {
       onSuccess: (data) => {
-        toast.success(
-          data.revoked > 0 ? `${data.revoked} perangkat lain telah dikeluarkan.` : 'Tidak ada perangkat lain yang perlu dikeluarkan.',
-        );
+        toast.success(data.revoked > 0 ? `${data.revoked} perangkat lain telah dikeluarkan.` : 'Tidak ada perangkat lain yang perlu dikeluarkan.');
         setOpen(false);
       },
       onError: (error) => {
@@ -403,17 +374,15 @@ function RevokeOthersButton({ disabled }: { disabled: boolean }) {
   return (
     <AlertDialog open={open} onOpenChange={(next) => !revokeOthers.isPending && setOpen(next)}>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" disabled={disabled}>
+        <Button variant="outline" size="sm" disabled={disabled}>
           <LogOut data-icon="inline-start" />
-          Keluarkan semua perangkat lain
+          Keluarkan semua
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Keluarkan semua perangkat lain?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Semua perangkat selain perangkat ini akan dikeluarkan dari akun Anda dan harus masuk kembali.
-          </AlertDialogDescription>
+          <AlertDialogDescription>Semua perangkat selain perangkat ini akan dikeluarkan dari akun Anda dan harus masuk kembali.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={revokeOthers.isPending}>Batal</AlertDialogCancel>
@@ -427,49 +396,148 @@ function RevokeOthersButton({ disabled }: { disabled: boolean }) {
   );
 }
 
-function SessionsCard({ className }: { className?: string }) {
+function SessionsCard() {
   const sessionsQuery = useSessions();
   const sessions = useMemo(() => sortSessions(sessionsQuery.data ?? []), [sessionsQuery.data]);
   const hasOthers = sessions.some((s) => !s.current);
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>Sesi Aktif</CardTitle>
-        <CardDescription>Perangkat yang sedang masuk ke akun Anda.</CardDescription>
-        <CardAction>
-          <RevokeOthersButton disabled={!hasOthers || sessionsQuery.isPending} />
-        </CardAction>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {sessionsQuery.isPending ? (
-          <div className="flex flex-col gap-3" aria-busy="true" aria-label="Memuat sesi">
-            {[0, 1].map((i) => (
-              <div key={i} className="flex items-center gap-3 rounded-lg border p-3">
-                <Skeleton className="size-8 rounded-md" />
-                <div className="flex flex-1 flex-col gap-2">
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-3 w-56" />
-                </div>
+    <SectionCard
+      id="sesi"
+      className="scroll-mt-20"
+      title="Sesi aktif"
+      description="Perangkat yang sedang masuk ke akun Anda."
+      action={<RevokeOthersButton disabled={!hasOthers || sessionsQuery.isPending} />}
+      wideAction
+      flush
+    >
+      {sessionsQuery.isPending ? (
+        <div className="flex flex-col gap-3 p-5" aria-busy="true" aria-label="Memuat sesi">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="size-9 rounded-lg" />
+              <div className="flex flex-1 flex-col gap-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-56" />
               </div>
+            </div>
+          ))}
+        </div>
+      ) : sessionsQuery.isError ? (
+        <ErrorState error={sessionsQuery.error} title="Gagal memuat sesi aktif" size="inline" onRetry={() => void sessionsQuery.refetch()} retrying={sessionsQuery.isFetching} />
+      ) : (
+        <>
+          <ul className="divide-y">
+            {sessions.map((session) => (
+              <SessionRow key={session.id} session={session} />
             ))}
-          </div>
-        ) : sessionsQuery.isError ? (
-          <Alert variant="destructive" role="alert">
-            <AlertTitle>Gagal memuat sesi aktif.</AlertTitle>
-            <AlertDescription>{errorMessage(sessionsQuery.error)}</AlertDescription>
-          </Alert>
-        ) : (
-          <>
-            <ItemGroup className="gap-3">
-              {sessions.map((session) => (
-                <SessionRow key={session.id} session={session} />
-              ))}
-            </ItemGroup>
-            {!hasOthers ? <p className="text-sm text-muted-foreground">Tidak ada perangkat lain yang masuk.</p> : null}
-          </>
-        )}
-      </CardContent>
-    </Card>
+          </ul>
+          {!hasOthers ? <p className="border-t px-5 py-3 text-sm text-muted-foreground">Tidak ada perangkat lain yang masuk.</p> : null}
+        </>
+      )}
+    </SectionCard>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tampilan                                                                   */
+/* -------------------------------------------------------------------------- */
+
+const THEME_OPTIONS: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
+  { value: 'light', label: 'Terang', icon: Sun },
+  { value: 'dark', label: 'Gelap', icon: Moon },
+  { value: 'system', label: 'Ikuti perangkat', icon: MonitorSmartphone },
+];
+
+/** Miniature of each theme (fixed colours on purpose: it depicts the theme, not the current one). */
+function ThemeSwatch({ value }: { value: ThemePreference }) {
+  const light = (
+    <div className="flex flex-1 flex-col gap-1 bg-[#f7f6f2] p-2">
+      <span className="h-1.5 w-8 rounded-full bg-[#1e3a8a]" />
+      <span className="h-5 rounded bg-white shadow-xs" />
+      <span className="h-1.5 w-10 rounded-full bg-[#d9d7cf]" />
+    </div>
+  );
+  const dark = (
+    <div className="flex flex-1 flex-col gap-1 bg-[#0d0e11] p-2">
+      <span className="h-1.5 w-8 rounded-full bg-[#8ea2ec]" />
+      <span className="h-5 rounded bg-[#17181c]" />
+      <span className="h-1.5 w-10 rounded-full bg-[#2a2c32]" />
+    </div>
+  );
+  return (
+    <div aria-hidden="true" className="flex h-16 overflow-hidden rounded-lg border">
+      {value === 'dark' ? dark : light}
+      {value === 'system' ? dark : null}
+    </div>
+  );
+}
+
+function ThemeCard() {
+  const { preference, setPreference } = useTheme();
+  return (
+    <SectionCard id="tampilan" className="scroll-mt-20" title="Tampilan" description="Berlaku untuk perangkat dan browser ini saja.">
+      <RadioGroup
+        value={preference}
+        onValueChange={(value) => setPreference(value as ThemePreference)}
+        aria-label="Tema"
+        className="grid gap-3 sm:grid-cols-3"
+      >
+        {THEME_OPTIONS.map((option) => (
+          <Label
+            key={option.value}
+            htmlFor={`tema-${option.value}`}
+            className="flex cursor-pointer flex-col items-stretch gap-3 rounded-xl border bg-card p-3 font-normal transition-colors hover:bg-muted/50 has-data-[state=checked]:border-primary has-data-[state=checked]:bg-accent-soft motion-reduce:transition-none"
+          >
+            <ThemeSwatch value={option.value} />
+            <span className="flex items-center gap-2 text-sm">
+              <RadioGroupItem id={`tema-${option.value}`} value={option.value} />
+              <option.icon className="size-4 text-muted-foreground" aria-hidden="true" />
+              {option.label}
+            </span>
+          </Label>
+        ))}
+      </RadioGroup>
+    </SectionCard>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Informasi akun                                                             */
+/* -------------------------------------------------------------------------- */
+
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <dt className="text-eyebrow text-muted-foreground uppercase">{label}</dt>
+      <dd className="text-sm font-medium break-words text-foreground">{children}</dd>
+    </div>
+  );
+}
+
+function AccountInfoCard({ user }: { user: SessionUser }) {
+  return (
+    <SectionCard id="informasi" className="scroll-mt-20" title="Informasi akun" description="Data akun yang sedang digunakan. Perubahan data dilakukan di halaman Profil.">
+      <dl className="grid gap-4 sm:grid-cols-2">
+        <InfoRow label="NIP">
+          <span className="tabular-nums">{user.nip}</span>
+        </InfoRow>
+        <InfoRow label="Nama">{user.nama}</InfoRow>
+        <InfoRow label="Peran">{user.role === 'Admin' ? 'Administrator TU' : 'Pegawai'}</InfoRow>
+        <InfoRow label="Status kepegawaian">{user.statusKepegawaian ?? '—'}</InfoRow>
+        <InfoRow label="Jabatan">{user.jabatan ?? '—'}</InfoRow>
+        <InfoRow label="Password">
+          {user.isDefaultPassword ? (
+            <Badge variant="outline" className="border-status-pending/25 bg-status-pending-muted text-status-pending">
+              Masih default
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-status-verified/25 bg-status-verified-muted text-status-verified">
+              Sudah diganti
+            </Badge>
+          )}
+        </InfoRow>
+      </dl>
+    </SectionCard>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actionLabel, actorLabel, logQueryString, parseLogFilters, validateLogFilters, EMPTY_LOG_FILTERS } from './log-utils';
+import { actionCategory, actionLabel, actorLabel, logQueryString, parseLogFilters, validateLogFilters, EMPTY_LOG_FILTERS } from './log-utils';
 
 describe('log filters', () => {
   it('drops unknown or malformed URL values', () => {
@@ -25,5 +25,16 @@ describe('log filters', () => {
     expect(actorLabel({ id: 1, nip: '1990', nama: 'Budi', role: 'Admin' })).toEqual({ name: 'Budi', detail: '1990' });
     expect(actionLabel('dokumen.approve')).toBe('Dokumen · approve');
     expect(actionLabel('custom')).toBe('custom');
+  });
+
+  it('names server action codes and maps them to the server categories', () => {
+    expect(actionLabel('PENGAJUAN_APPROVE')).toBe('Setujui pengajuan');
+    expect(actionLabel('PEGAWAI_EXPIRED')).toBe('Pegawai · expired');
+    expect(actionCategory('PENGAJUAN_APPROVE')).toBe('pengajuan');
+    expect(actionCategory('JENIS_DOKUMEN_UPDATE')).toBe('sistem');
+    expect(actionCategory('FOTO_PROFIL_UPLOAD')).toBe('pegawai');
+    expect(actionCategory('LOGIN')).toBe('auth');
+    expect(actionCategory('dokumen.approve')).toBe('dokumen');
+    expect(actionCategory('UNKNOWN_THING')).toBeNull();
   });
 });

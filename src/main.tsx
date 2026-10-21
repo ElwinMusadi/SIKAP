@@ -4,10 +4,11 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { createBrowserRouter, Outlet } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { RefreshCw, TriangleAlert } from 'lucide-react';
+import { ThemeProvider } from '@/app/theme';
 import { FullPageLoader } from '@/components/full-page-loader';
 import { NotFound } from '@/components/not-found';
+import { StatusPage } from '@/components/status-page';
 import { Button } from '@/components/ui/button';
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { RedirectIfAuthed, RequireAuth, RequireRole } from '@/features/auth/guards';
@@ -16,23 +17,24 @@ import './index.css';
 
 function RouteError() {
   return (
-    <div className="flex min-h-svh items-center justify-center bg-background p-6">
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <TriangleAlert />
-          </EmptyMedia>
-          <EmptyTitle>Terjadi kesalahan</EmptyTitle>
-          <EmptyDescription>Halaman gagal dimuat. Muat ulang halaman untuk mencoba lagi.</EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
+    <StatusPage
+      fullScreen
+      code="500"
+      icon={TriangleAlert}
+      title="Terjadi kesalahan"
+      description="Halaman gagal dimuat. Muat ulang halaman untuk mencoba lagi; bila berulang, hubungi Administrator TU."
+      actions={
+        <>
+          <Button variant="outline" asChild>
+            <a href="/">Ke Beranda</a>
+          </Button>
           <Button onClick={() => window.location.reload()}>
             <RefreshCw data-icon="inline-start" />
             Muat ulang
           </Button>
-        </EmptyContent>
-      </Empty>
-    </div>
+        </>
+      }
+    />
   );
 }
 
@@ -115,6 +117,10 @@ const router = createBrowserRouter([
           },
         ],
       },
+      // Living design-system page for visual QA; dev builds only (never shipped).
+      ...(import.meta.env.DEV
+        ? [{ path: '/_design', lazy: async () => ({ Component: (await import('./app/design-page')).default }) }]
+        : []),
       { path: '*', element: <NotFound /> },
     ],
   },
@@ -124,11 +130,13 @@ installSessionExpiredHandler(router);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <RouterProvider router={router} />
-        <Toaster richColors position="top-right" closeButton />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <RouterProvider router={router} />
+          <Toaster richColors position="top-right" closeButton />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   </StrictMode>,
 );

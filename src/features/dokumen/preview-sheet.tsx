@@ -1,8 +1,25 @@
 import { useState } from 'react';
-import { ChevronDown, Download, Eye, ExternalLink, FileText, History, Info, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
+import {
+  ChevronDown,
+  CircleCheck,
+  CircleX,
+  Download,
+  Eye,
+  ExternalLink,
+  FileText,
+  FileUp,
+  History,
+  Info,
+  MessageSquareText,
+  RotateCcw,
+  Trash2,
+  type LucideIcon,
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { DOCUMENT_POLICY, documentFileUrl, isViewableDocumentMime, type DokumenItem, type DokumenVersi } from '@shared/dokumen';
+import { DOCUMENT_POLICY, documentFileUrl, isViewableDocumentMime, type DokumenItem, type DokumenVersi, type RiwayatAksi } from '@shared/dokumen';
+import { EmptyState, ErrorState } from '@/components/states';
 import { StatusBadge } from '@/components/status-badge';
+import { Timeline } from '@/components/timeline';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -17,13 +34,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { errorMessage } from '@/lib/api';
 import { formatDateTimeWITA, formatRelative } from '@/lib/format';
+import type { StatusTone } from '@/lib/status';
 import { cn } from '@/lib/utils';
 import { UploadActionButton } from './document-actions';
 import { RIWAYAT_LABEL, fileKind, formatBytes, formatCountdown } from './dokumen-utils';
@@ -40,7 +57,8 @@ interface PreviewSheetProps {
 export function PreviewSheet({ item, open, onOpenChange, onUpload, onDelete }: PreviewSheetProps) {
   return (
     <Sheet open={open && item !== null} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full gap-0 data-[side=right]:sm:max-w-3xl">
+      {/* Same data-[side] variants as the base classes, otherwise the default w-3/4 wins on phones. */}
+      <SheetContent side="right" className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-3xl">
         {item ? (
           <PreviewBody key={item.jenisDokumenId} item={item} onUpload={onUpload} onDelete={onDelete} />
         ) : (
@@ -97,9 +115,9 @@ function PreviewBody({ item, onUpload, onDelete }: Omit<PreviewSheetProps, 'open
         ) : null}
         {arsip?.catatanAdmin ? (
           <Alert variant={item.status === 'Ditolak' ? 'destructive' : 'default'} className="mt-1">
-            <TriangleAlert />
+            <MessageSquareText aria-hidden="true" />
             <AlertTitle>Catatan admin</AlertTitle>
-            <AlertDescription>{arsip.catatanAdmin}</AlertDescription>
+            <AlertDescription className="text-foreground">{arsip.catatanAdmin}</AlertDescription>
           </Alert>
         ) : null}
       </SheetHeader>
@@ -107,7 +125,7 @@ function PreviewBody({ item, onUpload, onDelete }: Omit<PreviewSheetProps, 'open
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">
         {item.status === 'Menunggu' && item.can.delete ? (
           <Alert role="note">
-            <Info />
+            <Info aria-hidden="true" />
             <AlertDescription>Salah unggah? Hapus dokumen ini lalu unggah ulang.</AlertDescription>
           </Alert>
         ) : null}
@@ -126,15 +144,12 @@ function PreviewBody({ item, onUpload, onDelete }: Omit<PreviewSheetProps, 'open
             <FileViewer arsipId={arsip.id} {...shown} />
           </section>
         ) : (
-          <Empty className="border border-dashed">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <FileText />
-              </EmptyMedia>
-              <EmptyTitle>Belum ada file</EmptyTitle>
-              <EmptyDescription>{item.uploadBlockedReason ?? 'Dokumen ini belum diunggah.'}</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          <EmptyState
+            icon={FileText}
+            title="Belum ada file"
+            description={item.uploadBlockedReason ?? 'Dokumen ini belum diunggah.'}
+            className="rounded-xl border border-dashed"
+          />
         )}
 
         {arsip && item.versiSebelumnya.length > 0 ? (
@@ -153,7 +168,7 @@ function PreviewBody({ item, onUpload, onDelete }: Omit<PreviewSheetProps, 'open
                   key={v.versi}
                   className={cn(
                     'flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center',
-                    v.versi === selectedVersi && 'border-primary/50 bg-primary/5',
+                    v.versi === selectedVersi && 'border-primary/30 bg-accent-soft',
                   )}
                 >
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -276,23 +291,20 @@ function FileViewer({
     );
   }
   return (
-    <Empty className="border border-dashed">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <FileText />
-        </EmptyMedia>
-        <EmptyTitle>Pratinjau tidak tersedia</EmptyTitle>
-        <EmptyDescription>Jenis file ini tidak dapat ditampilkan di browser. Unduh file untuk membukanya.</EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
+    <EmptyState
+      icon={FileText}
+      title="Pratinjau tidak tersedia"
+      description="Jenis file ini tidak dapat ditampilkan di browser. Unduh file untuk membukanya."
+      className="rounded-xl border border-dashed"
+      action={
         <Button asChild size="sm" variant="outline">
           <a href={documentFileUrl(arsipId, { download: true, versi })} rel="noopener" download>
             <Download data-icon="inline-start" />
             Unduh
           </a>
         </Button>
-      </EmptyContent>
-    </Empty>
+      }
+    />
   );
 }
 
@@ -348,6 +360,17 @@ function RollbackDialog({
   );
 }
 
+/** Red only for a rejection (status registry rule); deleting is a neutral housekeeping step. */
+const RIWAYAT_STYLE: Record<RiwayatAksi, { icon: LucideIcon; tone: StatusTone | 'primary' }> = {
+  UPLOAD: { icon: FileUp, tone: 'primary' },
+  REUPLOAD: { icon: FileUp, tone: 'primary' },
+  APPROVE: { icon: CircleCheck, tone: 'verified' },
+  REJECT: { icon: CircleX, tone: 'rejected' },
+  DELETE: { icon: Trash2, tone: 'neutral' },
+  RESTORE: { icon: RotateCcw, tone: 'primary' },
+  ROLLBACK: { icon: RotateCcw, tone: 'primary' },
+};
+
 function RiwayatSection({ arsipId }: { arsipId: number }) {
   const [open, setOpen] = useState(false);
   const riwayat = useRiwayat(arsipId, open);
@@ -372,51 +395,36 @@ function RiwayatSection({ arsipId }: { arsipId: number }) {
             ))}
           </div>
         ) : riwayat.isError ? (
-          <Alert variant="destructive">
-            <TriangleAlert />
-            <AlertTitle>Gagal memuat riwayat</AlertTitle>
-            <AlertDescription>
-              <p>{errorMessage(riwayat.error)}</p>
-              <Button size="sm" variant="outline" className="mt-2" onClick={() => void riwayat.refetch()}>
-                {riwayat.isFetching ? <Spinner data-icon="inline-start" /> : null}
-                Coba lagi
-              </Button>
-            </AlertDescription>
-          </Alert>
+          <ErrorState
+            error={riwayat.error}
+            title="Gagal memuat riwayat"
+            size="inline"
+            onRetry={() => void riwayat.refetch()}
+            retrying={riwayat.isFetching}
+          />
         ) : riwayat.data.items.length === 0 ? (
           <p className="px-2 text-sm text-muted-foreground">Belum ada riwayat.</p>
         ) : (
-          <ol className="relative ml-3 flex flex-col gap-4 border-l pl-5">
-            {riwayat.data.items.map((entry) => (
-              <li key={entry.id} className="relative flex flex-col gap-0.5">
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    'absolute top-1.5 -left-[25px] size-2.5 rounded-full ring-4 ring-popover',
-                    entry.aksi === 'APPROVE'
-                      ? 'bg-status-verified'
-                      : entry.aksi === 'REJECT'
-                        ? 'bg-status-rejected'
-                        : entry.aksi === 'DELETE'
-                          ? 'bg-destructive'
-                          : 'bg-muted-foreground',
-                  )}
-                />
-                <p className="text-sm">
+          <Timeline
+            className="px-2"
+            items={riwayat.data.items.map((entry) => ({
+              id: entry.id,
+              icon: RIWAYAT_STYLE[entry.aksi].icon,
+              tone: RIWAYAT_STYLE[entry.aksi].tone,
+              title: (
+                <>
                   <span className="font-medium">{RIWAYAT_LABEL[entry.aksi]}</span>
                   <span className="text-muted-foreground">
                     {' '}
                     · versi {entry.versi}
                     {entry.actor ? ` · ${entry.actor.nama}` : ''}
                   </span>
-                </p>
-                <time dateTime={entry.createdAt} className="text-xs text-muted-foreground" title={formatDateTimeWITA(entry.createdAt)}>
-                  {formatDateTimeWITA(entry.createdAt)} ({formatRelative(entry.createdAt)})
-                </time>
-                {entry.catatan ? <p className="text-sm text-muted-foreground">“{entry.catatan}”</p> : null}
-              </li>
-            ))}
-          </ol>
+                </>
+              ),
+              description: entry.catatan ? `“${entry.catatan}”` : undefined,
+              meta: `${formatDateTimeWITA(entry.createdAt)} · ${formatRelative(entry.createdAt)}`,
+            }))}
+          />
         )}
       </CollapsibleContent>
     </Collapsible>

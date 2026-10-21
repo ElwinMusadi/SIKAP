@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { DokumenItem } from '@shared/dokumen';
-import { deepLinkTarget, formatBytes, formatCountdown, primaryAction, validateFile } from './dokumen-utils';
+import {
+  deepLinkTarget,
+  formatBytes,
+  formatCountdown,
+  primaryAction,
+  recentUploads,
+  uploadChoices,
+  validateFile,
+  wajibCounts,
+} from './dokumen-utils';
 
 const MB = 1024 * 1024;
 
@@ -89,5 +98,31 @@ describe('deepLinkTarget / primaryAction', () => {
     const deleted = { id: 7, fileName: 'ktp.pdf', deletedAt: '2026-10-15T00:00:00Z', purgeAfter: '2026-10-18T00:00:00Z' };
     expect(primaryAction(item({ deleted, can: { upload: false, delete: false, rollback: false, restore: true } }))).toBe('restore');
     expect(primaryAction(item({ status: 'Terverifikasi', arsip }))).toBe('view');
+  });
+});
+
+describe('page summaries', () => {
+  const blocked = { upload: false, delete: false, rollback: false, restore: false };
+  const list = [
+    item({ jenisDokumenId: 'A', status: 'Terverifikasi', arsip: { ...arsip, uploadedAt: '2026-10-02T00:00:00Z' }, can: blocked }),
+    item({ jenisDokumenId: 'B', status: 'Menunggu', arsip: { ...arsip, uploadedAt: '2026-10-05T00:00:00Z' }, can: blocked }),
+    item({ jenisDokumenId: 'C', status: 'Ditolak', arsip: { ...arsip, uploadedAt: '2026-10-03T00:00:00Z' } }),
+    item({ jenisDokumenId: 'D' }),
+    item({ jenisDokumenId: 'E', wajib: false }),
+    item({ jenisDokumenId: 'F', wajib: false, status: 'Terverifikasi', arsip: { ...arsip, uploadedAt: '2026-10-04T00:00:00Z' } }),
+  ];
+
+  it('counts only mandatory documents per status', () => {
+    expect(wajibCounts(list)).toEqual({ terverifikasi: 1, menunggu: 1, ditolak: 1, belum: 1 });
+  });
+
+  it('lists uploaded files newest first', () => {
+    expect(recentUploads(list, 3).map((i) => i.jenisDokumenId)).toEqual(['B', 'F', 'C']);
+  });
+
+  it('orders upload choices: rejected, mandatory, optional, then replaceable files', () => {
+    const { needed, replace } = uploadChoices(list);
+    expect(needed.map((i) => i.jenisDokumenId)).toEqual(['C', 'D', 'E']);
+    expect(replace.map((i) => i.jenisDokumenId)).toEqual(['F']);
   });
 });
