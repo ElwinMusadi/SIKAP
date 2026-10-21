@@ -2,6 +2,7 @@
 // components in the current theme, plus WCAG contrast ratios computed from the live CSS variables.
 import { useEffect, useState } from 'react';
 import { CircleCheck, CircleDashed, CircleX, Clock, Plus, Search } from 'lucide-react';
+import { PatternsShowcase } from '@/app/design-patterns';
 import { useTheme, type ThemePreference } from '@/app/theme';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -213,6 +214,12 @@ export default function DesignPage() {
           </Table>
         </Card>
       </section>
+
+      <div className="flex flex-col gap-1 border-t pt-10">
+        <p className="text-eyebrow text-muted-foreground uppercase">Fase 2</p>
+        <h2 className="text-display">Pustaka pola</h2>
+      </div>
+      <PatternsShowcase />
     </div>
   );
 }

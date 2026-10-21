@@ -1,5 +1,4 @@
-import type { LucideIcon } from 'lucide-react';
-import { ArrowRight, CircleCheck, CircleX, Clock, Undo2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { StatusPengajuan } from '@shared/enums';
 import {
   KEPEGAWAIAN_FIELDS,
@@ -9,26 +8,12 @@ import {
   type PerubahanMap,
   type RefResponse,
 } from '@shared/profile';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/status-badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatKepegawaianValue } from '@/features/profil/format-values';
-import { cn } from '@/lib/utils';
-
-const STATUS_STYLES: Record<StatusPengajuan, { icon: LucideIcon; className: string }> = {
-  Menunggu: { icon: Clock, className: 'border-status-pending/30 bg-status-pending-muted text-status-pending' },
-  Disetujui: { icon: CircleCheck, className: 'border-status-verified/30 bg-status-verified-muted text-status-verified' },
-  Ditolak: { icon: CircleX, className: 'border-status-rejected/30 bg-status-rejected-muted text-status-rejected' },
-  Dibatalkan: { icon: Undo2, className: 'border-status-missing/30 bg-status-missing-muted text-status-missing' },
-};
 
 export function PengajuanStatusBadge({ status, className }: { status: StatusPengajuan; className?: string }) {
-  const { icon: Icon, className: tone } = STATUS_STYLES[status];
-  return (
-    <Badge variant="outline" className={cn(tone, className)}>
-      <Icon data-icon="inline-start" aria-hidden="true" />
-      {status}
-    </Badge>
-  );
+  return <StatusBadge domain="pengajuan" status={status} className={className} />;
 }
 
 export interface PerubahanEntry {

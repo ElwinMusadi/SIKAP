@@ -13,6 +13,19 @@ Catatan implementasi fase 0–1:
 - Ukuran kontrol naik satu tingkat (+ `pointer-coarse` ≥ 40 px). `CardTitle` dirender sebagai `h2` (pakai `as="h3"` bila bersarang). Header tabel kini eyebrow berwarna lembut.
 - `/_design` hanya ada di build dev. Halaman ini menghitung kontras token secara langsung; semua lolos di terang dan gelap.
 
+Catatan implementasi fase 2 (pustaka pola, diperagakan di `/_design` dengan data fiktif):
+
+| Pola | Berkas |
+|---|---|
+| Registri status | `src/lib/status.ts`, plus `StatusBadge`/`StatusDot` di `src/components/status-badge.tsx`. `PengajuanStatusBadge`, `StatusAkunBadge`, dan `KELENGKAPAN_STYLE` kini membaca registri |
+| Header halaman | `PageHeader` v2 (`back`, `eyebrow`, `meta`, `actions`) |
+| Kartu dan keadaan | `SectionCard`, `EmptyState`/`ErrorState` (`src/components/states.tsx`) |
+| Ringkasan dan aktivitas | `KpiCard`, `ProgressMeter` + `src/lib/progress.ts`, `Timeline` |
+| Tabel | `src/components/data-table/`: `DataTable` (TanStack Table v9, mode klien/server, kartu ponsel, keadaan bawaan), `SortableHeader`, `DataTablePagination`, `FilterBar` (chip facet di desktop, drawer di ponsel) |
+| Formulir | `src/components/form-patterns.tsx`: `FormSection`, `LockedHint`, `StickySaveBar`, `EntitySheet` (576 px), `FormDialog` (512 px) |
+
+Tes baru: registri status (4), progres (3), dan util tabel (6). Halaman fitur belum dipindah ke pola ini; pemindahan dilakukan di fase 3–5.
+
 ---
 
 ## 1. Ringkasan
