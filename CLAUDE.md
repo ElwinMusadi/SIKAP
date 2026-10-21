@@ -86,4 +86,4 @@ CI (`.github/workflows/ci.yml`): job `verify` (typecheck, lint, test api/web/mig
 - Pasang secret deploy di environment GitHub `production` (`docs/DEPLOY.md`), lalu jalankan deploy pertama dari tab Actions.
 - Pemantauan 30 hari; setelahnya keputusan dekomisi GAS (proyek, deployment, Sheets, folder Drive `SIKAP_Backups`/`SIKAP_Dokumen_Kepegawaian`).
 - Bersih-bersih oleh pemilik: folder Drive "SIKAP — Salinan Migrasi Privat", proyek GAS "Project tak berjudul" dan "Copy of SIKAP — Copy Sumber Nyata", sampah Drive; deployment preview lama di `sikap-v2`.
-- Perbarui status di `README.md` (masih menyebut sebelum cutover) dan tandai binding historis di `wrangler.toml` setelah konfigurasi produksi dipindah ke repo dengan aman.
+- Tandai binding historis di `wrangler.toml` setelah konfigurasi produksi dipindah ke repo dengan aman.

@@ -2,14 +2,19 @@
 
 Aplikasi internal UPTD Pendapatan Daerah Wilayah Kota Kupang untuk mengelola data pegawai (PNS, CPNS, PPPK), arsip dokumen kepegawaian, dan verifikasi dokumen oleh Admin TU.
 
-> **Status:** migrasi dari Google Apps Script ke Cloudflare sedang berjalan di branch `feat/cloudflare-migration`.
-> Kode lama (GAS + Google Sheets + Drive) dipindahkan ke [`legacy-gas/`](legacy-gas/) dan tetap menjadi sistem produksi sampai cutover.
-> Checkpoint 18 Oktober 2026: import salinan data nyata UAT terverifikasi (46 pegawai, 66 file). Deployment privat `08ccdbc2` aktif di **https://sikap-uat.pages.dev**, memakai D1/FILES import dan Access. Operator mengonfirmasi login, dashboard, dokumen dan logout **lulus** pada 20:42 UTC; pepper/sesi bekerja untuk akun yang diuji, bukan bukti seluruh akun atau isolasi role. Full suite terakhir 1.143 tes lulus. Ini **bukan cutover produksi**; GAS tetap operasional, flag otoritas library tetap false, perubahan belum di-commit/push. Riwayat fase dan batas bukti ada di checkpoint akhir serta `MIGRATION_PLAN.md`.
+> **Status:** produksi berjalan di Cloudflare sejak cutover 21 Oktober 2026 di
+> **https://sikap.uptdpenda-kupang.web.id** (Pages project `sikap-v2`, D1 + R2). Repo hanya memakai
+> branch `main`; setiap commit ke `main` di-deploy otomatis lewat GitHub Actions ([`docs/DEPLOY.md`](docs/DEPLOY.md)).
+> Redesign UI/UX v2 (fase 0–6) sudah di `main` dan tayang pada deploy otomatis pertama setelah secret deploy dipasang.
+> Sistem lama (GAS + Google Sheets + Drive) ada di [`legacy-gas/`](legacy-gas/), dibekukan, dan disimpan untuk
+> rollback selama masa pemantauan 30 hari. Riwayat fase, checkpoint, dan batas bukti ada di `MIGRATION_PLAN.md`.
 
 | Dokumen | Isi |
 |---|---|
 | [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) | Analisa, review, dan audit sistem lama |
 | [`MIGRATION_PLAN.md`](MIGRATION_PLAN.md) | Keputusan pemilik produk, arsitektur target, skema D1, API, redesign UI, fase, dan rencana cutover |
+| [`docs/DEPLOY.md`](docs/DEPLOY.md) | Deploy otomatis dari `main`, penyiapan secret, dan rollback |
+| [`docs/RENCANA-REDESIGN-UIUX.md`](docs/RENCANA-REDESIGN-UIUX.md) / [`docs/POLA-UI.md`](docs/POLA-UI.md) | Design system v2 dan pola komponen UI |
 
 ## Stack
 
@@ -28,7 +33,7 @@ functions/      Entry Pages Functions → server/
 shared/         Enum, validator, kontrak API
 migrations/     Skema & seed referensi D1
 test/           Test API (Vitest + Workers runtime)
-legacy-gas/     Sistem lama (referensi, tidak dideploy dari branch ini)
+legacy-gas/     Sistem lama GAS (dibekukan, tidak ikut deploy Cloudflare)
 ```
 
 ## Menjalankan secara lokal
