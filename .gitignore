@@ -47,3 +47,7 @@ migration-files*.zip
 # Downloaded GAS snapshots include confidential binary documents, not only JSON.
 /snapshot-*/
 /snapshot-*.zip
+
+# Local agent/editor config
+.claude/
+.kilo/
