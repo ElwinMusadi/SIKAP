@@ -57,6 +57,9 @@ bucket_name = "sikap-files-preview"
 
 # ---------------------------------------------------------------------------
 # Production (used only after cutover)
+# HISTORICAL BINDINGS ONLY: not approved for the final production import or deployment.
+# Do not run --env production until an owner-approved fresh target, backup and reviewed
+# production capability replace these pins. Existing resources remain denied by import core.
 # ---------------------------------------------------------------------------
 [env.production.vars]
 APP_URL = "https://sikap.uptdpenda-kupang.web.id"

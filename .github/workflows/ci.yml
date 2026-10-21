@@ -43,7 +43,7 @@ jobs:
       - name: Test offline migration (synthetic data, local storage only)
         run: npm run test:migrate
 
-      - name: Test pure importer core (synthetic, no network)
+      - name: Test importer (synthetic, local Miniflare)
         run: npm run test:import
 
       - name: Test staging guards (offline, no real credentials)

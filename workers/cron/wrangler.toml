@@ -53,6 +53,8 @@ bucket_name = "sikap-files-preview"
 # BACKUPS intentionally absent until a separate private preview bucket is provisioned.
 
 [env.production.vars]
+# HISTORICAL BINDINGS ONLY. Do not deploy/enable production cron until the owner-approved
+# final target, backup and secrets are aligned with Pages; see MIGRATION_PLAN.md cutover prep.
 APP_URL = "https://sikap.uptdpenda-kupang.web.id"
 [[env.production.d1_databases]]
 binding = "DB"

@@ -4,7 +4,7 @@ Aplikasi internal UPTD Pendapatan Daerah Wilayah Kota Kupang untuk mengelola dat
 
 > **Status:** migrasi dari Google Apps Script ke Cloudflare sedang berjalan di branch `feat/cloudflare-migration`.
 > Kode lama (GAS + Google Sheets + Drive) dipindahkan ke [`legacy-gas/`](legacy-gas/) dan tetap menjadi sistem produksi sampai cutover.
-> Checkpoint lokal 17 Oktober 2026: `cb4fae7` (Fase 7), `3a1f795` (tooling Fase 8–9), `c9eed3e` (probe D1), dan `8511abc` (classifier policy v2). Belum di-push; Fase 9 tetap parsial dan `readyForImport:false`. Verifikasi rollback query policy v2 lulus satu run; bukan bukti kesiapan impor. Tidak ada deploy sejak hardening alat staging.
+> Checkpoint 18 Oktober 2026: import salinan data nyata UAT terverifikasi (46 pegawai, 66 file). Deployment privat `08ccdbc2` aktif di **https://sikap-uat.pages.dev**, memakai D1/FILES import dan Access. Operator mengonfirmasi login, dashboard, dokumen dan logout **lulus** pada 20:42 UTC; pepper/sesi bekerja untuk akun yang diuji, bukan bukti seluruh akun atau isolasi role. Full suite terakhir 1.143 tes lulus. Ini **bukan cutover produksi**; GAS tetap operasional, flag otoritas library tetap false, perubahan belum di-commit/push. Riwayat fase dan batas bukti ada di checkpoint akhir serta `MIGRATION_PLAN.md`.
 
 | Dokumen | Isi |
 |---|---|
@@ -64,9 +64,14 @@ Project Pages: **`sikap-v2`** (bukan `sikap` — project `sikap` masih melayani 
 | Environment | URL | D1 | R2 |
 |---|---|---|---|
 | Preview (branch `feat/cloudflare-migration`) | https://feat-cloudflare-migration.sikap-v2.pages.dev | `sikap-db-preview` | `sikap-files-preview` |
-| Production (branch `main`, setelah cutover) | https://sikap.uptdpenda-kupang.web.id | `sikap-db` | `sikap-files` |
+| Production (branch `main`, menunggu keputusan go-live) | https://sikap.uptdpenda-kupang.web.id | Target baru belum diputuskan; jangan gunakan binding historis `sikap-db` | Bucket produksi baru belum diputuskan |
 
-Backup: bucket R2 `sikap-backup`. Semua bucket privat (akses publik `r2.dev` nonaktif).
+Binding produksi `sikap-db`/`sikap-files`/`sikap-backup` dalam konfigurasi root dan cron adalah
+konfigurasi historis, **bukan target cutover yang disetujui**. Target/backup baru, UUID, account,
+secret dan capability produksi harus diputuskan serta direview terlebih dahulu; jangan jalankan
+deploy/migrations `--env production` dengan binding lama. Lihat persiapan cutover di
+`MIGRATION_PLAN.md`. Kebijakan semua bucket produksi harus privat, bukan klaim status resource
+lama sudah diperiksa.
 
 Langkah deploy preview:
 
@@ -417,7 +422,9 @@ dengan rehearsal ini**. Jangan unggah ekspor, hash, file pegawai, maupun secret 
 > diimplementasikan. Tiga run policy lama berhenti gagal-aman (exit 2); run keempat dengan
 > policy v2 lulus seluruh 11 langkah (exit 0), `observedTransportRollback:true`. Bukti terbatas
 > pada transport query Wrangler 4.151.0 dan policy tersebut, bukan kesiapan impor atau jaminan global.
-> Data nyata belum diimpor ke remote. Subbagian di bawah disusun kronologis.
+> Pada status historis 17 Oktober tersebut data nyata belum diimpor. Subbagian berikut kronologis;
+> checkpoint recovery final (`UAT_IMPORT_VERIFIED`) mencatat PII pegawai di D1 dan bucket UAT
+> privat (66/66 file); lihat checkpoint final di bawah.
 
 Preview `feat-cloudflare-migration.sikap-v2.pages.dev` masih dapat menampilkan halaman login
 secara anonim pada pemeriksaan HEAD 17 Oktober 2026; API langsung menjawab 401 aplikasi.
@@ -469,8 +476,9 @@ memverifikasi config fingerprint, daftar file dan SHA-256, lalu membersihkannya.
 Hardening 17 Oktober 2026: Wrangler 4.151.0 juga dapat membaca `.env`/config dari cwd,
 sehingga seluruh eksekusi alat staging diisolasi di luar repo. Deploy holding dan app memakai
 config rilis ter-render yang dipatok beserta allowlist environment; preflight memakai path
-absolut config sumber yang dipatok dan cwd terisolasi yang kosong. Belum ada deploy sejak
-hardening ini; deployment aktif tetap `0adc7584`.
+absolut config sumber yang dipatok dan cwd terisolasi yang kosong. Pada checkpoint historis
+17 Oktober ini belum ada deploy sesudah hardening dan deployment saat itu `0adc7584`.
+Status tersebut telah digantikan deployment UAT privat `08ccdbc2` pada checkpoint akhir.
 
 Build app: `npm run staging:app:build` (output baru `dist-uat-app`, menolak overwrite).
 Deploy app: set `CLOUDFLARE_ACCOUNT_ID` yang benar lalu `npm run staging:app:deploy`.
@@ -744,8 +752,8 @@ https://developers.cloudflare.com/pages/platform/known-issues/#enable-access-on-
   GET SHA-256 sebelum referensi D1, tanpa cleanup otomatis. Tahap desain tidak membuat kode/resource.
   Pure core kini diimplementasikan pada `scripts/import/core.mjs`: validasi descriptor syntax/
   denylist, compiler chunk statis-params dengan caps dan target binding, simulasi state serta
-  klasifikasi resume yang tidak pernah mengizinkan retry. `npm run test:import` menjalankan
-  32 tes (18 core + 14 mock); full `npm test` 999 tes lulus. Artifact params bersifat privat; hanya `summarize`
+  klasifikasi resume yang tidak pernah mengizinkan retry. Pada tahap core/mock, `test:import`
+  menjalankan 32 tes (18 core + 14 mock), dan full `npm test` 999 tes lulus (riwayat sebelum ledger). Artifact params bersifat privat; hanya `summarize`
   boleh ditampilkan. Business validation, raw plan hash, target proof dan semantic validation
   masih wajib terpisah; core tidak memberi izin apply. Expiry wajib dicek ulang oleh adapter
   sebelum setiap send/resume; DDL journal kelak wajib unique `(run_nonce, ordinal)`.
@@ -754,12 +762,674 @@ https://developers.cloudflare.com/pages/platform/known-issues/#enable-access-on-
   tanpa jaringan atau SQL engine; hasil selalu simulated dan tidak mengizinkan retry. Inspect
   mock privat, summary hanya counts/flags; expiry dicek ulang setiap simulated send. Mock hanya
   memodelkan konflik primary key, bukan seluruh FK/UNIQUE/CHECK. Review core dan mock
-  PASS WITH NOTES tanpa blocker. Belum ada client HTTP/R2 nyata, ledger DDL,
-  credential, CLI importer atau operasi remote baru. `readyForImport:false` tetap.
-- Gerbang tersisa: (1) target UAT terpisah yang kosong; (2) persetujuan operator untuk bukti
-  batch/rollback remote sintetis; (3) bukti pepper, perbandingan skema terhadap skema yang
-  diharapkan, dan validasi isi referensi; (4) persetujuan eksplisit pemilik data untuk import
-  data nyata.
+  PASS WITH NOTES tanpa blocker. Paket core/mock di-commit lokal pada `72f947f`; kandidat
+  ledger DDL terpisah dan kontrak hash kini tersedia, dengan 14 tes SQL Miniflare lokal lulus.
+  Total seluruh suite menjadi 1.013 tes; importer 46 (18 core + 14 mock + 14 integrasi ledger).
+  Pengujian mencakup full-row roundtrip/seed, CAS stale, UNIQUE/FK/CHECK, journal/checkpoint
+  rollback dan resume read-only. Ini bukti binding lokal, bukan REST parameterized remote.
+  Adapter request D1 REST dan R2 S3 synthetic-only kini tersedia, diuji hanya lewat injected
+  fetch (D1 13 tes, R2 15 tes). D1 sekali-kirim selalu membutuhkan read-back; R2 create-only
+  PUT + GET SHA-256/MIME/size tidak memberi bukti ownership atau izin apply. Client tidak
+  mengambil credential/global fetch sendiri; real-data profile ditolak. Rehearsal gabungan
+  Miniflare/object store tiruan lulus 5/5 sesudah koreksi gate alur: helper tes memblokir D1
+  pada R2 conflict/row mismatch, dan GET mendeteksi file tamper. Gate hanya di tes, belum
+  orchestrator produksi. Paket final 1.046 tes lulus (importer 79), lint/typecheck/build lulus.
+  Reader `d1-readback.mjs` kemudian tersedia dengan 9 tes fetch stub lulus; full-row output
+  bersifat privat, dibatasi 8 MiB dan tidak memberi bukti identity/transport. Runner sintetis
+  `synthetic-runner.mjs` kemudian memindahkan gate helper ke modul runner kandidat lokal, bukan
+  enforcement produksi (baseline/bootstrap,
+  object coverage, R2 sebelum D1, read-back per chunk, stop tanpa resend, final GET). Penguatan
+  berikutnya menambah guard `READBACK_CAPACITY` sebelum request (budget JSON lokal 6 MiB dari
+  cap reader 8 MiB), tes foto, urutan exact per chunk pada happy path, serta final GET oversize/redirect/URL/MIME/
+  body pendek/status gagal. **15 tes runner** lulus pada Miniflare + fetch stub; total seluruh
+  suite **1.070 tes** (rerun final importer **103/103**), lint/typecheck/build lulus. Review PASS WITH NOTES,
+  tanpa Medium/High tersisa; kapasitas remote tetap bukan jaminan. Runner hanya menerima
+  profile `synthetic` dan seluruh flag
+  otoritas tetap false. Audit referensi publik berikutnya menemukan tipe `params` resmi hanya
+  string, sementara compiler v1 masih mengirim angka/null; REST batch juga tidak memiliki jaminan
+  rollback tertulis seperti Worker `DB.batch()`. Kandidat v1 belum sesuai kontrak tipe publik;
+  penerimaan aktual belum diuji. Desain transport string JSON versi baru dicatat di plan, belum
+   diimplementasikan pada saat audit. Compiler/mock/adapter **v2 kemudian selesai secara lokal**:
+   satu string JSON kanonik per statement, SQL `json_extract` memulihkan tipe, guard params kosong,
+   dan metadata `changes` bukan bukti commit. **107 tes importer lulus**; bersama grup aplikasi
+   yang tidak berubah total validasi **1.074 tes**, dijalankan per grup (bukan satu `npm test`
+   final). Lint/typecheck/build lulus; review PASS WITH NOTES tanpa Medium/High. SQLite lokal
+   mempertahankan null, safe integer, NIP leading-zero dan seluruh row; fault rollback tetap lulus.
+   Belum ada eksekusi client pada layanan nyata, penerapan ledger remote,
+  credential nyata, CLI importer atau operasi remote baru. `readyForImport:false` tetap.
+   Harness `d1-v2-proof.mjs` kemudian tersedia untuk target sintetis yang diasumsikan disiapkan
+   terpisah (schema/seed/ledger bootstrap state 0; target remote belum disiapkan atau diverifikasi).
+   **7 tes harness lulus**, paket importer **114/114**, full `npm test` final **1.081 tes lulus**.
+   Di Miniflare + REST stub, jalur normal memakai 11 send + 12 read lewat adapter/reader yang sama,
+   tanpa membuat database/schema, menyentuh R2 atau cleanup. Review runtime **PASS WITH NOTES**,
+   tanpa temuan material. Perbandingan state mencakup ledger + tujuh tabel import, bukan seluruh
+   database; penyebab error provider tidak terverifikasi. Status observasi sintetis lokal tidak
+   memberi izin dan bukan bukti remote.
+   Alur dipadatkan kemudian disetujui: target proof remote baru `sikap-import-proof-20261018`
+   dibuat di account yang sama tanpa perubahan binding aplikasi. UAT lama diinspeksi read-only
+   dan masih berisi fixture/sesi, sehingga tidak dipakai untuk menimpa data. Gate request baca
+   adapter sebelum setup kemudian lulus pada layanan nyata. **Proof remote lulus**: 94 request,
+   67 setup statement, 11 langkah send + 12 read, fault state tidak berubah dan lost response
+   committed teramati tanpa resend. Database proof beserta row sintetisnya dipertahankan, tidak
+   dipakai ulang untuk data nyata. Kompatibilitas key document/photo dan WEBP kemudian selesai
+   lokal, memakai satu adapter upload; runner 19/19 dan R2 17/17 lulus, review PASS. Full suite
+   final **1.094 tes** (importer **127**) lulus. Gate otorisasi real-data UAT belum diimplementasikan.
+   Target baru `sikap-import-uat-20261018` dan bucket `sikap-import-uat-20261018-files` dibuat tanpa
+   binding app. Plan privat ditransform ulang dengan pepper UAT: 46 pegawai/akun, 63 arsip,
+   66 file, nol error; snapshot tetap non-atomic dan hanya untuk UAT. Credential S3 bucket-scoped
+   belum tersedia, sehingga upload/import belum dijalankan. Belum ada import PII, cleanup,
+   perubahan binding atau deployment.
+   Pada checkpoint sebelum import file, GAS tetap operasional dan Cloudflare masih pilot privat sintetis.
+   Proof D1 remote sudah lulus; import UAT, pepper/access dan rekonsiliasi masih terbuka.
+- Gerbang pada checkpoint sebelum percobaan import: proof remote dan persetujuan alur UAT sudah tersedia. Import masih menunggu
+  credential S3 bucket-scoped, gate real-data terikat plan/target, setup serta pemeriksaan
+  schema/reference/empty target UAT baru. Pepper/access dan rekonsiliasi wajib lulus sebelum
+  UAT dibuka; export final dari sumber beku dengan pemeriksaan awal/akhir, smoke test dan
+  keputusan cutover tetap terpisah.
+
+**Checkpoint sebelum pemulihan:** credential R2 pada `.dev.vars` sudah terbaca; GET signed read-only
+diterima. Gate real-data, adapter permit dan runner UAT sudah diimplementasikan lokal; driver
+memvalidasi plan serta 66 file pada `--check-only` tanpa HTTP. Import **ditahan** karena tes
+operator yang tidak terisolasi sempat menggunakan dependency nyata: target UAT baru kini
+memiliki 10 tabel/11 index parsial, semua tabel yang ditemukan nol row. Bug fallback argumen
+`null` telah diperbaiki; exported API kini mewajibkan seluruh dependency tanpa default I/O nyata.
+Review isolasi PASS dan tujuh tes tiruan final lulus. Read-only GET pada seluruh
+66 key file tujuan menghasilkan 404, sehingga belum ada file manifest terunggah. Tidak ada
+cleanup/retry/pelanjutan setup otomatis, binding atau deployment. Detail insiden/pemulihan
+dicatat pada `MIGRATION_PLAN.md`.
+
+**Setelah persetujuan pemulihan:** reset target UAT baru berhasil diverifikasi (0 user object,
+UUID tetap; R2 tidak disentuh). Setup lengkap 67 statement kemudian lulus, tetapi import
+berhenti pada upload R2 ke-55 dengan hasil ambigu. Observasi independen read-only menemukan
+55/66 file cocok SHA/MIME/ukuran, 11 belum ada, tanpa mismatch; file ke-55 ternyata tersimpan.
+D1 pegawai/akun/arsip/riwayat/log/journal masih nol dan receipt ordinal 0. Tidak ada D1 chunk
+dikirim. Driver fresh tidak boleh diulang; tidak ada retry, cleanup atau overwrite. State parsial
+ini memerlukan pemulihan terkontrol yang mempertahankan 55 file benar dan hanya mengirim 11 file
+yang terbukti belum ada. Import belum selesai dan app belum diarahkan ke target ini.
+**55 file dokumen/foto pegawai nyata (PII) kini tersimpan di bucket privat
+`sikap-import-uat-20261018-files`; row aplikasi D1 belum diimpor.** Pernyataan sebelumnya bahwa
+belum ada upload PII/hanya pilot sintetis adalah status historis sebelum percobaan ini.
+Implementasi pemulihan terkontrol belum tersedia. Persetujuan reset 12:37 sudah dilaksanakan
+dan bukan izin reset/cleanup berikutnya; jangan ulang driver fresh atau menghapus file yang cocok.
+Verifier independen yang direview PASS kemudian menghasilkan `UAT_IMPORT_INCOMPLETE`: schema,
+reference dan seluruh row sesuai prefix ledger ordinal 0/157, tanpa FK violation/query mismatch;
+55 file verified dan 11 `OBJECT_MISSING`, seluruh 67 request read-only. Ini bukan import selesai.
+
+**Kelanjutan disetujui 13:09 UTC:** recovery terpisah sedang diimplementasikan untuk receipt
+ordinal 0. Seluruh 66 object harus diperiksa terlebih dahulu; hanya 404 yang boleh mendapat PUT
+create-only, sedangkan 55 file cocok dipakai ulang. Tidak ada reset schema, cleanup, overwrite
+atau advanced D1 resume. Eksekusi menunggu tes dan review recovery lulus.
+
+**Checkpoint final recovery:** tes/review lulus, kemudian recovery menghasilkan
+`COMPLETE_UAT_RECONCILED`: 55 file dipakai ulang, 11 diunggah create-only, seluruh 157 chunk
+D1 committed tanpa resend. Verifier independen read-only menghasilkan **`UAT_IMPORT_VERIFIED`**:
+46 pegawai, 46 akun, 63 arsip, 125 riwayat, 414 log, journal 157; **66/66 file nyata cocok
+SHA/MIME/size**, nol FK violation/query mismatch. Data nyata (PII) kini berada di D1/bucket UAT
+privat, bukan hanya file. Pada akhir recovery ini aplikasi belum dibinding/deploy; lihat
+checkpoint aplikasi UAT berikutnya untuk deployment yang sudah selesai. GAS tetap
+operasional. Snapshot ini UAT-only/non-atomic, bukan izin cutover produksi. Jangan menjalankan
+driver fresh/reset/recovery ordinal-zero lagi pada target yang sudah ordinal 157. Detail pin,
+request count dan batas bukti tercatat pada `MIGRATION_PLAN.md`.
+Regresi pasca-recovery: 161 tes library/recovery lulus melalui daftar eksplisit, ditambah grup
+API/web/migrasi offline/staging yang tidak berubah; lint, typecheck dan build lulus. Ini bukan
+klaim full `npm test` pada operator historis yang pin snapshot lamanya sengaja dipertahankan.
+
+**Checkpoint aplikasi UAT:** aplikasi sekarang sudah dideploy ke
+**https://sikap-uat.pages.dev**, memakai D1 `sikap-import-uat-20261018` dan bucket file import.
+Deployment `08ccdbc2-7ab3-4533-8bb2-90eded79b485` berhasil; BACKUPS lama dilepas, Access tetap
+required, dan secret encrypted tetap tersedia tanpa diganti. **39/39 probe anonim** pada
+root/branch/hash deployment tetap challenge Access. Verifier sesudah deploy tetap
+`UAT_IMPORT_VERIFIED` dengan **66/66 file** serta seluruh row cocok.
+
+Full suite final **1.143 tes lulus** (400 API, 152 web, 196 migrasi, 224 staging, 171 importer),
+lint/typecheck/build lulus; review binding PASS WITH NOTES tanpa temuan material. Driver import
+dan recovery kini retired/fail-closed sebelum credential atau HTTP karena app sudah dibinding.
+Tidak ada reset, migrations apply atau import ulang pada DB yang kini dipakai app.
+
+**Smoke operator lulus — konfirmasi 18 Oktober 2026, 20:42 UTC:** login, dashboard, dokumen
+dan logout berhasil. Bukti ini dilaporkan langsung operator, bukan dijalankan ulang oleh agen.
+Login berhasil mendukung kesesuaian pepper runtime dan sesi untuk akun yang diuji; peran akun,
+angka dashboard, status HTTP health, rincian file dan isolasi antar-role tidak disebutkan,
+sehingga tidak diklaim teruji. Tidak ada password atau token yang diminta/dicatat.
+
+Login/logout dapat mengubah sesi, log, rate limit dan metadata akun. Hasil rekonsiliasi exact
+sebelumnya adalah baseline **sebelum smoke**, bukan klaim database tetap byte-identik sesudah
+pemakaian aplikasi. Tidak menjalankan ulang import/reset untuk menghilangkan perubahan normal.
+Ini UAT privat, **bukan cutover produksi**; GAS tetap operasional. Langkah berikutnya persiapan
+cutover dengan export final dari sumber beku dan pemeriksaan awal/akhir, backup/rollback,
+serta keputusan produksi yang eksplisit; bukan mengubah flag exporter menjadi konsisten.
+
+**Persiapan cutover 21:01 UTC:** audit menemukan freeze GAS belum tersedia pada source lama.
+Pengaman maintenance berbasis `SIKAP_CUTOVER_STATE` selesai lokal: 122 deklarasi fungsi diberi
+guard, 20 tes VM/AST lulus, review PASS WITH NOTES. Full suite terbaru **1.163 tes lulus**;
+lint/typecheck/build lulus. Guard belum deployed atau diaktifkan. Seluruh jalur GAS ditolak
+selama freeze, termasuk direct RPC,
+login/logout, preview self-heal dan trigger/helper yang menulis; writer eksternal dan eksekusi
+lama tetap perlu dihentikan/drain oleh operator. Exporter selalu `consistent:false`; deklarasi
+read-only bukan pengganti bukti sumber stabil. Jalur import UAT tidak boleh di-retarget ke
+produksi. Belum ada freeze, resource/deployment/import produksi atau perubahan domain.
+
+Rollback domain saja aman hanya sebelum target menerima write baru. Sesudah ada write di
+Cloudflare, bekukan kedua sisi dan rekonsiliasi perubahan sebelum mengizinkan GAS menulis
+kembali; jangan mengaktifkan dua writer. Jadwal freeze, backup/retention, target produksi dan
+persetujuan go/no-go perlu ditetapkan sebelum operasi live.
+Guard membaca property setiap function call; formatter berulang bisa menghabiskan quota
+PropertiesService dan membuat state open gagal tertutup. Jenis account/quota aktual dan beban
+property-read harus diukur pada sandbox sebelum deployment. Source/deployment live juga belum
+dibandingkan dengan repo pada checkpoint persiapan tersebut. UAT tetap lulus; tidak ada freeze
+atau perubahan produksi tahap ini.
+
+**Audit read-only source live (21:35 UTC): jangan push `legacy-gas/src` saat ini.** Versi GAS
+140/HEAD berbeda dari repo dan memuat hotfix keamanan yang belum ada pada tree lokal: helper
+private, whitelist 40 action, lockout dan validasi upload. Live juga memiliki `Maintenance`
+yang tidak ada di repo; file itu bukan guard freeze. HEAD berbeda dari v140 pada file tersebut.
+Deployment versi 76 masih terdaftar dan tidak membaca flag cutover. Tidak ada push, deployment,
+pemanggilan fungsi GAS atau perubahan property dilakukan pada audit ini.
+
+Guard lokal 122 deklarasi beserta tesnya kini berstatus **prototipe pada baseline usang**, bukan
+paket deploy. Port harus memakai baseline v140 serta mempertahankan hotfix, bukan menimpa live
+dengan repo lama. Source clone disimpan privat pada TEMP di luar repo. Lihat hasil perbandingan
+dan batas bukti deployment lama pada `MIGRATION_PLAN.md`; reachability versi lama dan trigger/
+writer eksternal masih perlu verifikasi sebelum freeze.
+
+VM pada prototipe lokal mengukur 22 property read per row (46 row = 1.012); admin-list 46 row
+dengan authorization tiruan menghasilkan 1.022 read sebagai lower bound komponen. Ini bukan
+benchmark quota/latency Google dan bukan pengukuran v140 live. Tes freeze/prototipe 23/23 lulus;
+full suite lokal terbaru **1.166 tes lulus**, lint bersih. Hasil source audit dan pengukuran
+menguatkan keputusan untuk tidak deploy tree lokal usang; langkah berikutnya port terisolasi
+ke baseline v140, review, baru uji sandbox dengan jadwal/operator yang disetujui.
+
+**Kandidat v140 — persiapan 22:03 UTC:** builder/verifier lokal sedang disiapkan untuk membuat
+kandidat baru dari clone v140 privat, mempertahankan seluruh 41 file/hotfix dan menambahkan
+guard hanya pada 43 entry point publik. Helper private tidak diberi pembacaan property per row.
+Output tetap di luar repo, tanpa konfigurasi clasp/push, dan perubahan dapat dibalik menjadi
+bytes baseline untuk pemeriksaan preservasi.
+
+**Hasil kandidat:** builder dan verifier telah selesai, review **PASS/PASS WITH NOTES** tanpa
+temuan material terbuka. Kandidat privat menghasilkan **`CANDIDATE_LOCAL_VERIFIED`**, 8 file
+berubah hanya untuk 43 guard, 33 file raw-identik, 70 private asli tetap utuh. **130/130 cek VM**
+lulus pada kandidat sebenarnya; 16 unit test tooling dan full suite **1.182 tes lulus**, lint
+bersih. Ini hanya verifikasi lokal, bukan tes open-state semua fitur, quota Google atau freeze
+live. Belum ada push/deployment/aktivasi property. Langkah berikutnya sandbox Apps Script
+terisolasi yang disetujui, inventaris writer/trigger dan penanganan versi 76 sebelum window.
+
+### Sandbox guard cutover sintetis — riwayat persiapan dan hasil operator
+
+Paket sandbox selesai diimplementasikan dan diuji lokal untuk menguji helper guard yang sama
+pada project Apps Script standalone baru. **30/30 tes baru lulus** (19 harness, 11 generator),
+termasuk ACL Windows/penulisan eksklusif/receipt-last dan fault ownership property. Regresi
+per grup persiapan **1.212 tes lulus**; lint/typecheck/build/whitespace lulus. Setelah permintaan
+lanjutan, paket operator aktual berhasil dibuat lokal pada checkpoint berikutnya; eksekusi
+Google belum dilakukan pada checkpoint pembuatan tersebut; hasil operator berikutnya dicatat
+di bawah. Review source generator/harness **PASS WITH NOTES**, tanpa
+Critical/High/Medium; ini bukan review integritas paket operator aktual. Paket ini **bukan salinan aplikasi v140**: 43 direct stand-in dan 40 handler
+sintetis hanya merepresentasikan bentuk pemanggilan. Tidak ada akses spreadsheet/Drive, data
+pegawai, deployment web app, trigger atau konfigurasi clasp.
+
+**Sebelum eksekusi Google:** pastikan project baru khusus sintetis, account yang dipilih dan
+identitas project sudah ditetapkan. Jangan menjalankan di project operasional, project bound
+spreadsheet, salinan source v140 atau project yang punya property/data lain. Jangan menjalankan
+dua rehearsal bersamaan atau mengedit properties saat run berlangsung.
+
+Prosedur ini tidak memberi izin freeze/deploy produksi. Eksekusi Google memerlukan keputusan
+operator pada project/account sandbox yang telah dipastikan, bukan memakai identitas project
+operasional. Pada checkpoint persiapan belum ada eksekusi Google; jangan menganggap prosedur
+berikut sebagai instruksi mengulang run yang kini sudah dilaporkan selesai.
+
+**Paket operator 19 Oktober:** generator menghasilkan `SANDBOX_HARNESS_READY_LOCAL`, tepat
+3 file di folder privat lokal yang lokasinya diberikan kepada operator, di luar repo. Hash
+rendered harness `539f0c04fb0216c63f887ab147386f03eb0aa836125920f471c50b133e3f5ca1`, receipt
+`cf263193ef264c970562e8961791279e3f714836e708d59c6b489b1f3d709813`. Tidak ada nonce atau script
+ID dicatat di sini. Verifikasi independen paket aktual **PASS**: ACL parent/paket privat,
+tepat tiga regular file, helper/hash/receipt dan manifest rendered cocok byte-identik;
+30/30 tes target lulus ulang. Ini bukan bukti runtime Google. Jangan generate ulang folder
+paket ini atau memindahkannya ke repo.
+
+Prosedur operator historis (run dilaporkan selesai; **jangan ulang otomatis**):
+
+0. **Paket operator sudah dibuat; lewati langkah generate ini untuk paket tersebut.** Untuk
+   pembuatan paket baru yang memang diputuskan terpisah, parent harus privat/sudah ada di luar
+   repo dan output harus baru:
+
+
+   ```powershell
+   node scripts/migrate/prepare-gas-cutover-sandbox.mjs --out "<path absolut folder baru>"
+   ```
+
+   Output tidak ditimpa dan kegagalan meninggalkan artefak parsial, tanpa cleanup otomatis.
+   Jika gagal, hentikan; jangan melonggarkan ACL. Receipt dibaca lokal saja untuk memperoleh
+   nonce konfirmasi, bukan diunggah ke Apps Script/chat/repo. Stdout hanya kode/hash/counts.
+1. Buat project standalone baru bernama `SIKAP Cutover Guard Sandbox SYNTHETIC` di Apps Script.
+   Jangan membuat version/test deployment/deployment, memasang trigger/library/Advanced Service,
+   menghubungkan Sheets/Drive atau memakai clasp. Jangan mengedit `appsscript.json`.
+2. Buat file editor manual dan tempel hanya `Cutover.gs` dan `CutoverSandboxHarness.gs` dari
+   output privat generator secara verbatim. Jangan menyalin receipt/source aplikasi lain,
+   memformat otomatis, mengubah manifest/hash atau mengganti runtime V8. Hapus `myFunction`.
+   Jika pemeriksaan helper hash gagal, hentikan dan catat kode saja; jangan melewati pin.
+3. Pasang satu Script Property `SIKAP_CUTOVER_SANDBOX_CONFIRM` bernilai
+   `NEW-SYNTHETIC-SANDBOX:<nonce dari receipt>`. `SIKAP_CUTOVER_STATE` harus tidak ada.
+4. Untuk menjalankan entry privat dari editor, tambahkan file sementara `TmpRun.gs` **hanya di
+   sandbox** berisi wrapper berikut. Ini satu-satunya tambahan sementara selain dua file paket.
+   Pilih dan jalankan `tmpCutoverSandbox`, lalu hapus `TmpRun.gs` setelah run. Jangan membuat
+   wrapper di project operasional atau menerbitkannya.
+
+   ```javascript
+   function tmpCutoverSandbox() {
+     runCutoverSandboxRehearsal_();
+   }
+   ```
+
+5. Catat prompt yang benar-benar muncul; jangan mengasumsikan tidak ada authorization.
+   Batalkan permintaan scope tambahan seperti `script.scriptapp` (trigger), `script.send_mail`,
+   `script.external_request`, Drive/Sheets/Gmail atau email pengguna. Paket hanya memakai Script
+   Properties, `ScriptApp.getScriptId()`, digest dan log; jangan menambah izin agar check lulus.
+6. Simpan hanya ringkasan JSON teredaksi dari execution log pada folder privat. Jangan menyimpan
+   screenshot/editor URL yang memuat account atau script ID. Hanya `CUTOVER_SANDBOX_PASSED`
+   dengan restore berhasil yang merupakan pass. Kode lain berarti berhenti, bukan retry otomatis.
+   Periksa di Project Settings bahwa `SIKAP_CUTOVER_STATE` kembali tidak ada. Bila restore gagal,
+   jangan reset properties; inspeksi privat dahulu. Hapus key state secara manual **hanya pada
+   sandbox yang dipastikan milik run ini**, bukan nilai yang berubah di luar run.
+7. Biarkan project, konfirmasi, pin dan output privat tetap ada untuk audit. Penghapusan bukan
+   bagian run. Repeat run mengharuskan hanya key konfirmasi+pin dan state tetap tidak ada.
+   Jangan membaca/mengatur state pada project produksi/v140 sebagai bagian tahap ini.
+
+Pembacaan property yang gagal/non-string dan jumlah read tepat tetap bukti VM lokal, bukan
+fault yang sengaja disuntikkan ke layanan Google. Hasil Google tidak membuktikan quota
+produksi, HTTP/RPC web app, deployment v76, private editor/writer atau drain eksekusi.
+
+**Konfirmasi operator — 19 Oktober 2026, 04:34 UTC:** rehearsal pada project standalone baru
+`SIKAP Cutover Guard Sandbox SYNTHETIC` dilaporkan lulus di Google nyata:
+`CUTOVER_SANDBOX_PASSED`, `stateAbsentAfterVerified:true`, **1.162/1.162 checks**, termasuk
+**996 penolakan tanpa efek samping**, **14/14 state**, **7/7 no-cache**. Ini laporan operator,
+bukan verifikasi remote independen; ringkasan JSON privat belum dibaca agen. Angka rehearsal
+bukan jumlah suite regresi lokal 1.212 tes.
+
+Operator melaporkan hash kedua file cocok sebelum run/setelah reload, tanpa izin tambahan,
+receipt upload/deployment/trigger/clasp. `TmpRun.gs` sudah dihapus, state absent, konfirmasi+pin
+dipertahankan. Deviasi tercatat: harness bernonce melewati konteks operator setelah jalur
+localhost ditolak dan server dilaporkan dimatikan; helper sempat kosong lalu dipulihkan dan
+hash final dilaporkan cocok. Ini bukan bukti integritas kontinu atau bahwa nonce hanya di disk.
+Jangan kirim nonce/script ID/account atau menyalin ringkasan privat ke repo. Detail audit ada
+di MIGRATION_PLAN. Tidak ada rotasi/reset/cleanup otomatis dari laporan ini.
+
+**Berhenti pada checkpoint ini.** Jangan ulang run/generate paket, mengubah sandbox atau
+membekukan GAS produksi. Gate rehearsal helper lulus menurut operator; fitur v140, quota,
+UNAVAILABLE/non-string/read-count, deployment lama dan drain tetap di luar buktinya.
+Operasional tetap GAS; inventaris writer/deployment, backup/rollback dan window memerlukan
+keputusan terpisah sebelum tindakan produksi.
+
+### Inventaris writer/deployment sebelum window
+
+**Kelanjutan 19 Oktober, 05:29 UTC:** tahap berikutnya disiapkan sebagai checklist read-only
+W01–W15 dan keputusan D01–D11 di `MIGRATION_PLAN.md` pada bagian **Inventaris deployment/writer
+dan rencana window**. Pada checkpoint persiapan seluruh bukti live masih **UNKNOWN**;
+pembaruan W07 di bawah merupakan pengecualian metadata saja, gerbang tetap **NO-GO**. Tidak ada
+freeze/deploy/penutupan v76 atau shutdown trigger yang boleh dilakukan dari checklist ini.
+Tidak ada script baru: UI serta attestation lintas account diperlukan, bukan helper produksi.
+
+**Observasi metadata API 19 Oktober, 06:00:31 UTC (14:00:31 WITA):** satu panggilan read-only
+clasp 3.3.0 menemukan tiga entri: **HEAD tanpa nomor**, **v140**, **v76**. W07 terverifikasi
+hanya untuk daftar metadata pada waktu tersebut. Belum memeriksa source, execute-as/access,
+route produksi, penggunaan URL lama atau trigger. Tidak memanggil handler GAS. v76 masih
+terdaftar; ini bukan bukti URL tersebut aktif ataupun sudah ditutup. Detail suffix/batas bukti
+di MIGRATION_PLAN. Bukti W08/W09 dan writer lain tetap UNKNOWN; tidak ada perubahan deployment.
+
+Urutan operator paling dekat, hanya melihat tanpa Save/Deploy/Archive atau perubahan izin:
+Jangan membaca nilai Script Properties, menjalankan fungsi editor/handler, menambah helper
+inspeksi produksi atau mengunggah screenshot mentah. Membuka Sheet/Form dapat menjalankan
+onOpen/installable open trigger; lihat Share/Details dari Drive tanpa membuka container dan
+metadata project dari daftar Apps Script. Jika tidak cukup, tandai PARTIAL. Pembukaan container
+memerlukan review risiko/persetujuan operasi terpisah, bukan asumsi read-only.
+
+1. Lengkapi enum execute-as/access per deployment dari Manage deployments; daftar versi API
+   06:00:31 UTC saja belum mencakupnya. Audit 18 Oktober hanya pembanding historis. Jangan memanggil
+   URL handler lama untuk menguji reachability; request dapat menulis.
+2. Petakan seluruh owner/editor script, sheet, folder/parent/shared-drive dan writer eksternal.
+   Laporkan count/role dengan label account anonim; daftar identitas lengkap tetap privat.
+3. Minta setiap account pembuat trigger memeriksa Triggers/My Triggers. Account yang hilang
+   dari cakupan membuat hasil PARTIAL, bukan nol trigger global. Sertakan simple/bound trigger,
+   Forms/AppSheet/script lain, job dan penggunaan editor/private helper.
+4. Periksa jenis/status/fungsi di Executions untuk periode yang disebutkan dan batas visibilitas.
+   Tampilan kosong tidak membuktikan drain dan tidak mengatribusi trafik ke v76.
+5. Pastikan route domain/Pages/proxy GAS melalui control plane, termasuk URL lama dan pipeline
+   CI/clasp/Git integration/hook. Workflow migrasi lokal hanya test/build; remote main dan
+   automasi di luar repo belum diperiksa. Jangan kirim nilai secret/Script Properties.
+
+Format ringkasan aman:
+```text
+Wxx | UNKNOWN/PARTIAL/ATTESTED/VERIFIED/N/A(alasan) | waktu UTC/WITA |
+label account/role | counts/enum | cakupan/batas | disposition direncanakan
+```
+
+Keputusan berikutnya: window WITA/UTC dan pemilik go/no-go, disposition v76/trigger/editor,
+backup **byte dokumen/foto + sheet** dengan restore-test, target/capability produksi baru,
+custodian pepper/key, notifikasi WhatsApp, serta rollback sebelum/sesudah write pertama target.
+Jangan menganggap login/smoke tidak menulis; sesi/audit dapat menjadi write target pertama.
+Rencana freeze/drain bukan bukti drain selesai, dan checklist lengkap bukan izin operasi.
+Persetujuan dipisah: A operasi persiapan/deploy, B mulai maintenance, E export/import setelah
+bukti drain+backup sumber beku, C go-live. W12-plan/W13-ready harus direview sebelum B;
+W12-drain/W13-final dibuktikan aktual sesudah B untuk E, bukan ditandai selesai sebelum freeze.
+Creator trigger yang tak terjangkau tetap gap; penutupan lewat mitigasi resource-level memerlukan
+review/tindakan disetujui dan bukti cakupan, bukan sekadar menghapus editor/guard public. Jika
+tidak dapat dibuktikan, tetap NO-GO. D11 dapat diisi HOLD privat eksplisit, bukan dibiarkan
+UNKNOWN atau digunakan untuk melewati gate lain.
+Tidak ada inspeksi remote atau perubahan live dilakukan pada persiapan checklist ini.
+
+### Serah-terima setelah gerbang A — 20 Oktober pagi WITA
+
+Pemilik melaporkan deployment guarded **v141**, URL utama tetap, v76 diarsipkan, sharing
+link-editor sheet/Form ditutup, CI/clasp grant/auto-deploy dihentikan. Resource produksi baru
+`sikap-import-prod-20261020` dan Access
+`sikap-v2` dilaporkan disiapkan; kode driver/gate tersedia dengan pin PENDING gagal-tertutup.
+Status live tersebut adalah laporan serah-terima, tidak diperiksa ulang dari sesi ini;
+pembuatan resource/Access merupakan operasi remote, bukan penulisan data aplikasi oleh importer.
+
+**B/E/C belum diberikan, NO-GO tetap.** Pada checkpoint serah-terima belum ada izin membaca
+runbook privat (read-only berikutnya dicatat pada bagian review di bawah). Jangan menjalankan
+driver, mengisi pin dari snapshot lama, membaca secret atau mencoba clasp setelah grant dicabut. Review lokal
+independen driver/gate belum menyatakan siap. Tes target lokal **16/16 lulus** (driver 10,
+gate 6) membuktikan PENDING berhenti sebelum credential/HTTP, bukan happy path produksi.
+Rehearsal driver/pepper proof/app
+binding serta W12-plan/W15 belum selesai. Kegagalan staging yang dilaporkan perlu diagnosis,
+bukan diasumsikan unrelated. Runtime pin review/rehearsal diselesaikan sebelum B; pin plan
+final baru setelah freeze/export final untuk E, tanpa membuka PENDING demi tes.
+
+Maintenance HEAD dengan `tmpRevoke`/`tmpCheck` ikut v141 menurut laporan. Nama public tanpa
+suffix `_` tidak boleh dianggap editor-only; coverage/jalur pemanggilan perlu review source
+terikat versi tanpa probe live. Memilih v140 untuk rollback juga melepas guard: jangan lakukan
+ketika freeze bergantung padanya tanpa isolasi writer dan keputusan rollback yang sesuai.
+Review driver independen **CHANGES REQUIRED**: budget request dapat habis setelah write,
+scan binding tidak lengkap, dependency pin kurang, lifetime credential belum cocok run,
+CLI bare menjadi write setelah unpin dan happy path orchestrator belum diuji. Pin PENDING
+masih menahan write sekarang; **jangan diisi/dilewati** sampai koreksi+tes+review selesai.
+Retirement UAT juga perlu stop permanen, bukan bergantung config/pin yang dapat diperbarui.
+Lihat checkpoint serah-terima/hasil review di MIGRATION_PLAN; tidak ada operasi lanjutan
+produksi otomatis atau kode runtime diperbaiki dalam sesi audit ini.
+
+### Koreksi lokal importer — checkpoint selesai 20 Oktober
+
+Temuan driver pada checkpoint sebelumnya kini ditangani lokal: lima driver UAT lama termasuk
+reset/verifier selalu STOPPED_RETIRED sebelum options/I/O, CLI produksi memerlukan flag write
+`--import-production` eksplisit (no-args exit 2), pin transitif/inventory config bounded/budget
+request dan lease preflight ditambahkan. Credential dibaca sebagai snapshot data-only frozen;
+getters dan reference mutation tidak dapat mengubah header/window setelah validasi.
+
+**Validasi:** importer **204/204 lulus**, termasuk 30 unit driver/orchestrator/gate dan 4
+rehearsal orchestration dengan Miniflare D1 + fake R2. Happy path sintetis **93 request** tepat
+budget (3 file/3 chunk); check-only nol credential/HTTP, R2 conflict sebelum DDL, fault setup
+pre-commit tanpa resend. Bukan rehearsal remote atau bukti commit-then-loss setup. API400,
+web152, migrasi265 dan staging224 lulus per grup; lint/typecheck/build/whitespace lulus. API
+run awal hang; rerun bounded 400 lulus tanpa pembuktian akar hang. Review final **PASS WITH
+NOTES**, tanpa Critical/High/Medium; 4 Low gap pengujian tetap tercatat di MIGRATION_PLAN.
+
+**Jangan menjalankan driver atau mengisi pin dari checkpoint ini.** Semua runtime/plan pin
+produksi masih PENDING dan NO-GO B/E/C tetap. **Lease adalah blocker live:** contoh estimasi
+historis 807 request ditolak cap 4 jam pada timeout 30 detik, bukan hasil plan final. Credential
+berumur pendek juga gagal; perlu keputusan desain/review, bukan override agar lolos. Inventory
+lokal tidak membuktikan binding dashboard/absence writer. Profile rehearsal hanya fixed target
+sintetis/fake I/O terinjeksi, tidak tersedia lewat CLI dan tidak memberi authority produksi.
+
+Langkah berikutnya: review snapshot source v141/wrapper dan runbook privat yang diizinkan,
+W12/W15/backup-secret custody, desain credential/lease dan runtime pepper proof terisolasi.
+Deploy/secret install/rehearsal remote memerlukan scope persetujuan tersendiri. Tidak ada
+remote/private data/secret diakses, resource diubah atau commit/push pada koreksi lokal ini.
+
+### Review source historis dan runbook privat — 20 Oktober, 05:28 UTC
+
+Read-only review selesai, **CHANGES REQUIRED** sebelum usulan B. Runbook privat masih draft
+sebelum A: status deployment/target usang; writer register, guard proof, drain/queue/fingerprint,
+backup sumber beku, UTC/WITA window/abort/notifikasi dan rollback/custody belum operasional.
+Runbook asli tidak diubah dan tidak boleh dipakai sebagai izin maintenance. Tiga backup owner
+sebelum freeze tidak membuktikan W13-final setelah drain. Smoke privat pun dapat menjadi first
+write target sebelum C; domain move bukan otomatis titik write pertama.
+
+AST/hash source audit historis mengonfirmasi:
+- HEAD: **45 public, 0 guarded**; v140: **43 public, 0 guarded**.
+- Kandidat v140: **43 public, 43 first-guard**, 12 file, parse bersih.
+- `tmpRevoke`/`tmpCheck` hanya ada sebagai public wrapper pada HEAD, tanpa guard. Yang pertama
+  mengubah sharing Drive/Script Properties; yang kedua membaca+log metadata, bukan write Drive.
+- Hapus tepat kedua wrapper + satu blank line dari Maintenance HEAD menghasilkan byte-identik
+  kandidat. Ini bukti patch potensial kecil, **bukan perubahan yang telah dilakukan**.
+
+**Snapshot exact v141 belum tersedia** pada lokasi yang ditemukan. Jika Maintenance HEAD ikut
+v141 sesuai laporan owner, coverage conditional hanya 43/45; belum boleh menyatakan jumlah
+tersebut terverifikasi remote. Dua nama tanpa suffix `_` tidak terbukti editor-only meski tidak
+ada di whitelist doPost; HtmlService/RPC perlu diperhitungkan. Tidak ada probe live dijalankan.
+Private maintenance helpers tetap writer yang harus diisolasi/prosedur owner selama freeze.
+
+Langkah berikutnya: snapshot source+manifest terikat versi 141 melalui jalur privat/read-only
+yang disetujui owner; lalu review pilihan scope A tambahan (hapus wrapper permanen atau perluas
+guard+tes). Revisi runbook diperlukan, tetapi tidak dibuat/diedit di scope read-only ini.
+Referensi runtime Google umum 6 menit/execution bukan bukti drain cukup 6 menit; queue/writer
+lain harus tercakup. Keputusan lease/credential importer juga tetap blocker live.
+**NO-GO B/E/C, pin PENDING tetap.** Tidak ada secret/data pegawai/API account/control plane
+diakses atau perubahan GAS/deploy/freeze/import/cleanup/commit/push pada review ini. Hanya
+dokumentasi Google resmi publik diambil melalui web; yang dibaca privat hanya catatan
+operasi dan source backend historis yang diizinkan.
+
+### Revisi runbook privat — 20 Oktober, 06:32 UTC
+
+Catatan sebelumnya "runbook tidak diubah/belum diedit" adalah riwayat review sebelumnya;
+revisi ini menggantikannya. Runbook existing kini direvisi lokal: bagian awal riwayat, bagian 4–12 memuat
+register writer, guard/drain/fingerprint/backup/rollback dan kartu approval. Nilai window,
+abort, N/interval observasi, metode proof dan custody yang belum diputuskan tetap UNKNOWN.
+E-export dipisah dari subapproval E-import atas artefak final; tidak ada import otomatis.
+Pemisahan ini menggantikan penyebutan kartu E tunggal pada checkpoint historis di atas.
+Snapshot v141 tidak ditemukan pada pemeriksaan filename terbatas folder inventaris;
+blocker lease/credential tetap. **Draft bukan
+izin B; NO-GO B/E/C dan semua pin PENDING tetap.** Review kualitas runbook final
+**PASS WITH NOTES**, tanpa Critical/High/Medium; owner decisions tetap UNKNOWN. Runbook
+mewajibkan source tetap frozen tanpa interupsi export→import serta fingerprint pre-import
+cocok post-export; reopen menginvalidasi backup/export/transform/plan/pins untuk run baru,
+tanpa cleanup otomatis. Hash raw final tercatat di MIGRATION_PLAN; tes runtime tidak diulang.
+
+Langkah operator berikutnya, scope read-only saja:
+1. Pastikan project operasional secara privat. Coba periksa riwayat/project history **bila**
+   UI menyediakan content source yang eksplisit berlabel versi **141**, bukan HEAD editor.
+   UI dapat menulis: gunakan hanya untuk melihat, jangan Restore/copy-to-HEAD atau tindakan
+   lain yang mengubah project. Ketersediaan tampilan exact-version belum dipastikan.
+2. Bila UI tidak menyediakan content exact-version, **berhenti dan laporkan gap**. Jangan
+   login ulang clasp, membuat token/scope/API baru atau mengambil HEAD sebagai pengganti.
+3. Jika tersedia, catat privat waktu, alias project, deployment suffix+versi dan asal source;
+   salin semua source+manifest versi itu secara verbatim ke lokasi baru ber-ACL privat di luar
+   repo. Jangan menimpa audit lama. Catat cara copy/encoding/line endings dan provenance;
+   version binding copy UI tetap ATTESTED sampai bukti independen tersedia. Hash/AST lokal
+   tidak otomatis membuktikan bytes Google. Rekonstruksi kandidat+HEAD bukan snapshot v141.
+   Source bisa memuat ID/token hardcoded: jangan tempel ke chat/repo. Jika hanya satu file
+   tersedia, laporkan cakupan parsial.
+4. Jangan Save/Run/Deploy/Archive, membuka URL handler, Sheet/Form atau Script Properties.
+   Kirim hanya lokasi privat artefak dan ringkasan asal/version/cakupan; hash/AST diverifikasi
+   lokal sesudah artefak tersedia. Persetujuan snapshot tidak mencakup patch/deploy berikutnya.
+
+Tidak ada pengambilan source UI/remote pada revisi ini. Yang diubah hanya runbook privat
+existing dan checkpoint repo; tidak ada secret/credential/source GAS/resource/pin diubah.
+
+### Bukti operator source v141 tersimpan — laporan 20 Oktober, 11:47 UTC
+
+Laporan terbaru menggantikan status awal hash-only/artefak belum tersimpan: operator menyatakan
+source+manifest versi 141 sudah disimpan privat, 42 file (41 source + manifest), hash42/42 cocok
+serta ACL privat/read-only. Provenance UI version141 dan Maintenance dengan tmpRevoke/tmpCheck
+adalah **ATTESTED**; review agent belum membuka source, bundle, evidence hash atau provenance
+sesuai larangan operator. Tidak ada verifikasi independen ACL/hash/version-binding baru.
+
+Salinan teks editor dapat menormalkan EOL; hash lokal tidak membuktikan byte server Google.
+Manifest ada menurut laporan, tetapi belum dianalisis; access/execute-as, properties, trigger
+dan data tetap di luar bukti. Coverage45/43 memperkuat laporan operator, bukan full W11 VERIFIED.
+Pengambilan source oleh operator telah dilaporkan selesai; prosedur UI di atas kini historis,
+**jangan ulang otomatis**. Tidak ada raw source/manifest diunggah ke chat/repo.
+
+Scope berikutnya memerlukan izin eksplisit validasi lokal non-disclosing pada artefak privat
+jika hendak dibuka untuk AST/hash; lokasinya tidak dianggap izin mengabaikan larangan akses.
+Sesudah validasi tepat 45/43 dan review, patch lokal minimum+tes tetap memerlukan penugasan/
+izin eksplisit terpisah, bukan otomatis. Perubahan/deploy GAS masih
+scope A terpisah, belum diizinkan. Lease/custody/runtime pepper/W12/W15 juga tetap blocker.
+**NO-GO B/E/C dan pin produksi PENDING**. Penerimaan ini hanya checkpoint repo; tidak ada
+private artifact/secret/remote/patch/deploy/freeze/export/import/cleanup/commit/push dijalankan.
+
+### Validasi lokal non-disclosing — permintaan 20 Oktober 12:21/12:24 UTC
+
+Kelanjutan dibatasi pada pemrosesan byte artefak privat oleh alat untuk ACL/hash/AST, tanpa
+menampilkan raw source/bundle atau menyalinnya ke repo/chat. Ini scope validasi berikutnya,
+bukan pemberian izin patch/deploy. Catatan sebelumnya belum membaca artefak adalah riwayat
+penerimaan, bukan klaim bahwa tool tidak memproses bytes pada validasi ini. Hasil artifact
+lokal **LOCAL_VERIFIED dengan catatan**: 42 file bundle↔disk byte-match serta evidence raw/LF
+42/42, AST seluruh12 `.gs` **45 public/43 first-guard**, unguarded tmpRevoke/tmpCheck, handler40.
+Provenance UI dan binding deployment ke Google tetap ATTESTED.45/43 mengonfirmasi gap
+coverage dua fungsi tanpa guard: **full freeze coverage tetap CHANGES REQUIRED**. Tidak mengeksekusi GAS atau memakai clasp/credential/probe handler.
+Normalisasi LF tidak boleh disamakan raw bytes; inverse-wrapper di memory bukan patch saved.
+Tooling v140 16/16 dan driver/gate produksi 16/16 tes sintetis lulus terpisah; tidak memverifikasi
+source v141. Suite migrasi penuh 265/265, lint/typecheck/build juga lulus; 16 tooling termasuk
+265, bukan tambahan. Hash pin/tooling tidak berubah. Menyiapkan output patch lokal
+memerlukan penugasan eksplisit baru setelah hasil actual tepat 45/43; deploy tetap A terpisah.
+**Catatan digest:** bundle lokal751.809 byte dihitung SHA-256
+`358df0721272e9529d2fbb825e0560bb272bcb171092f8777f0044573348a527`.
+Prefix laporan chat cocok, tetapi suffix laporan chat `27a527` tidak cocok hasil `48a527`: tetap
+PARTIAL_MISMATCH, jangan diasumsikan typo/korupsi atau diabaikan. 11 backend raw-match kandidat
+(termasuk8 CRLF dengan baselineCRLF sama); MaintenanceLF berbeda karena dua wrapper, remove
+span98ASCII di memory menghasilkan raw/LF match kandidat. Tidak ada patch disimpan.42/42
+source+manifest readonly, provenance metadata writable; ACL/nlink/reparse check dilaporkan
+lulus. Follow-up final: capnode10.000/45file, collision0, ADS tetap UNVERIFIED dan numeric
+depthcap belum dirinci. Full digest bundle cocok record PROVENANCE (bukan signature Google);
+evidence84hash hanya per-file, bukan bundle. Literal short digest laporan chat tetap beda,
+tidak diasumsikan typo. Span98ASCII hanya dua wrapper+whitespace; inverse remove/insert di
+memory mengembalikan raworiginal byte-exact. Bukan patch saved. NO-GO B/E/C dan semua pin
+PENDING tetap; review hasil integritas lokal tidak menutup gap coverage atau blocker lain.
+
+### Patch lokal minimum — permintaan 20 Oktober 13:36 UTC
+
+Penugasan berikutnya kini mencakup kandidat patch lokal privat, bukan deploy. Builder khusus
+mengikat input bundle+files terverifikasi, menghapus tepat dua wrapper Maintenance dan menyalin
+41 file lain tanpa perubahan raw bytes. Komentar nama wrapper dipertahankan; pemeriksaan
+menolak executable reference, bukan seluruh kata. Rincian trust/preservasi di plan.
+Source original tidak disentuh; output baru write-once
+privat di luar repo, receipt terakhir, tanpa `.clasp*` atau push config. Builder/tes direview
+sebelum output aktual dibuat, lalu validator independen memeriksa inverse raw dan AST43/43.
+Checkpoint awal implementasi/paket belum ada adalah riwayat. Builder+14 tes sintetis kini
+tersimpan; parent rerun14/14 dan migrasi final279/279 lulus, eslint0. Source review aktual
+**PASS WITH NOTES**, tanpa Critical/High/Medium (Proxy options ditutup).
+
+Builder kemudian dijalankan sekali ke child privat baru, status **LOCAL_WRAPPER_REMOVAL_PREPARED**:
+43 file total (42source+receipt),41source raw-identik, Maintenance98byte removal, postAST43/43
+serta private71/handler40/EOL37CRLF5LF tetap menurut builder. Aggregate output
+`c57e2ba8ba8af790a9a4bccbaa6fbcec9fa96baba5fe71a5d7c0bae171589be9`, receipt
+`b5ac258658a7d66fbf92bd9194b08411827567a0cd6e1f6f8f9c2aba1f888374`.
+Verifikasi independen kandidat actual kemudian **PASS lokal**: input bundle+42source tetap
+cocok pin, output aggregate/receipt cocok hitung ulang,41raw-identik dan inverse delta98byte
+raw-byte-exact, AST43/43/private71/handler40 serta EOL tetap. Paket **LOCAL_VERIFIED** untuk
+transform lokal; receipt status bukan izin upload/deploy. ACL parent/output private, nlink1/
+reparse0; ADS tetap UNVERIFIED. Google version/binding tetap ATTESTED dan W11 live belum tutup.
+Original input cocok pin saat verifikasi, tidak mengklaim immutability kontinu.
+Satu invocation `npm test` final **1.259 tes lulus** (400/152/279/224/204), 14 tes baru termasuk
+migrasi279. Lint final, typecheck/build/whitespace lulus; warning API tetap tercatat di plan.
+Tidak overwrite/retry/cleanup atau copy raw source ke repo/chat.
+
+A perubahan HEAD/version/deploy Google tetap terpisah dan belum diizinkan; B/E/C NO-GO, semua
+pin produksi PENDING. Patch wrapper tidak menutup private-editor writer, drain/backup/window,
+lease/credential atau runtime pepper. Jangan menempel source/manifest ke chat/repo atau
+menjalankan deployment dari paket lokal ini.
+
+### Kartu release A tambahan — 20 Oktober 14:54 UTC, belum izin live
+
+Kartu lengkap di MIGRATION_PLAN membedakan **A-read → A-save → A-version → A-repoint**.
+Hanya bukti operator read-only yang menjadi langkah terdekat; tidak menjalankan Save/version/
+repoint dari kata “lanjut”. Tidak ada remote atau private source baru dibaca pada penyusunan.
+
+Operator mengumpulkan snapshot **HEAD terkini** (bukan Histori141) ke folder privat baru,
+metadata Manage deployments (suffix/versi/execute-as/access) dan disposition caller/trigger
+ke tmpRevoke/tmpCheck pada cakupan account yang diketahui. Tidak Save/Restore/copy-to-HEAD/
+Run/Deploy/Archive, handler probe, Sheet/Form/properties, clasp atau scope/credential baru.
+Jika UI/capture tidak cukup, STOP/PARTIAL. Raw source tidak dikirim chat/repo.
+Bila salah Save/Restore/Run, efek live tak terduga, prompt izin baru atau HEAD/deployment
+berubah saat capture: STOP, batalkan prompt, jangan resave/restore/undo atau memperbaiki
+sendiri. Catat waktu UTC+state terlihat privat; status UNKNOWN sampai owner memutuskan
+recovery. Tidak mengedit trigger/sharing atau melakukan rollback otomatis.
+
+Hasil capture berikutnya diklasifikasikan setelah validasi lokal:
+- MATCH_INPUT: seluruh42file raw cocok input terpin; baru dapat diajukan A-save, belum izin.
+- MATCH_OUTPUT: HEAD sudah cocok kandidat; STOP/rekonsiliasi, jangan menambah ulang wrapper.
+- OTHER_DRIFT: source atau metadata versi aktif/access/execute-as menyimpang; STOP, tidak overwrite.
+- CAPTURE_INCOMPLETE/EOL ambiguity: PARTIAL, review diff/basis LF terpisah; jangan klaim raw match.
+
+Sebelum A-write, owner menetapkan caller disposition, penanggung jawab, start/end+abort UTC/
+WITA, transfer privat, recovery tiap tahap dan notifikasi atau keputusan dampak eksplisit.
+Approval menyebut Save Maintenance saja, create version, dan repoint deployment sebagai write
+terpisah bersyarat hasil checkpoint. 41file lain (termasuk manifest), property/akses/trigger/runtime/scopes/
+URL tetap. Rollback v141 hanya dapat menjadi keputusan owner di luar freeze dengan menerima
+gap wrapper; tidak memenuhi full coverage dan tidak diizinkan dari kartu ini. v140 tidak
+guarded; jangan mengembalikan unguarded writer saat freeze diandalkan. Tidak membuat version
+Google baru atau mengubah pin produksi dari kartu ini. B/E/C NO-GO tetap.
+
+### Fresh HEAD dilaporkan — 20 Oktober 15:56 UTC, validasi belum selesai
+
+Operator melaporkan snapshot HEAD kini privat (42 file termasuk manifest) dan metadata satu
+deployment aktif141 pada waktu observasi terpisah. File tidak dipindahkan/ditimpa lagi karena
+laporan menyatakan sudah dipindah dan unduhan lama dihapus operator. Koordinat tombol yang
+tercantum bukan izin klik atau A-write. Tidak ada tindakan browser/remote di sesi ini.
+
+Validator memproses bundle/files/evidence read-only non-disclosing untuk klasifikasi raw input;
+provenance UI/deployment tetap ATTESTED. Bundle hash baru boleh berbeda dari v141 bila metadata
+berbeda; kesamaan source hanya boleh dinyatakan setelah semua42 raw bytes/aggregate cocok.
+Caller kode ABSENT berarti referensi caller di luar declaration tidak ditemukan, bukan dua
+wrapper hilang. Dua editor run16Okt adalah historyPRESENT; trigger0 hanyaACC-A, sisanyaUNKNOWN.
+Tidak menjalankan wrapper atau mengubah trigger. Capture source dan metadata terpisah84detik,
+bukan bukti continuity/freshness sampai write; pre-write checkpoint tetap diperlukan.
+
+Pada checkpoint penerimaan hasil belum dinyatakan; penutupan berikut menggantikannya.
+MATCH_INPUT hanya mendukung proposal A-save, bukan approval Save/version/repoint. Owner perlu
+window/abort/caller/recovery/transfer/notifikasi. B/E/C NO-GO, production pins PENDING; tidak
+ada source/property/deploy/freeze/import/cleanup/commit/push dijalankan.
+
+### Fresh HEAD lokal MATCH_INPUT — penutupan 20 Oktober 16:06 UTC
+
+Validator memulihkan hasil task kosong dan menyelesaikan laporan: **PASS lokal/MATCH_INPUT**,
+42/42bundle-payload↔disk raw-match,42raw+42LF evidence cocok,42file raw-identik v141/input
+aggregate df1dbf9c…258c5c6. Bundle751.847byte SHA-256
+`5b11204abbe9f0aab8427a5a4db41d8bceb98093160d089bff3b99d228797e7b`, prefix/suffix laporan
+cocok; full64bundle record tidak ada di metadata, jadi jangan mengklaim fullrecord parity.
+EOL37CRLF/5LF,712.335byte. AST45public43guard71private40handler, dua wrapper tetap tanpa guard.
+Zero executable caller refs scopedsource/frontend, bukan global caller absence. Satu private
+name duplicate `_formatDate_` dilaporkan; tidak ada public duplicate, kandidat tidak memperbaikinya.
+
+ACL/tree/read-only diperiksa; source ADS0, bundle ADS `Zone.Identifier:$DATA`26byte ada dan
+**tidak dihapus**. Hash bundle ialah main stream, bukan seluruh NTFS streams. Provenance UI,
+metadata version/access/deployment tetap ATTESTED dan capture tidak membuktikan state live
+saat release. Tidak ada move/overwrite atau raw source masuk chat/repo, no private-GASexecution.
+Owner masih harus memutuskan A-write/window/abort/caller/recovery/transfer/notifikasi. Tidak
+ada Save/version/repoint atau B/E/C disetujui; NO-GO, production pins PENDING tetap.
+
+### Serah-terima Claude — HEAD sudah Save menurut operator, deployment belum release
+
+Laporan20Okt±17:05UTC /21Okt±01:05WITA: hanya Maintenance HEAD diubah98byte, Save/reload
+berhasil menurut operator. HEAD aggregatec57e2ba8…1589be9, Maintenance1d46eadf…eb21bec,
+43public/43guard/71private;42file712237byte dan manifest/41filelainunchanged. Snapshotprivat
+pasca-Save dilaporkan tersedia, belum dibaca/divalidasi independen pada update ini. Klasifikasi
+HEADsaved tetap **ATTESTED**, bukan LOCAL_VERIFIED dari snapshotbaru.
+
+**Active deployment tetap141**, no newversion/repoint. Dua wrapper tetap pada source version141;
+klaim operator “tidak dapat dijangkau dari web” tidak dibuktikan. HtmlService/RPC surface bukan
+ditiadakan oleh whitelistdoPost. HEAD Save dapat memengaruhi editor/dev/trigger HEAD terkait,
+meski versionedwebapp masih141. B/E/C NO-GO, W11live belum tertutup, importpinsPENDING.
+
+Panduan penerus lengkap ada di MIGRATION_PLAN “Serah-terima ke Claude” dan checkpoint terbaru
+PROJECT_CONTEXT. Mulai dengan validasi snapshot pasca-Save **non-disclosing bila scope izin
+dipastikan**, lalu A-version explicitlyapproved +verifikasi contentversion, baru A-repoint
+explicitlyapproved dengan URL/access/execute-as tetap. Jangan membuat versi/repoint dari
+handoff atau menamai versi baru142 sebelum Google menetapkannya. No rawsource chat/repo,
+clasp credential baru, handlerprobe atau property mutation. Recovery/windowabort/caller
+UNKNOWN harus diputuskan owner; tidak menganggap report meratifikasi approval lama.
+
+Setelah release penghapusan wrapper (belum terjadi), tutup W12/W15/backupcustody/source-route-writer/leasecredential dan
+appreadiness/runtimepepper. Contoh807request×30s melebihi lease4h; jangan membukaPENDING atau
+menurunkan guardrail agar lolos. B maintenance/drain/backupfinal terpisah dari E-export dan
+E-import terikatplanfinal; smoke privat dapat firstwrite sebelum C. WhatsApp D10/cleanup
+retensi bukan tindakan otomatis. Tidak re-enable toolUATretired atau mengaktifkanCI/auto-deploy.
+
+Repo dilaporkan PUBLIC: jangan commit/push source/ID/secret atau perubahan lain tanpa
+penugasan; bundle privat bukan izin publikasi. Update hanya tiga dokumen existing;
+tidak membuka private artefakbaru/secret/runbook, tidak
+menjalankan Save/version/deploy/freeze/import/resource/cleanup/commit/push. Full1259tests
+historis lokal ada di checkpoint patch; tidak diklaim rerun untuk currentcapture. User dapat
+melanjutkan dengan Claude; tidak dibuat session/model override/worktree baru di sini.
 
 Referensi: [Pages preview access](https://developers.cloudflare.com/pages/configuration/preview-deployments/)
 dan [validasi Access JWT](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/).
