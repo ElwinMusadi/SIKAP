@@ -324,7 +324,12 @@ function SortButton({ field, label, params, onSort }: { field: PegawaiSort; labe
   const active = params.sort === field;
   const Icon = !active ? ArrowUpDown : params.dir === 'asc' ? ArrowUp : ArrowDown;
   return (
-    <Button variant="ghost" size="sm" className={cn('-ml-2 text-muted-foreground', active && 'text-foreground')} onClick={() => onSort(field)}>
+    <Button
+      variant="ghost"
+      size="xs"
+      className={cn('-ml-2 text-eyebrow text-muted-foreground uppercase', active && 'text-foreground')}
+      onClick={() => onSort(field)}
+    >
       {label}
       <Icon data-icon="inline-end" aria-hidden="true" />
       <span className="sr-only">

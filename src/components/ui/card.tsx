@@ -1,5 +1,5 @@
 import * as React from "react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 
 function Card({
   className,
@@ -11,7 +11,7 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl border bg-card py-(--card-spacing) text-sm text-card-foreground shadow-card [--card-spacing:--spacing(5)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         className
       )}
       {...props}
@@ -32,12 +32,17 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+/** Card titles are real headings (h2 under the page h1 by default; pass `as="h3"` when nested). */
+function CardTitle({
+  className,
+  as: Comp = "h2",
+  ...props
+}: React.ComponentProps<"h2"> & { as?: "h2" | "h3" | "div" }) {
   return (
-    <div
+    <Comp
       data-slot="card-title"
       className={cn(
-        "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
+        "font-heading text-h3 text-card-foreground group-data-[size=sm]/card:text-sm group-data-[size=sm]/card:font-semibold",
         className
       )}
       {...props}

@@ -2,7 +2,16 @@
 
 Disusun 21 Oktober 2026 dari tiga sumber: (1) penelusuran visual aplikasi lokal dengan data fiktif (`scripts/dev-seed.mjs`) di desktop 1440 px dan ponsel 375 px, (2) audit kode `src/` (±15 ribu baris, 13 fitur), (3) perbandingan dengan proyek lain pemilik (PINTU `portal-uptdkotakupang`, `laravel-finance-tracker`, `SIP-IKP`, `kalkulator-pajak`) serta mockup `UIUX Stitch/` dan `Blueprint Product/Step 06`.
 
-Status: **rencana, belum dikerjakan.** Produksi hidup, jadi redesign hanya menyentuh frontend (`src/`), tanpa perubahan API, skema D1, atau perilaku bisnis.
+Status: semua keputusan §11 disetujui pemilik (21 Okt 2026). **Fase 0 dan 1 selesai di branch `feat/redesign-uiux`** (belum dirilis), fase 2–6 belum. Produksi hidup, jadi redesign hanya menyentuh frontend (`src/`), tanpa perubahan API, skema D1, atau perilaku bisnis.
+
+Catatan implementasi fase 0–1:
+
+- Token v2 ada di `src/index.css` (terang + gelap). Utilitas tipografi tersedia: `text-display`, `text-h2`, `text-h3`, `text-eyebrow`, `text-metric`. Bayangan: `shadow-card`, `shadow-pop`, `shadow-dialog`.
+- **`cn` wajib diimpor dari `@/lib/utils`.** Instance di sana mengenal token-token di atas. Paket `cn` bawaan menganggap `text-eyebrow` sebagai warna, sehingga membuangnya bila digabung dengan `text-muted-foreground`. Setelah `shadcn add`, ganti impor `from "cn"`.
+- Tema: `src/app/theme.tsx` (terang/gelap/sistem per perangkat) dan `public/theme-init.js` (dimuat sebelum render; CSP melarang skrip inline).
+- Shell: sidebar terang dengan lockup `INSTANSI` (`src/lib/instansi.ts`) dan menu pengguna di footer yang berisi pilihan tema. Header berisi breadcrumb, palet ⌘K (`src/app/command-menu.tsx`, termasuk cari pegawai untuk Admin) dan menu tugas (`src/app/tasks-menu.tsx`). Di ponsel ada bottom nav (`src/app/mobile-nav.tsx`). Banner password default diganti pengingat ringkas di Beranda saja.
+- Ukuran kontrol naik satu tingkat (+ `pointer-coarse` ≥ 40 px). `CardTitle` dirender sebagai `h2` (pakai `as="h3"` bila bersarang). Header tabel kini eyebrow berwarna lembut.
+- `/_design` hanya ada di build dev. Halaman ini menghitung kontras token secara langsung; semua lolos di terang dan gelap.
 
 ---
 

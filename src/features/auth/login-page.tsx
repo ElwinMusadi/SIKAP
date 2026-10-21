@@ -16,9 +16,9 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '
 import { Spinner } from '@/components/ui/spinner';
 import { useLogin } from '@/features/auth/queries';
 import { errorMessage, isApiError } from '@/lib/api';
+import { INSTANSI } from '@/lib/instansi';
 import { safeNextPath } from '@/lib/safe-next';
 
-const INSTANSI = 'UPTD Pendapatan Daerah Wilayah Kota Kupang';
 
 function loginErrorMessage(error: unknown): string {
   if (isApiError(error)) {

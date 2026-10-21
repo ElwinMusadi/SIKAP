@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { createBrowserRouter, Outlet } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { RefreshCw, TriangleAlert } from 'lucide-react';
+import { ThemeProvider } from '@/app/theme';
 import { FullPageLoader } from '@/components/full-page-loader';
 import { NotFound } from '@/components/not-found';
 import { Button } from '@/components/ui/button';
@@ -115,6 +116,10 @@ const router = createBrowserRouter([
           },
         ],
       },
+      // Living design-system page for visual QA; dev builds only (never shipped).
+      ...(import.meta.env.DEV
+        ? [{ path: '/_design', lazy: async () => ({ Component: (await import('./app/design-page')).default }) }]
+        : []),
       { path: '*', element: <NotFound /> },
     ],
   },
@@ -124,11 +129,13 @@ installSessionExpiredHandler(router);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <RouterProvider router={router} />
-        <Toaster richColors position="top-right" closeButton />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <RouterProvider router={router} />
+          <Toaster richColors position="top-right" closeButton />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   </StrictMode>,
 );
