@@ -4,10 +4,10 @@ import { useTheme } from "@/app/theme"
 
 // Follows the app's own ThemeProvider (no next-themes in a Vite SPA).
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { resolved } = useTheme()
+  const { theme } = useTheme()
   return (
     <Sonner
-      theme={resolved}
+      theme={theme}
       className="toaster group"
       icons={{
         success: (

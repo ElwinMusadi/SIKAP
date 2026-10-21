@@ -1,5 +1,5 @@
 import { useState, type MouseEvent, type ReactNode } from 'react';
-import { ChevronsUpDown, KeyRound, LogOut, Monitor, Moon, Search, Settings, Sun, UserRound, X } from 'lucide-react';
+import { ChevronsUpDown, KeyRound, LogOut, Moon, Search, Settings, UserRound, X } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import type { SessionUser } from '@shared/api';
@@ -8,7 +8,7 @@ import { CommandMenu, useCommandMenuHotkey } from '@/app/command-menu';
 import { MobileNav } from '@/app/mobile-nav';
 import { isNavItemActive, navGroupsForRole, titleForPath } from '@/app/nav';
 import { TasksMenu } from '@/app/tasks-menu';
-import { useTheme, type ThemePreference } from '@/app/theme';
+import { useTheme } from '@/app/theme';
 import { formatBadge, useShellCounts, type ShellCounts } from '@/app/use-shell-counts';
 import {
   AlertDialog,
@@ -36,12 +36,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Kbd } from '@/components/ui/kbd';
@@ -65,6 +60,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import { useLogout, useMe } from '@/features/auth/queries';
 import { errorMessage } from '@/lib/api';
 import { initials } from '@/lib/format';
@@ -72,12 +68,6 @@ import { APP_NAME, INSTANSI } from '@/lib/instansi';
 
 /** Per-user key so one user's dismissal never hides the reminder for another user on the same tab. */
 const DISMISS_NOTICE_KEY_PREFIX = 'sikap.dismissDefaultPwBanner';
-
-const THEME_OPTIONS: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
-  { value: 'light', label: 'Terang', icon: Sun },
-  { value: 'dark', label: 'Gelap', icon: Moon },
-  { value: 'system', label: 'Ikuti sistem', icon: Monitor },
-];
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
@@ -99,7 +89,8 @@ function UserMenu({ user, trigger, side }: { user: SessionUser; trigger: ReactNo
   const [confirmOpen, setConfirmOpen] = useState(false);
   const logout = useLogout();
   const navigate = useNavigate();
-  const { preference, setPreference } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === 'dark';
   const { setOpenMobile } = useSidebar();
 
   const handleLogout = (event: MouseEvent) => {
@@ -143,22 +134,20 @@ function UserMenu({ user, trigger, side }: { user: SessionUser; trigger: ReactNo
                 ) : null}
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                {preference === 'dark' ? <Moon /> : preference === 'light' ? <Sun /> : <Monitor />}
-                Tema
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuRadioGroup value={preference} onValueChange={(value) => setPreference(value as ThemePreference)}>
-                  {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
-                    <DropdownMenuRadioItem key={value} value={value}>
-                      <Icon />
-                      {label}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
+            <DropdownMenuItem
+              role="menuitemcheckbox"
+              aria-checked={isDark}
+              // Keep the menu open so the switch visibly flips.
+              onSelect={(event) => {
+                event.preventDefault();
+                setTheme(isDark ? 'light' : 'dark');
+              }}
+            >
+              <Moon />
+              Mode gelap
+              {/* Visual only: the menu item itself is the checkbox (a button inside a menuitem is not allowed). */}
+              <Switch checked={isDark} tabIndex={-1} aria-hidden="true" className="pointer-events-none ml-auto" />
+            </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={() => setConfirmOpen(true)}>

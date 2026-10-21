@@ -1,6 +1,6 @@
 import { useMemo, useState, type ComponentProps } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CircleCheck, CircleX, Eye, EyeOff, KeyRound, LogOut, Monitor, MonitorSmartphone, Moon, Smartphone, Sun, TriangleAlert } from 'lucide-react';
+import { CircleCheck, CircleX, Eye, EyeOff, KeyRound, LogOut, Monitor, Smartphone, TriangleAlert } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -13,7 +13,7 @@ import {
 } from '@shared/api';
 import { defaultPasswordFor, PASSWORD_RULES } from '@shared/validators';
 
-import { useTheme, type ThemePreference } from '@/app/theme';
+import { useTheme } from '@/app/theme';
 import { PageHeader } from '@/components/page-header';
 import { SectionCard } from '@/components/section-card';
 import { ErrorState } from '@/components/states';
@@ -31,12 +31,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import { useChangePassword, useMe, useRevokeOtherSessions, useRevokeSession, useSessions } from '@/features/auth/queries';
 import { errorMessage, isApiError } from '@/lib/api';
 import { formatDateTimeWITA, formatRelative } from '@/lib/format';
@@ -443,61 +442,24 @@ function SessionsCard() {
 /* Tampilan                                                                   */
 /* -------------------------------------------------------------------------- */
 
-const THEME_OPTIONS: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
-  { value: 'light', label: 'Terang', icon: Sun },
-  { value: 'dark', label: 'Gelap', icon: Moon },
-  { value: 'system', label: 'Ikuti perangkat', icon: MonitorSmartphone },
-];
-
-/** Miniature of each theme (fixed colours on purpose: it depicts the theme, not the current one). */
-function ThemeSwatch({ value }: { value: ThemePreference }) {
-  const light = (
-    <div className="flex flex-1 flex-col gap-1 bg-[#f7f6f2] p-2">
-      <span className="h-1.5 w-8 rounded-full bg-[#1e3a8a]" />
-      <span className="h-5 rounded bg-white shadow-xs" />
-      <span className="h-1.5 w-10 rounded-full bg-[#d9d7cf]" />
-    </div>
-  );
-  const dark = (
-    <div className="flex flex-1 flex-col gap-1 bg-[#0d0e11] p-2">
-      <span className="h-1.5 w-8 rounded-full bg-[#8ea2ec]" />
-      <span className="h-5 rounded bg-[#17181c]" />
-      <span className="h-1.5 w-10 rounded-full bg-[#2a2c32]" />
-    </div>
-  );
-  return (
-    <div aria-hidden="true" className="flex h-16 overflow-hidden rounded-lg border">
-      {value === 'dark' ? dark : light}
-      {value === 'system' ? dark : null}
-    </div>
-  );
-}
-
 function ThemeCard() {
-  const { preference, setPreference } = useTheme();
+  const { theme, setTheme } = useTheme();
   return (
     <SectionCard id="tampilan" className="scroll-mt-20" title="Tampilan" description="Berlaku untuk perangkat dan browser ini saja.">
-      <RadioGroup
-        value={preference}
-        onValueChange={(value) => setPreference(value as ThemePreference)}
-        aria-label="Tema"
-        className="grid gap-3 sm:grid-cols-3"
-      >
-        {THEME_OPTIONS.map((option) => (
-          <Label
-            key={option.value}
-            htmlFor={`tema-${option.value}`}
-            className="flex cursor-pointer flex-col items-stretch gap-3 rounded-xl border bg-card p-3 font-normal transition-colors hover:bg-muted/50 has-data-[state=checked]:border-primary has-data-[state=checked]:bg-accent-soft motion-reduce:transition-none"
-          >
-            <ThemeSwatch value={option.value} />
-            <span className="flex items-center gap-2 text-sm">
-              <RadioGroupItem id={`tema-${option.value}`} value={option.value} />
-              <option.icon className="size-4 text-muted-foreground" aria-hidden="true" />
-              {option.label}
-            </span>
-          </Label>
-        ))}
-      </RadioGroup>
+      <Field orientation="horizontal">
+        <FieldContent>
+          <FieldLabel htmlFor="mode-gelap">Mode gelap</FieldLabel>
+          <FieldDescription id="mode-gelap-description">
+            Tampilan terang adalah bawaan. Nyalakan untuk latar gelap yang lebih nyaman di ruangan redup.
+          </FieldDescription>
+        </FieldContent>
+        <Switch
+          id="mode-gelap"
+          checked={theme === 'dark'}
+          onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+          aria-describedby="mode-gelap-description"
+        />
+      </Field>
     </SectionCard>
   );
 }

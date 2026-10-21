@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Monitor, Moon, Sun, UserRound } from 'lucide-react';
+import { Moon, Sun, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import type { SessionUser } from '@shared/api';
 import type { PegawaiListResponse } from '@shared/pegawai';
 import { navGroupsForRole } from '@/app/nav';
-import { useTheme, type ThemePreference } from '@/app/theme';
+import { useTheme } from '@/app/theme';
 import {
   Command,
   CommandDialog,
@@ -18,12 +18,6 @@ import {
 } from '@/components/ui/command';
 import { DEFAULT_LIST_PARAMS, listQueryString } from '@/features/pegawai/pegawai-utils';
 import { api } from '@/lib/api';
-
-const THEMES: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
-  { value: 'light', label: 'Tema terang', icon: Sun },
-  { value: 'dark', label: 'Tema gelap', icon: Moon },
-  { value: 'system', label: 'Ikuti sistem', icon: Monitor },
-];
 
 /** Opens on Ctrl+K / ⌘K anywhere in the app (except when another dialog already owns focus). */
 export function useCommandMenuHotkey(setOpen: (update: (open: boolean) => boolean) => void) {
@@ -67,7 +61,8 @@ interface CommandMenuProps {
 
 export function CommandMenu({ user, open, onOpenChange }: CommandMenuProps) {
   const navigate = useNavigate();
-  const { setPreference } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === 'dark';
   const [search, setSearch] = useState('');
   const q = useDebounced(search.trim(), 250);
   const isAdmin = user.role === 'Admin';
@@ -131,12 +126,13 @@ export function CommandMenu({ user, open, onOpenChange }: CommandMenuProps) {
           ))}
           <CommandSeparator />
           <CommandGroup heading="Tampilan">
-            {THEMES.map(({ value, label, icon: Icon }) => (
-              <CommandItem key={value} value={`tema ${label}`} onSelect={() => run(() => setPreference(value))}>
-                <Icon />
-                {label}
-              </CommandItem>
-            ))}
+            <CommandItem
+              value="tema mode gelap terang"
+              onSelect={() => run(() => setTheme(isDark ? 'light' : 'dark'))}
+            >
+              {isDark ? <Sun /> : <Moon />}
+              {isDark ? 'Matikan mode gelap' : 'Aktifkan mode gelap'}
+            </CommandItem>
           </CommandGroup>
         </CommandList>
       </Command>
