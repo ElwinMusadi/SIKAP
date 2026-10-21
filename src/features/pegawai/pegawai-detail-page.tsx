@@ -25,14 +25,13 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMe } from '@/features/auth/queries';
-import { formatBytes, fileKind } from '@/features/dokumen/dokumen-utils';
+import { formatBytes, fileKind, wajibCounts } from '@/features/dokumen/dokumen-utils';
 import { useAdminDocuments } from '@/features/dokumen/queries';
 import { PengajuanStatusBadge, PerubahanList } from '@/features/pengajuan/pengajuan-ui';
 import { EMPTY_VALUE, formatIsoDate, formatKepegawaianValue, formatPhone } from '@/features/profil/format-values';
 import { useRefData } from '@/features/profil/queries';
 import { isApiError } from '@/lib/api';
 import { formatDateTimeWITA, formatRelative } from '@/lib/format';
-import type { ProgressCounts } from '@/lib/progress';
 import { cn } from '@/lib/utils';
 import { ACTION_META, availableActions, useAccountActionDialog } from './account-actions';
 import { PegawaiFormSheet } from './pegawai-form-sheet';
@@ -334,16 +333,6 @@ function ProfilTab({ profile, refData }: { profile: Profile; refData: RefRespons
 /* -------------------------------------------------------------------------- */
 /* Dokumen tab (read-only)                                                    */
 /* -------------------------------------------------------------------------- */
-
-function wajibCounts(items: DokumenItem[]): ProgressCounts {
-  const wajib = items.filter((i) => i.wajib);
-  return {
-    terverifikasi: wajib.filter((i) => i.status === 'Terverifikasi').length,
-    menunggu: wajib.filter((i) => i.status === 'Menunggu').length,
-    ditolak: wajib.filter((i) => i.status === 'Ditolak').length,
-    belum: wajib.filter((i) => i.status === 'Belum diunggah').length,
-  };
-}
 
 function DokumenTab({ pegawaiId }: { pegawaiId: number }) {
   const query = useAdminDocuments(pegawaiId);

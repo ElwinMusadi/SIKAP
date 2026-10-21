@@ -13,6 +13,8 @@ interface SectionCardProps {
   headingLevel?: 'h2' | 'h3';
   /** Content touches the card edges (tables, lists with their own padding). */
   flush?: boolean;
+  /** Labelled action button: on phones it moves under the description instead of squeezing the title. */
+  wideAction?: boolean;
   className?: string;
   contentClassName?: string;
   id?: string;
@@ -27,16 +29,22 @@ export function SectionCard({
   children,
   headingLevel = 'h2',
   flush,
+  wideAction,
   className,
   contentClassName,
   id,
 }: SectionCardProps) {
   return (
     <Card id={id} className={cn(flush && 'gap-0 pb-0', className)}>
-      <CardHeader className={cn(flush && 'border-b pb-4')}>
+      {/* Important flag: the base `has-data-[slot=card-action]:grid-cols-[1fr_auto]` would otherwise win. */}
+      <CardHeader className={cn(flush && 'border-b pb-4', wideAction && 'max-sm:grid-cols-1!')}>
         <CardTitle as={headingLevel}>{title}</CardTitle>
         {description ? <CardDescription>{description}</CardDescription> : null}
-        {action ? <CardAction>{action}</CardAction> : null}
+        {action ? (
+          <CardAction className={cn(wideAction && 'max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-3 max-sm:mt-2 max-sm:justify-self-start')}>
+            {action}
+          </CardAction>
+        ) : null}
       </CardHeader>
       {children !== undefined ? (
         <CardContent className={cn(flush && 'px-0', contentClassName)}>{children}</CardContent>

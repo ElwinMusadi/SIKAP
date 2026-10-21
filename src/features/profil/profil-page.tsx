@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Camera, RefreshCw, Save, TriangleAlert, Undo2 } from 'lucide-react';
-import { Controller, useForm, type FieldErrors, type Resolver } from 'react-hook-form';
-import { useBlocker } from 'react-router';
+import { Camera, CircleCheck, TriangleAlert } from 'lucide-react';
+import { Controller, useForm, type Resolver } from 'react-hook-form';
+import { useBlocker, useLocation } from 'react-router';
 import { toast } from 'sonner';
 import type { z } from 'zod';
 import { AGAMA, GOLONGAN_DARAH, JENIS_KELAMIN, STATUS_PERNIKAHAN } from '@shared/enums';
@@ -15,9 +15,11 @@ import {
   type UpdateProfileRequest,
 } from '@shared/profile';
 import { DatePicker } from '@/components/date-picker';
+import { StickySaveBar } from '@/components/form-patterns';
 import { PageHeader } from '@/components/page-header';
 import { PhotoCropper } from '@/components/photo-cropper';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { SectionCard } from '@/components/section-card';
+import { ErrorState } from '@/components/states';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,20 +32,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Spinner } from '@/components/ui/spinner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { errorMessage, isApiError } from '@/lib/api';
 import { initials } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { phoneForInput } from './format-values';
-import { KepegawaianTab } from './kepegawaian-tab';
+import { formatKepegawaianValue, phoneForInput } from './format-values';
+import { KepegawaianCard, RiwayatPengajuanCard } from './kepegawaian-tab';
 import { useProfile, useRefData, useUpdateProfile } from './queries';
 import { enumOptions, SelectControl } from './select-control';
 
@@ -64,10 +62,16 @@ type ProfileFormField = (typeof PROFILE_FORM_FIELDS)[number];
 /** Every value is a string in the form; '' becomes null through the schema. */
 type ProfileFormValues = Record<ProfileFormField, string>;
 type ProfileFormOutput = z.output<typeof updateProfileRequestSchema>;
-type TabValue = 'identitas' | 'kontak' | 'kepegawaian';
 
 const REQUIRED_TOTAL = Object.keys(REQUIRED_PROFILE_FIELDS).length;
-const FORM_ID = 'profil-form';
+
+/** Same order as the admin employee sheet (identitas → kepegawaian → kontak). */
+const SECTIONS = [
+  { id: 'identitas', label: 'Identitas' },
+  { id: 'kepegawaian', label: 'Kepegawaian' },
+  { id: 'kontak', label: 'Kontak' },
+  { id: 'riwayat-pengajuan', label: 'Riwayat pengajuan' },
+] as const;
 
 function isFormField(key: string): key is ProfileFormField {
   return (PROFILE_FORM_FIELDS as readonly string[]).includes(key);
@@ -93,10 +97,6 @@ function toFormValues(p: Profile): ProfileFormValues {
   };
 }
 
-function tabForField(field: string): TabValue {
-  return (KONTAK_FIELDS as readonly string[]).includes(field) ? 'kontak' : 'identitas';
-}
-
 /* -------------------------------------------------------------------------- */
 /* Page                                                                       */
 /* -------------------------------------------------------------------------- */
@@ -111,17 +111,9 @@ export default function ProfilPage() {
       {profileQuery.isPending ? (
         <ProfilSkeleton />
       ) : profileQuery.isError ? (
-        <Alert variant="destructive" role="alert">
-          <TriangleAlert />
-          <AlertTitle>Gagal memuat profil</AlertTitle>
-          <AlertDescription>
-            <p>{errorMessage(profileQuery.error)}</p>
-            <Button size="sm" variant="outline" className="mt-2" onClick={() => void profileQuery.refetch()}>
-              <RefreshCw data-icon="inline-start" />
-              Coba lagi
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <Card className="py-0">
+          <ErrorState error={profileQuery.error} title="Gagal memuat profil" onRetry={() => void profileQuery.refetch()} retrying={profileQuery.isFetching} />
+        </Card>
       ) : (
         <ProfilContent data={profileQuery.data} refData={refQuery.data} refLoading={refQuery.isPending} />
       )}
@@ -131,56 +123,51 @@ export default function ProfilPage() {
 
 function ProfilSkeleton() {
   return (
-    <div className="flex flex-col gap-6" aria-busy="true" aria-label="Memuat profil">
-      <Card>
-        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <Skeleton className="size-20 rounded-full" />
-          <div className="flex flex-1 flex-col gap-2">
-            <Skeleton className="h-5 w-56" />
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-2 w-full max-w-sm" />
+    <div className="grid items-start gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)]" aria-busy="true" aria-label="Memuat profil">
+      <Skeleton className="h-96 rounded-xl" />
+      <div className="flex flex-col gap-6">
+        <Card>
+          <div className="grid gap-5 px-5 sm:grid-cols-2">
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} className="flex flex-col gap-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-9 w-full" />
+              </div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
-      <Skeleton className="h-8 w-72" />
-      <Card>
-        <CardContent className="grid gap-5 sm:grid-cols-2">
-          {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-8 w-full" />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+        </Card>
+        <Skeleton className="h-48 rounded-xl" />
+      </div>
     </div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Header                                                                     */
+/* Aside: identity card                                                       */
 /* -------------------------------------------------------------------------- */
 
-function ProfilHeaderCard({ profile, missingFields }: { profile: Profile; missingFields: string[] }) {
+function ProfilAside({ profile, missingFields, refData }: { profile: Profile; missingFields: string[]; refData: RefResponse | undefined }) {
   const terisi = REQUIRED_TOTAL - missingFields.length;
-  const persen = Math.round((terisi / REQUIRED_TOTAL) * 100);
+  const done = missingFields.length === 0;
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <div className="relative w-fit shrink-0">
-          <Avatar className="size-20">
-            {profile.fotoUrl ? <AvatarImage src={profile.fotoUrl} alt={`Foto ${profile.nama}`} /> : null}
-            <AvatarFallback className="text-xl font-semibold">{initials(profile.nama)}</AvatarFallback>
-          </Avatar>
-          <PhotoCropper triggerClassName="absolute -right-1 -bottom-1 rounded-full shadow-sm ring-2 ring-background">
-            <Camera />
-          </PhotoCropper>
-        </div>
-
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-lg font-semibold text-foreground">{profile.nama}</h2>
+    <aside aria-label="Ringkasan profil" className="lg:sticky lg:top-20">
+      <Card className="gap-0 py-0">
+        <div className="flex flex-col items-center gap-3 px-5 pt-6 pb-5 text-center">
+          <div className="relative">
+            <Avatar className="size-24">
+              {profile.fotoUrl ? <AvatarImage src={profile.fotoUrl} alt={`Foto ${profile.nama}`} /> : null}
+              <AvatarFallback className="text-2xl font-semibold">{initials(profile.nama)}</AvatarFallback>
+            </Avatar>
+            <PhotoCropper triggerClassName="absolute right-0 bottom-0 rounded-full shadow-pop ring-2 ring-card">
+              <Camera />
+            </PhotoCropper>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-h2 text-balance text-foreground">{profile.nama}</h2>
+            <p className="text-sm text-muted-foreground tabular-nums">NIP {profile.nip}</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-1.5">
             {profile.statusKepegawaian ? (
               <Badge variant="secondary">{profile.statusKepegawaian}</Badge>
             ) : (
@@ -188,29 +175,63 @@ function ProfilHeaderCard({ profile, missingFields }: { profile: Profile; missin
                 Status belum diisi
               </Badge>
             )}
+            <Badge variant="outline">{profile.role === 'Admin' ? 'Administrator TU' : 'Pegawai'}</Badge>
           </div>
-          <p className="text-sm text-muted-foreground">
-            NIP <span className="font-mono tabular-nums">{profile.nip}</span>
-            <span aria-hidden="true"> · </span>
-            {profile.role === 'Admin' ? 'Administrator TU' : 'Pegawai'}
-          </p>
         </div>
 
-        <div className="flex w-full flex-col gap-2 sm:w-56">
+        <div className="flex flex-col gap-2 border-t px-5 py-4">
           <div className="flex items-baseline justify-between gap-2 text-sm">
-            <span className="text-muted-foreground">Data diri lengkap</span>
-            <span className="font-medium tabular-nums">
+            <span className="text-muted-foreground">Data diri terisi</span>
+            <span className={cn('font-medium tabular-nums', done && 'text-status-verified')}>
               {terisi}/{REQUIRED_TOTAL}
             </span>
           </div>
-          <Progress
-            value={persen}
-            aria-label={`Data diri lengkap ${terisi} dari ${REQUIRED_TOTAL}`}
-            className={cn('h-2', persen === 100 && '*:bg-status-verified')}
-          />
+          <div role="img" aria-label={`Data diri terisi ${terisi} dari ${REQUIRED_TOTAL}`} className="flex h-1.5 overflow-hidden rounded-full bg-muted">
+            <span className={cn('h-full rounded-full', done ? 'bg-status-verified' : 'bg-primary')} style={{ width: `${(terisi / REQUIRED_TOTAL) * 100}%` }} />
+          </div>
+          {done ? (
+            <p className="flex items-center gap-1.5 text-xs text-status-verified">
+              <CircleCheck className="size-3.5" aria-hidden="true" />
+              Lengkap, dokumen dapat diunggah.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-xs text-muted-foreground">Wajib diisi sebelum mengunggah dokumen:</p>
+              <ul className="flex flex-wrap gap-1">
+                {missingFields.map((field) => (
+                  <li key={field}>
+                    <Badge variant="outline" className="border-status-pending/25 bg-status-pending-muted text-status-pending">
+                      {field}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
-      </CardContent>
-    </Card>
+
+        <dl className="grid gap-3 border-t px-5 py-4 text-sm">
+          {(['pangkatKode', 'jabatan', 'unitId'] as const).map((field) => (
+            <div key={field} className="flex flex-col gap-0.5">
+              <dt className="text-eyebrow text-muted-foreground uppercase">{field === 'pangkatKode' ? 'Pangkat' : field === 'jabatan' ? 'Jabatan' : 'Unit'}</dt>
+              <dd className="font-medium break-words text-foreground">{formatKepegawaianValue(field, profile[field], refData)}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <nav aria-label="Bagian profil" className="hidden flex-col border-t p-2 lg:flex">
+          {SECTIONS.map((section) => (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {section.label}
+            </a>
+          ))}
+        </nav>
+      </Card>
+    </aside>
   );
 }
 
@@ -226,8 +247,8 @@ interface ProfilContentProps {
 
 function ProfilContent({ data, refData, refLoading }: ProfilContentProps) {
   const { profile, missingFields, pengajuanAktif } = data;
-  const [tab, setTab] = useState<TabValue>('identitas');
   const update = useUpdateProfile();
+  const { hash } = useLocation();
 
   // Initialised once: background refetches and photo uploads never overwrite unsaved edits.
   const form = useForm<ProfileFormValues, unknown, ProfileFormOutput>({
@@ -237,6 +258,13 @@ function ProfilContent({ data, refData, refLoading }: ProfilContentProps) {
     mode: 'onTouched',
   });
   const { isDirty, dirtyFields, errors } = form.formState;
+
+  // `/profil#kepegawaian` (Beranda, Arsip): the sections render after the profile loads, so scroll then.
+  useEffect(() => {
+    const id = hash.slice(1);
+    if (!id) return;
+    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start' }));
+  }, [hash]);
 
   /* ---- dirty guard ---- */
   const blocker = useBlocker(
@@ -258,11 +286,7 @@ function ProfilContent({ data, refData, refLoading }: ProfilContentProps) {
   }, [isDirty]);
 
   /* ---- submit ---- */
-  const onInvalid = (fieldErrors: FieldErrors<ProfileFormValues>) => {
-    const first = PROFILE_FORM_FIELDS.find((key) => fieldErrors[key]);
-    if (first) setTab(tabForField(first));
-  };
-
+  // Both section forms (Identitas, Kontak) submit the same react-hook-form state; invalid fields get focus.
   const onSubmit = form.handleSubmit((values) => {
     const body: Record<string, unknown> = {};
     for (const key of PROFILE_FORM_FIELDS) {
@@ -286,22 +310,19 @@ function ProfilContent({ data, refData, refLoading }: ProfilContentProps) {
               form.setError('root', { message });
             }
           }
-          if (firstField) setTab(tabForField(firstField));
+          if (firstField) form.setFocus(firstField);
           return;
         }
         if (isApiError(error, 'CONFLICT') && error.fields?.nik) {
           form.setError('nik', { message: error.message || 'NIK sudah digunakan oleh pegawai lain.' }, { shouldFocus: true });
-          setTab('identitas');
           return;
         }
         form.setError('root', { message: errorMessage(error) });
       },
     });
-  }, onInvalid);
+  });
 
   const resetForm = () => form.reset(toFormValues(profile));
-
-  const tabHasError = (fields: readonly ProfileFormField[]) => fields.some((key) => errors[key]);
 
   /* ---- field renderers ---- */
   const label = (field: ProfileFormField, text: string) => (
@@ -315,12 +336,7 @@ function ProfilContent({ data, refData, refLoading }: ProfilContentProps) {
     </FieldLabel>
   );
 
-  const textField = (
-    field: ProfileFormField,
-    text: string,
-    props: React.ComponentProps<typeof Input> = {},
-    className?: string,
-  ) => {
+  const textField = (field: ProfileFormField, text: string, props: React.ComponentProps<typeof Input> = {}, className?: string) => {
     const invalid = errors[field] ? true : undefined;
     return (
       <Field data-invalid={invalid} className={className}>
@@ -347,6 +363,7 @@ function ProfilContent({ data, refData, refLoading }: ProfilContentProps) {
           render={({ field: f }) => (
             <SelectControl
               id={field}
+              ref={f.ref}
               value={f.value}
               onChange={f.onChange}
               onBlur={f.onBlur}
@@ -363,144 +380,89 @@ function ProfilContent({ data, refData, refLoading }: ProfilContentProps) {
   };
 
   const pendidikanOptions = (refData?.pendidikan ?? []).map((p) => ({ value: p.kode, label: p.nama }));
-  const showFormBar = tab !== 'kepegawaian';
 
   return (
-    <>
-      <ProfilHeaderCard profile={profile} missingFields={missingFields} />
+    <div className="grid items-start gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)]">
+      <ProfilAside profile={profile} missingFields={missingFields} refData={refData} />
 
-      {missingFields.length > 0 ? (
-        <Alert className="border-status-pending/30 bg-status-pending-muted">
-          <TriangleAlert className="text-status-pending" />
-          <AlertTitle>Data diri belum lengkap</AlertTitle>
-          <AlertDescription>
-            <p>Wajib dilengkapi sebelum mengunggah dokumen.</p>
-            <ul className="mt-1 flex flex-wrap gap-1.5">
-              {missingFields.map((field) => (
-                <li key={field}>
-                  <Badge variant="outline" className="bg-background">
-                    {field}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <Tabs value={tab} onValueChange={(value) => setTab(value as TabValue)} className="gap-4">
-        <TabsList className="w-full sm:w-fit">
-          <TabsTrigger value="identitas">
-            Identitas
-            {tabHasError(IDENTITAS_FIELDS) ? <span className="size-1.5 rounded-full bg-destructive" aria-label="ada kesalahan" /> : null}
-          </TabsTrigger>
-          <TabsTrigger value="kontak">
-            Kontak
-            {tabHasError(KONTAK_FIELDS) ? <span className="size-1.5 rounded-full bg-destructive" aria-label="ada kesalahan" /> : null}
-          </TabsTrigger>
-          <TabsTrigger value="kepegawaian">Kepegawaian</TabsTrigger>
-        </TabsList>
-
-        {/* Only the personal/contact tabs are inside the form; the kepegawaian dialog has its own form. */}
-        <form id={FORM_ID} noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
-          <TabsContent value="identitas">
-            <Card>
-              <CardHeader>
-                <CardTitle>Identitas</CardTitle>
-                <CardDescription>Data pribadi sesuai dokumen kependudukan.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FieldGroup className="grid gap-5 sm:grid-cols-2">
-                  {textField('nik', 'NIK', { inputMode: 'numeric', maxLength: 16, autoComplete: 'off', placeholder: '16 digit angka' })}
-                  {textField('tempatLahir', 'Tempat Lahir', { autoComplete: 'off' })}
-                  <Field data-invalid={errors.tanggalLahir ? true : undefined}>
-                    {label('tanggalLahir', 'Tanggal Lahir')}
-                    <Controller
-                      control={form.control}
-                      name="tanggalLahir"
-                      render={({ field }) => (
-                        <DatePicker
-                          id="tanggalLahir"
-                          value={field.value}
-                          onChange={(v) => field.onChange(v)}
-                          onBlur={field.onBlur}
-                          invalid={!!errors.tanggalLahir}
-                          defaultMonth={new Date(1985, 0)}
-                          fromYear={1900}
-                        />
-                      )}
+      <div className="flex min-w-0 flex-col gap-6">
+        <form noValidate onSubmit={onSubmit}>
+          <SectionCard id="identitas" className="scroll-mt-20" title="Identitas" description="Data pribadi sesuai dokumen kependudukan.">
+            <FieldGroup className="grid gap-5 sm:grid-cols-2">
+              {textField('nik', 'NIK', { inputMode: 'numeric', maxLength: 16, autoComplete: 'off', placeholder: '16 digit angka' })}
+              {textField('tempatLahir', 'Tempat Lahir', { autoComplete: 'off' })}
+              <Field data-invalid={errors.tanggalLahir ? true : undefined}>
+                {label('tanggalLahir', 'Tanggal Lahir')}
+                <Controller
+                  control={form.control}
+                  name="tanggalLahir"
+                  render={({ field }) => (
+                    <DatePicker
+                      id="tanggalLahir"
+                      value={field.value}
+                      onChange={(v) => field.onChange(v)}
+                      onBlur={field.onBlur}
+                      invalid={!!errors.tanggalLahir}
+                      defaultMonth={new Date(1985, 0)}
+                      fromYear={1900}
                     />
-                    <FieldError errors={[errors.tanggalLahir]} />
-                  </Field>
-                  {selectField('jenisKelamin', 'Jenis Kelamin', enumOptions(JENIS_KELAMIN))}
-                  {selectField('agama', 'Agama', enumOptions(AGAMA))}
-                  {selectField('pendidikanKode', 'Pendidikan Terakhir', pendidikanOptions, {
-                    placeholder: refLoading ? 'Memuat…' : 'Pilih pendidikan',
-                    disabled: refLoading,
-                  })}
-                  {selectField('statusPernikahan', 'Status Pernikahan', enumOptions(STATUS_PERNIKAHAN))}
-                  {selectField('golonganDarah', 'Golongan Darah', enumOptions(GOLONGAN_DARAH))}
-                </FieldGroup>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="kontak">
-            <Card>
-              <CardHeader>
-                <CardTitle>Kontak</CardTitle>
-                <CardDescription>Digunakan untuk menghubungi Anda terkait administrasi kepegawaian.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FieldGroup className="grid gap-5 sm:grid-cols-2">
-                  {textField('noHp', 'Nomor HP / WhatsApp', { inputMode: 'tel', type: 'tel', autoComplete: 'tel', placeholder: '081234567890' })}
-                  {textField('email', 'Email', { type: 'email', autoComplete: 'email', placeholder: 'nama@contoh.com' })}
-                  <Field data-invalid={errors.alamat ? true : undefined} className="sm:col-span-2">
-                    {label('alamat', 'Alamat')}
-                    <Textarea
-                      id="alamat"
-                      rows={3}
-                      maxLength={500}
-                      autoComplete="street-address"
-                      aria-invalid={errors.alamat ? true : undefined}
-                      aria-required
-                      {...form.register('alamat')}
-                    />
-                    <FieldError errors={[errors.alamat]} />
-                  </Field>
-                </FieldGroup>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {errors.root?.message && showFormBar ? (
-            <Alert variant="destructive" role="alert">
-              <TriangleAlert />
-              <AlertDescription>{errors.root.message}</AlertDescription>
-            </Alert>
-          ) : null}
-
-          {showFormBar ? (
-            <div className="sticky bottom-0 z-10 -mx-4 flex flex-col-reverse gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:mx-0 sm:flex-row sm:items-center sm:justify-end sm:rounded-xl sm:border">
-              <p className="text-sm text-muted-foreground sm:mr-auto" aria-live="polite">
-                {isDirty ? 'Ada perubahan yang belum disimpan.' : 'Semua perubahan sudah tersimpan.'}
-              </p>
-              <Button type="button" variant="outline" disabled={!isDirty || update.isPending} onClick={resetForm}>
-                <Undo2 data-icon="inline-start" />
-                Batalkan
-              </Button>
-              <Button type="submit" disabled={!isDirty || update.isPending}>
-                {update.isPending ? <Spinner data-icon="inline-start" /> : <Save data-icon="inline-start" />}
-                Simpan Perubahan
-              </Button>
-            </div>
-          ) : null}
+                  )}
+                />
+                <FieldError errors={[errors.tanggalLahir]} />
+              </Field>
+              {selectField('jenisKelamin', 'Jenis Kelamin', enumOptions(JENIS_KELAMIN))}
+              {selectField('agama', 'Agama', enumOptions(AGAMA))}
+              {selectField('pendidikanKode', 'Pendidikan Terakhir', pendidikanOptions, {
+                placeholder: refLoading ? 'Memuat…' : 'Pilih pendidikan',
+                disabled: refLoading,
+              })}
+              {selectField('statusPernikahan', 'Status Pernikahan', enumOptions(STATUS_PERNIKAHAN))}
+              {selectField('golonganDarah', 'Golongan Darah', enumOptions(GOLONGAN_DARAH))}
+            </FieldGroup>
+          </SectionCard>
         </form>
 
-        <TabsContent value="kepegawaian">
-          <KepegawaianTab profile={profile} pengajuanAktif={pengajuanAktif} refData={refData} />
-        </TabsContent>
-      </Tabs>
+        <KepegawaianCard id="kepegawaian" className="scroll-mt-20" profile={profile} pengajuanAktif={pengajuanAktif} refData={refData} />
+
+        <form noValidate onSubmit={onSubmit}>
+          <SectionCard id="kontak" className="scroll-mt-20" title="Kontak" description="Digunakan untuk menghubungi Anda terkait administrasi kepegawaian.">
+            <FieldGroup className="grid gap-5 sm:grid-cols-2">
+              {textField('noHp', 'Nomor HP / WhatsApp', { inputMode: 'tel', type: 'tel', autoComplete: 'tel', placeholder: '081234567890' })}
+              {textField('email', 'Email', { type: 'email', autoComplete: 'email', placeholder: 'nama@contoh.com' })}
+              <Field data-invalid={errors.alamat ? true : undefined} className="sm:col-span-2">
+                {label('alamat', 'Alamat')}
+                <Textarea
+                  id="alamat"
+                  rows={3}
+                  maxLength={500}
+                  autoComplete="street-address"
+                  aria-invalid={errors.alamat ? true : undefined}
+                  aria-required
+                  {...form.register('alamat')}
+                />
+                <FieldError errors={[errors.alamat]} />
+              </Field>
+            </FieldGroup>
+          </SectionCard>
+        </form>
+
+        <StickySaveBar
+          dirty={isDirty}
+          saving={update.isPending}
+          onSave={() => void onSubmit()}
+          onDiscard={resetForm}
+          message={
+            errors.root?.message ? (
+              <span role="alert" className="flex items-center gap-2 text-destructive">
+                <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
+                {errors.root.message}
+              </span>
+            ) : undefined
+          }
+        />
+
+        <RiwayatPengajuanCard id="riwayat-pengajuan" className="scroll-mt-20" refData={refData} />
+      </div>
 
       <AlertDialog open={blocker.state === 'blocked'}>
         <AlertDialogContent>
@@ -518,6 +480,6 @@ function ProfilContent({ data, refData, refLoading }: ProfilContentProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

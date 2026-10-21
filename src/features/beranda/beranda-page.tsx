@@ -3,36 +3,42 @@ import type { LucideIcon } from 'lucide-react';
 import {
   ChevronRight,
   CircleCheck,
-  CircleDashed,
   ClipboardCheck,
   Clock,
   FileClock,
+  FileImage,
+  FilePen,
+  FileText,
+  FileUp,
   PartyPopper,
-  RefreshCw,
-  TriangleAlert,
+  Upload,
   UserPlus,
   UserRound,
+  UserRoundPen,
 } from 'lucide-react';
 import { Link } from 'react-router';
 import type { SessionUser } from '@shared/api';
-import type { DashboardResponse, StatusDokumenView } from '@shared/profile';
+import type { DashboardResponse } from '@shared/profile';
 import { PageHeader } from '@/components/page-header';
+import { ProgressMeter } from '@/components/progress-meter';
+import { SectionCard } from '@/components/section-card';
+import { EmptyState, ErrorState } from '@/components/states';
 import { StatusBadge } from '@/components/status-badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from '@/components/ui/item';
-import { Progress } from '@/components/ui/progress';
+import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMe } from '@/features/auth/queries';
 import { AdminDashboardSkeleton } from '@/features/beranda/admin-dashboard-skeleton';
+import { fileKind, recentUploads, wajibCounts } from '@/features/dokumen/dokumen-utils';
+import { useDocuments } from '@/features/dokumen/queries';
 import { useDashboard } from '@/features/profil/queries';
-import { errorMessage } from '@/lib/api';
-import { formatRelative } from '@/lib/format';
+import { formatDateTimeWITA, formatRelative } from '@/lib/format';
+import { countsFromSummary } from '@/lib/progress';
+import { TONE_CLASSES } from '@/lib/status';
 import { cn } from '@/lib/utils';
+import { pegawaiTasks, type PegawaiTask, type PegawaiTaskKind } from './pegawai-tasks';
 
 // Charts (recharts) live in their own chunk so pegawai never download them.
 const AdminDashboard = lazy(() => import('@/features/beranda/admin-dashboard').then((m) => ({ default: m.AdminDashboard })));
@@ -59,7 +65,19 @@ export default function BerandaPage() {
   if (!isAdmin) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader eyebrow={today} title={`Selamat datang, ${firstName(user.nama)}`} description="Pantau kelengkapan data dan dokumen kepegawaian Anda." />
+        <PageHeader
+          eyebrow={today}
+          title={`Selamat datang, ${firstName(user.nama)}`}
+          description="Pantau kelengkapan data dan dokumen kepegawaian Anda."
+          actions={
+            <Button asChild>
+              <Link to="/dokumen">
+                <Upload data-icon="inline-start" />
+                Unggah dokumen
+              </Link>
+            </Button>
+          }
+        />
         <PegawaiDashboard user={user} />
       </div>
     );
@@ -110,212 +128,171 @@ export default function BerandaPage() {
 /* Pegawai                                                                    */
 /* -------------------------------------------------------------------------- */
 
-interface StatCard {
-  status: StatusDokumenView;
-  label: string;
-  icon: LucideIcon;
-  tone: string;
-  value: (dokumen: DashboardResponse['dokumen']) => number;
-}
-
-const STAT_CARDS: StatCard[] = [
-  {
-    status: 'Terverifikasi',
-    label: 'Terverifikasi',
-    icon: CircleCheck,
-    tone: 'bg-status-verified-muted text-status-verified',
-    value: (d) => d.counts.Terverifikasi ?? 0,
-  },
-  {
-    status: 'Menunggu',
-    label: 'Menunggu verifikasi',
-    icon: Clock,
-    tone: 'bg-status-pending-muted text-status-pending',
-    value: (d) => d.counts.Menunggu ?? 0,
-  },
-  {
-    status: 'Ditolak',
-    label: 'Ditolak',
-    icon: TriangleAlert,
-    tone: 'bg-status-rejected-muted text-status-rejected',
-    value: (d) => d.counts.Ditolak ?? 0,
-  },
-  {
-    // Only mandatory documents: missing optional documents are not an action item.
-    status: 'Belum diunggah',
-    label: 'Belum diunggah (wajib)',
-    icon: CircleDashed,
-    tone: 'bg-status-missing-muted text-status-missing',
-    value: (d) => Math.max(0, d.wajibTotal - d.wajibTersedia),
-  },
-];
-
 function PegawaiDashboard({ user }: { user: SessionUser }) {
   const query = useDashboard();
+  const documents = useDocuments();
 
   if (query.isPending) return <DashboardSkeleton />;
   if (query.isError) {
     return (
-      <Alert variant="destructive" role="alert">
-        <TriangleAlert />
-        <AlertTitle>Gagal memuat ringkasan</AlertTitle>
-        <AlertDescription>
-          <p>{errorMessage(query.error)}</p>
-          <Button size="sm" variant="outline" className="mt-2" onClick={() => void query.refetch()}>
-            <RefreshCw data-icon="inline-start" />
-            Coba lagi
-          </Button>
-        </AlertDescription>
-      </Alert>
+      <Card className="py-0">
+        <ErrorState error={query.error} title="Gagal memuat ringkasan" onRetry={() => void query.refetch()} retrying={query.isFetching} />
+      </Card>
     );
   }
 
   const data = query.data;
+  const items = documents.data?.items;
   return (
-    <div className="flex flex-col gap-6">
-      {data.statusKepegawaianKosong ? (
-        <Alert className="border-status-pending/30 bg-status-pending-muted">
-          <TriangleAlert className="text-status-pending" />
-          <AlertTitle>Status kepegawaian Anda belum diisi</AlertTitle>
-          <AlertDescription>
-            <p>Dokumen wajib belum dapat ditentukan. Ajukan status kepegawaian melalui pengajuan perubahan data.</p>
-            <Button asChild size="sm" variant="outline" className="mt-2 bg-background">
-              <Link to="/profil">Buka Profil</Link>
-            </Button>
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      {data.pengajuanAktif ? (
-        <Alert>
-          <FileClock />
-          <AlertTitle>Pengajuan perubahan data sedang diverifikasi</AlertTitle>
-          <AlertDescription>
-            Dikirim {formatRelative(data.pengajuanAktif.createdAt)}.{' '}
-            <Link to="/profil" className="font-medium text-foreground underline underline-offset-4">
-              Lihat detail
-            </Link>
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <DokumenHeroCard data={data} className="lg:col-span-2" />
-        <ProfilCompletenessCard data={data} user={user} />
+    <div className="grid items-start gap-6 lg:grid-cols-3">
+      <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+        <KelengkapanCard data={data} counts={items ? wajibCounts(items) : null} loading={documents.isPending} />
+        <TasksCard tasks={pegawaiTasks(data)} statusKosong={data.statusKepegawaianKosong} />
       </div>
-
-      <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Jumlah dokumen per status">
-        {STAT_CARDS.map((stat) => (
-          <li key={stat.status}>
-            <Card size="sm" className="h-full">
-              <CardContent className="flex items-center gap-3">
-                <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg', stat.tone)}>
-                  <stat.icon aria-hidden="true" className="size-4.5" />
-                </div>
-                <div className="flex min-w-0 flex-col">
-                  <span className="text-2xl leading-tight font-semibold tabular-nums">{stat.value(data.dokumen)}</span>
-                  <span className="truncate text-xs text-muted-foreground">{stat.label}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </li>
-        ))}
-      </ul>
-
-      <PrioritasCard data={data} />
+      <div className="flex min-w-0 flex-col gap-6">
+        <DataDiriCard data={data} user={user} />
+        <RecentDocumentsCard items={items} loading={documents.isPending} />
+        <PengajuanCard data={data} />
+      </div>
     </div>
   );
 }
 
-function DokumenHeroCard({ data, className }: { data: DashboardResponse; className?: string }) {
-  const { persen, wajibTerverifikasi, wajibTotal, wajibTersedia } = data.dokumen;
-  const done = wajibTotal > 0 && persen === 100;
-
+function KelengkapanCard({
+  data,
+  counts,
+  loading,
+}: {
+  data: DashboardResponse;
+  counts: ReturnType<typeof wajibCounts> | null;
+  loading: boolean;
+}) {
+  const { wajibTotal, wajibTerverifikasi, wajibTersedia } = data.dokumen;
+  // Without the document list (still loading or failed) the summary splits "uploaded" only roughly.
+  const shown = counts ?? countsFromSummary({ wajibTotal, wajibTerverifikasi, menunggu: wajibTersedia - wajibTerverifikasi });
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>Kelengkapan Dokumen Wajib</CardTitle>
-        <CardDescription>Dihitung dari dokumen wajib yang sudah terverifikasi.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <RadialProgress value={persen} done={done} />
-        <div className="flex flex-1 flex-col gap-3">
-          <p className="text-sm text-foreground">
-            <span className="text-lg font-semibold tabular-nums">
-              {wajibTerverifikasi}/{wajibTotal}
-            </span>{' '}
-            dokumen wajib terverifikasi
-          </p>
-          <Progress value={wajibTotal ? (wajibTersedia / wajibTotal) * 100 : 0} className="h-2" aria-label="Dokumen wajib tersedia" />
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium tabular-nums text-foreground">{wajibTersedia}</span> dokumen wajib sudah tersedia
-            (termasuk yang menunggu verifikasi).
-          </p>
-          <Button asChild variant="outline" size="sm" className="w-fit">
-            <Link to="/dokumen">
-              Kelola Arsip Dokumen
-              <ChevronRight data-icon="inline-end" />
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function RadialProgress({ value, done }: { value: number; done: boolean }) {
-  const radius = 42;
-  const circumference = 2 * Math.PI * radius;
-  const clamped = Math.max(0, Math.min(100, value));
-  return (
-    <div
-      role="img"
-      aria-label={`Kelengkapan dokumen wajib ${clamped} persen`}
-      className="relative mx-auto size-32 shrink-0 sm:mx-0"
+    <SectionCard
+      title="Kelengkapan dokumen wajib"
+      description="Dihitung dari dokumen wajib yang sudah terverifikasi."
+      action={
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/dokumen" aria-label="Buka arsip dokumen">
+            Arsip
+            <ChevronRight data-icon="inline-end" />
+          </Link>
+        </Button>
+      }
     >
-      <svg viewBox="0 0 100 100" className="size-full -rotate-90" aria-hidden="true">
-        <circle cx="50" cy="50" r={radius} fill="none" strokeWidth="10" className="stroke-muted" />
-        <circle
-          cx="50"
-          cy="50"
-          r={radius}
-          fill="none"
-          strokeWidth="10"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - clamped / 100)}
-          className={cn('transition-[stroke-dashoffset] duration-500 motion-reduce:transition-none', done ? 'stroke-status-verified' : 'stroke-primary')}
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-3xl font-semibold tabular-nums" aria-hidden="true">
-        {clamped}%
-      </span>
-    </div>
+      {data.statusKepegawaianKosong ? (
+        <p className="text-sm text-muted-foreground">Dokumen wajib ditentukan dari status kepegawaian, yang belum diisi.</p>
+      ) : loading ? (
+        <div className="flex flex-col gap-3" aria-busy="true" aria-label="Memuat kelengkapan">
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="h-2.5 w-full" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+      ) : (
+        <ProgressMeter counts={shown} label="Terverifikasi" />
+      )}
+    </SectionCard>
   );
 }
 
-function ProfilCompletenessCard({ data, user }: { data: DashboardResponse; user: SessionUser }) {
-  const { terisi, total, persen, missingFields } = data.profil;
+const TASK_STYLE: Record<PegawaiTaskKind, { icon: LucideIcon; tone: string }> = {
+  profil: { icon: UserRoundPen, tone: 'bg-accent-soft text-primary' },
+  status: { icon: FilePen, tone: 'bg-accent-soft text-primary' },
+  perbaiki: { icon: FilePen, tone: TONE_CLASSES.rejected.soft },
+  unggah: { icon: FileUp, tone: 'bg-accent-soft text-primary' },
+  menunggu: { icon: Clock, tone: TONE_CLASSES.pending.soft },
+};
+
+function TasksCard({ tasks, statusKosong }: { tasks: PegawaiTask[]; statusKosong: boolean }) {
+  const actionable = tasks.filter((t) => t.action).length;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Data Diri</CardTitle>
-        <CardDescription>{user.nama}</CardDescription>
-        <CardAction>
-          <span className="text-sm font-medium tabular-nums">
-            {terisi}/{total}
-          </span>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-4">
-        <Progress
-          value={persen}
-          className={cn('h-2', persen === 100 && '*:bg-status-verified')}
-          aria-label={`Data diri lengkap ${terisi} dari ${total}`}
+    <SectionCard
+      title="Yang perlu Anda lakukan"
+      description={actionable > 0 ? 'Kerjakan berurutan dari atas.' : undefined}
+      action={actionable > 0 ? <Badge variant="secondary" className="tabular-nums">{actionable} langkah</Badge> : undefined}
+      flush
+    >
+      {tasks.length === 0 ? (
+        <EmptyState
+          icon={PartyPopper}
+          size="inline"
+          title={statusKosong ? 'Belum ada daftar dokumen' : 'Semua beres'}
+          description={
+            statusKosong
+              ? 'Daftar dokumen wajib muncul setelah status kepegawaian Anda terisi.'
+              : 'Data diri lengkap dan semua dokumen wajib sudah terverifikasi.'
+          }
         />
-        {missingFields.length > 0 ? (
+      ) : (
+        <ol className="divide-y">
+          {tasks.map((task, index) => {
+            const style = TASK_STYLE[task.kind];
+            const primary = task.action !== undefined && tasks.findIndex((t) => t.action) === index;
+            return (
+              <li key={task.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  <span className={cn('relative flex size-9 shrink-0 items-center justify-center rounded-full', style.tone)}>
+                    <style.icon className="size-4" aria-hidden="true" />
+                    {task.action ? (
+                      <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-card text-[0.625rem] font-semibold text-muted-foreground tabular-nums ring-1 ring-border">
+                        {index + 1}
+                      </span>
+                    ) : null}
+                  </span>
+                  <div className="flex min-w-0 flex-col gap-0.5 pt-0.5">
+                    <p className="text-sm font-medium text-foreground">{task.title}</p>
+                    {task.description ? <p className="text-sm text-muted-foreground">{task.description}</p> : null}
+                  </div>
+                </div>
+                {task.action ? (
+                  <Button asChild size="sm" variant={primary ? 'default' : 'outline'} className="self-start sm:self-center">
+                    <Link to={task.action.to}>
+                      {task.action.label}
+                      <ChevronRight data-icon="inline-end" />
+                    </Link>
+                  </Button>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </SectionCard>
+  );
+}
+
+function DataDiriCard({ data, user }: { data: DashboardResponse; user: SessionUser }) {
+  const { terisi, total, missingFields } = data.profil;
+  const done = missingFields.length === 0;
+  return (
+    <SectionCard
+      title="Data diri"
+      description={user.nama}
+      action={
+        <span className={cn('text-sm font-medium tabular-nums', done ? 'text-status-verified' : 'text-foreground')}>
+          {terisi}/{total}
+        </span>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <div
+          role="img"
+          aria-label={`Data diri terisi ${terisi} dari ${total}`}
+          className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted"
+        >
+          <span className={cn('h-full rounded-full', done ? 'bg-status-verified' : 'bg-primary')} style={{ width: `${total ? (terisi / total) * 100 : 0}%` }} />
+        </div>
+        {done ? (
+          <p className="flex items-center gap-2 text-sm text-status-verified">
+            <CircleCheck aria-hidden="true" className="size-4" />
+            Data diri sudah lengkap.
+          </p>
+        ) : (
           <div className="flex flex-col gap-2">
-            <p className="text-sm text-muted-foreground">Belum diisi (wajib sebelum mengunggah dokumen):</p>
+            <p className="text-sm text-muted-foreground">Wajib diisi sebelum mengunggah dokumen:</p>
             <ul className="flex flex-wrap gap-1.5">
               {missingFields.map((field) => (
                 <li key={field}>
@@ -324,104 +301,106 @@ function ProfilCompletenessCard({ data, user }: { data: DashboardResponse; user:
               ))}
             </ul>
           </div>
-        ) : (
-          <p className="flex items-center gap-2 text-sm text-status-verified">
-            <CircleCheck aria-hidden="true" className="size-4" />
-            Data diri sudah lengkap.
-          </p>
         )}
-        <Button asChild variant={missingFields.length > 0 ? 'default' : 'outline'} size="sm" className="mt-auto w-fit">
+        <Button asChild variant={done ? 'outline' : 'default'} size="sm" className="w-fit">
           <Link to="/profil">
             <UserRound data-icon="inline-start" />
-            {missingFields.length > 0 ? 'Lengkapi Profil' : 'Lihat Profil'}
+            {done ? 'Lihat profil' : 'Lengkapi profil'}
           </Link>
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </SectionCard>
   );
 }
 
-function PrioritasCard({ data }: { data: DashboardResponse }) {
-  const items = data.dokumen.prioritas;
+function RecentDocumentsCard({ items, loading }: { items: Parameters<typeof recentUploads>[0] | undefined; loading: boolean }) {
+  const recent = items ? recentUploads(items, 4) : [];
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Yang perlu Anda lakukan</CardTitle>
-        <CardDescription>Dokumen yang ditolak, belum diunggah, atau masih menunggu verifikasi.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {items.length === 0 ? (
-          <Empty className="border border-dashed py-8">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <PartyPopper />
-              </EmptyMedia>
-              <EmptyTitle>{data.statusKepegawaianKosong ? 'Belum ada daftar dokumen' : 'Tidak ada tindakan diperlukan'}</EmptyTitle>
-              <EmptyDescription>
-                {data.statusKepegawaianKosong
-                  ? 'Daftar dokumen wajib muncul setelah status kepegawaian Anda terisi.'
-                  : 'Semua dokumen wajib Anda sudah lengkap dan terverifikasi.'}
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          <ItemGroup className="gap-2">
-            {items.map((doc) => (
-              <Item key={doc.jenisDokumenId} variant="outline" size="sm" asChild>
-                <Link to={`/dokumen?jenis=${encodeURIComponent(doc.jenisDokumenId)}`}>
-                  <ItemContent>
-                    <ItemTitle className="flex-wrap">
-                      {doc.nama}
-                      {doc.wajib ? <span className="text-xs font-normal text-muted-foreground">Wajib</span> : null}
-                    </ItemTitle>
-                    {doc.status === 'Ditolak' && doc.catatanAdmin ? (
-                      <ItemDescription className="text-status-rejected">Catatan: {doc.catatanAdmin}</ItemDescription>
-                    ) : (
-                      <ItemDescription>{doc.kategori}</ItemDescription>
-                    )}
-                  </ItemContent>
-                  <ItemActions>
-                    <StatusBadge status={doc.status} />
-                    <ChevronRight aria-hidden="true" className="size-4 text-muted-foreground" />
-                  </ItemActions>
+    <SectionCard
+      title="Dokumen terbaru"
+      flush
+      action={
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/dokumen">Semua</Link>
+        </Button>
+      }
+    >
+      {loading ? (
+        <div className="flex flex-col gap-2 p-5" aria-busy="true" aria-label="Memuat dokumen">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </div>
+      ) : recent.length === 0 ? (
+        <EmptyState icon={FileText} size="inline" title="Belum ada dokumen" description="Dokumen yang Anda unggah tampil di sini." />
+      ) : (
+        <ul className="divide-y">
+          {recent.map((item) => {
+            const Icon = fileKind(item.arsip.mimeType) === 'image' ? FileImage : FileText;
+            return (
+              <li key={item.jenisDokumenId}>
+                <Link
+                  to={`/dokumen?jenis=${encodeURIComponent(item.jenisDokumenId)}`}
+                  className="flex items-center gap-3 px-5 py-3 outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                >
+                  <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-sm font-medium">{item.nama}</span>
+                    <time dateTime={item.arsip.uploadedAt} title={formatDateTimeWITA(item.arsip.uploadedAt)} className="text-xs text-muted-foreground">
+                      {formatRelative(item.arsip.uploadedAt)}
+                    </time>
+                  </span>
+                  <StatusBadge status={item.status} iconOnly />
                 </Link>
-              </Item>
-            ))}
-          </ItemGroup>
-        )}
-      </CardContent>
-    </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </SectionCard>
+  );
+}
+
+function PengajuanCard({ data }: { data: DashboardResponse }) {
+  const aktif = data.pengajuanAktif;
+  return (
+    <SectionCard title="Perubahan data kepegawaian">
+      {aktif ? (
+        <div className="flex flex-col gap-3">
+          <div className={cn('flex gap-2.5 rounded-lg border border-status-pending/25 p-3 text-sm', TONE_CLASSES.pending.soft)}>
+            <FileClock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <p>
+              <span className="font-medium">Sedang diverifikasi.</span>{' '}
+              <span className="text-foreground">Dikirim {formatRelative(aktif.createdAt)}.</span>
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm" className="w-fit">
+            <Link to="/profil#kepegawaian">Lihat pengajuan</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground">Pangkat, jabatan, atau unit berubah? Ajukan agar diperbarui oleh Admin TU.</p>
+          <Button asChild variant="outline" size="sm" className="w-fit">
+            <Link to="/profil#kepegawaian">Ajukan perubahan</Link>
+          </Button>
+        </div>
+      )}
+    </SectionCard>
   );
 }
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-6" aria-busy="true" aria-label="Memuat ringkasan">
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardContent className="flex items-center gap-5">
-            <Skeleton className="size-32 rounded-full" />
-            <div className="flex flex-1 flex-col gap-3">
-              <Skeleton className="h-5 w-48" />
-              <Skeleton className="h-2 w-full" />
-              <Skeleton className="h-4 w-64" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col gap-3">
-            <Skeleton className="h-5 w-24" />
-            <Skeleton className="h-2 w-full" />
-            <Skeleton className="h-4 w-40" />
-          </CardContent>
-        </Card>
+    <div className="grid gap-6 lg:grid-cols-3" aria-busy="true" aria-label="Memuat ringkasan">
+      <div className="flex flex-col gap-6 lg:col-span-2">
+        <Skeleton className="h-40 rounded-xl" />
+        <Skeleton className="h-72 rounded-xl" />
       </div>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-20 rounded-xl" />
-        ))}
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-56 rounded-xl" />
       </div>
-      <Skeleton className="h-48 rounded-xl" />
     </div>
   );
 }

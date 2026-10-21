@@ -2,7 +2,7 @@
 
 Disusun 21 Oktober 2026 dari tiga sumber: (1) penelusuran visual aplikasi lokal dengan data fiktif (`scripts/dev-seed.mjs`) di desktop 1440 px dan ponsel 375 px, (2) audit kode `src/` (±15 ribu baris, 13 fitur), (3) perbandingan dengan proyek lain pemilik (PINTU `portal-uptdkotakupang`, `laravel-finance-tracker`, `SIP-IKP`, `kalkulator-pajak`) serta mockup `UIUX Stitch/` dan `Blueprint Product/Step 06`.
 
-Status: semua keputusan §11 disetujui pemilik (21 Okt 2026). **Fase 0–3 selesai di branch `feat/redesign-uiux`** (belum dirilis), fase 4–6 belum. Produksi hidup, jadi redesign hanya menyentuh frontend (`src/`), tanpa perubahan API, skema D1, atau perilaku bisnis.
+Status: semua keputusan §11 disetujui pemilik (21 Okt 2026). **Fase 0–4 selesai di branch `feat/redesign-uiux`** (belum dirilis), fase 5–6 belum. Produksi hidup, jadi redesign hanya menyentuh frontend (`src/`), tanpa perubahan API, skema D1, atau perilaku bisnis.
 
 Catatan implementasi fase 0–1:
 
@@ -36,6 +36,18 @@ Catatan implementasi fase 3 (layar Admin utama, tanpa perubahan API):
 | Verifikasi Dokumen | Workspace 3 panel di ≥1280 px (antrean · pratinjau · keputusan); 1024–1279 px: pratinjau + kolom kanan; ponsel: daftar + sheet penuh. Penanda lama menunggu (amber ≥ 3 hari), filter jenis di panel antrean, toolbar pratinjau ringkas, tombol **Setujui** hijau (varian `success` baru di `Button`) / **Tolak** merah, label "Setujui & lanjutkan", pintasan `A`/`R`/`J`/`K` (+ `Kbd` di tombol). Tautan `?arsip=<id>` dari Beranda dan detail pegawai langsung memilih dokumen |
 
 Ditunda karena butuh data baru dari API (fase berikutnya, bila disetujui): grafik kelengkapan **per unit**, tren unggahan, dan riwayat dokumen sejenis di panel keputusan Verifikasi. Tes baru: deep link, lama menunggu, dan label waktu ringkas di `verifikasi-utils` (3).
+
+Catatan implementasi fase 4 (layar pegawai, tanpa perubahan API):
+
+| Layar | Isi |
+|---|---|
+| Beranda Pegawai | `ProgressMeter` kelengkapan wajib (dihitung dari `/me/documents`), **daftar tugas berurutan** (`src/features/beranda/pegawai-tasks.ts`: lengkapi data diri → status kepegawaian → perbaiki ditolak → unggah wajib → menunggu, sisa di luar 5 prioritas diringkas), kartu data diri, dokumen terbaru, dan status pengajuan perubahan. Admin melihat hal yang sama di tab "Data saya" |
+| Arsip Dokumen | Menu **"Unggah dokumen"** di header (yang perlu diunggah lebih dulu, lalu "Ganti file"), `ProgressMeter`, satu callout profil belum lengkap, tab Wajib/Opsional, **grid kartu per jenis** (ikon bertone status, versi, file, catatan penolakan, aksi utama + menu "…"); tampilan tabel tersedia di desktop dan diingat per perangkat. Sheet pratinjau: riwayat memakai `Timeline`, keadaan kosong/galat standar |
+| Profil Pegawai | Kolom kiri menempel (foto + crop, NIP, chip, data diri terisi, pangkat/jabatan/unit, navigasi seksi); kanan: Identitas → Kepegawaian (baca saja + gembok + "Ajukan perubahan") → Kontak → Riwayat pengajuan, `StickySaveBar`. `/profil#kepegawaian` langsung ke seksinya |
+| Pengaturan Akun | Navigasi seksi; Keamanan (indikator kekuatan bersegmen + daftar syarat), Sesi aktif ("Keluarkan semua"), **Tampilan** (Terang/Gelap/Ikuti perangkat), Informasi akun |
+| Login | Foto kantor dengan overlay tinta (token tetap `ink`, tidak ikut mode gelap), "SIKAP" display, kartu `shadow-pop` dengan `h1`, input 40 px, petunjuk lupa password. Di ponsel lambang di atas |
+
+Perbaikan pola: `StickySaveBar` hanya menempel saat ada perubahan dan teks statusnya tidak lagi menimpa tombol di layar sempit; `SectionCard` punya `wideAction` (aksi berlabel pindah ke bawah deskripsi di ponsel); `SelectControl` meneruskan `ref` agar select yang tidak valid mendapat fokus; sheet pratinjau dokumen dan form pegawai kini selebar layar di ponsel. QA: tanpa overflow horizontal di 375 px, tata letak 1440 px diukur, dan pemindaian kontras otomatis seluruh teks keempat layar lolos AA di terang dan gelap. Tes baru: `pegawai-tasks` (3) dan ringkasan dokumen di `dokumen-utils` (3).
 
 ---
 

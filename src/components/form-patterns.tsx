@@ -63,7 +63,10 @@ interface StickySaveBarProps {
   className?: string;
 }
 
-/** Save bar pinned to the bottom of the page content (above the phone bottom nav). */
+/**
+ * Save bar at the end of a form. While there are unsaved changes it sticks to the bottom of the
+ * viewport (above the phone bottom nav) so Save stays reachable; when clean it sits in the flow.
+ */
 export function StickySaveBar({
   dirty,
   saving,
@@ -74,20 +77,23 @@ export function StickySaveBar({
   saveType = 'button',
   className,
 }: StickySaveBarProps) {
+  const pinned = dirty || saving || message !== undefined;
   return (
     <div
       className={cn(
-        'sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-[5] flex flex-wrap items-center gap-3 rounded-xl border bg-card/95 px-4 py-3 shadow-pop backdrop-blur supports-[backdrop-filter]:bg-card/85 md:bottom-4',
+        'z-[5] flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border bg-card/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-card/85',
+        pinned ? 'sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] shadow-pop md:bottom-4' : 'shadow-card',
         className,
       )}
     >
-      <p className="flex min-w-0 flex-1 items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+      {/* basis-48: on narrow screens the status takes its own line instead of running under the buttons. */}
+      <p className="flex min-w-0 flex-1 basis-48 items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
         {message ?? (dirty ? (
           'Ada perubahan yang belum disimpan.'
         ) : (
           <>
-            <CircleCheck className="size-4 text-status-verified" aria-hidden="true" />
-            Semua perubahan tersimpan.
+            <CircleCheck className="size-4 shrink-0 text-status-verified" aria-hidden="true" />
+            <span className="min-w-0">Semua perubahan tersimpan.</span>
           </>
         ))}
       </p>

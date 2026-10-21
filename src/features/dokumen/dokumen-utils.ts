@@ -1,4 +1,5 @@
 import { DOCUMENT_POLICY, type DokumenItem, type RiwayatAksi } from '@shared/dokumen';
+import type { ProgressCounts } from '@/lib/progress';
 
 const ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
 
@@ -85,4 +86,41 @@ export function deepLinkTarget(item: DokumenItem): 'upload' | 'preview' | null {
 
 export function uploadLabel(item: DokumenItem): string {
   return item.arsip ? 'Unggah Ulang' : 'Unggah';
+}
+
+/** Per-status counts of the mandatory documents (input of ProgressMeter). */
+export function wajibCounts(items: readonly DokumenItem[]): ProgressCounts {
+  const counts: ProgressCounts = { terverifikasi: 0, menunggu: 0, ditolak: 0, belum: 0 };
+  for (const item of items) {
+    if (!item.wajib) continue;
+    if (item.status === 'Terverifikasi') counts.terverifikasi += 1;
+    else if (item.status === 'Menunggu') counts.menunggu += 1;
+    else if (item.status === 'Ditolak') counts.ditolak += 1;
+    else counts.belum += 1;
+  }
+  return counts;
+}
+
+export type UploadedDokumen = DokumenItem & { arsip: NonNullable<DokumenItem['arsip']> };
+
+/** Documents with an active file, newest upload first. */
+export function recentUploads(items: readonly DokumenItem[], limit: number): UploadedDokumen[] {
+  return items
+    .filter((item): item is UploadedDokumen => item.arsip !== null)
+    .sort((a, b) => b.arsip.uploadedAt.localeCompare(a.arsip.uploadedAt))
+    .slice(0, limit);
+}
+
+/**
+ * Choices for the page-level "Unggah dokumen" menu: documents that still need a file
+ * (rejected first, then mandatory, then optional), followed by the ones that can be replaced.
+ */
+export function uploadChoices(items: readonly DokumenItem[]): { needed: DokumenItem[]; replace: DokumenItem[] } {
+  const uploadable = items.filter((item) => item.can.upload);
+  const rank = (item: DokumenItem) => (item.status === 'Ditolak' ? 0 : item.wajib ? 1 : 2);
+  const needed = uploadable
+    .filter((item) => item.status === 'Belum diunggah' || item.status === 'Ditolak')
+    .sort((a, b) => rank(a) - rank(b));
+  const replace = uploadable.filter((item) => item.status !== 'Belum diunggah' && item.status !== 'Ditolak');
+  return { needed, replace };
 }
