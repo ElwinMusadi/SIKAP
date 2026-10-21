@@ -55,28 +55,23 @@ Akun contoh hanya untuk pengembangan lokal; password = 6 digit terakhir NIP (lih
 | `npm run typecheck` / `npm run lint` / `npm test` | Kualitas kode |
 | `npm run db:migrate:local` | Terapkan migrasi D1 lokal |
 | `npm run db:migrate:preview` | Terapkan migrasi ke D1 preview (remote) |
-| `npm run deploy:preview` | Build + deploy ke preview `sikap-v2` |
+| `npm run test:deploy` | Tes paket rilis produksi (ID fiktif, tanpa jaringan) |
 
 ## Deployment (Cloudflare Pages)
 
-Project Pages: **`sikap-v2`** (bukan `sikap` — project `sikap` masih melayani sistem GAS produksi sampai cutover).
+Project Pages: **`sikap-v2`**, produksi sejak cutover 21 Oktober 2026. **Setiap push/merge ke
+`main` otomatis di-deploy** oleh GitHub Actions (`.github/workflows/ci.yml`, job `deploy`) setelah
+seluruh tes lulus. Penyiapan secret, cara kerja, dan rollback: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 | Environment | URL | D1 | R2 |
 |---|---|---|---|
-| Preview (branch `feat/cloudflare-migration`) | https://feat-cloudflare-migration.sikap-v2.pages.dev | `sikap-db-preview` | `sikap-files-preview` |
-| Production (branch `main`, menunggu keputusan go-live) | https://sikap.uptdpenda-kupang.web.id | Target baru belum diputuskan; jangan gunakan binding historis `sikap-db` | Bucket produksi baru belum diputuskan |
+| Production (branch `main`) | https://sikap.uptdpenda-kupang.web.id | `sikap-import-prod-20261020` | `sikap-import-prod-20261020-files` |
+| Preview (tidak dipakai) | https://feat-cloudflare-migration.sikap-v2.pages.dev | `sikap-db-preview` | `sikap-files-preview` |
 
 Binding produksi `sikap-db`/`sikap-files`/`sikap-backup` dalam konfigurasi root dan cron adalah
-konfigurasi historis, **bukan target cutover yang disetujui**. Target/backup baru, UUID, account,
-secret dan capability produksi harus diputuskan serta direview terlebih dahulu; jangan jalankan
-deploy/migrations `--env production` dengan binding lama. Lihat persiapan cutover di
-`MIGRATION_PLAN.md`. Kebijakan semua bucket produksi harus privat, bukan klaim status resource
-lama sudah diperiksa.
-
-Langkah deploy preview:
-
-1. `npm run db:migrate:preview` bila ada migrasi baru.
-2. `npm run deploy:preview`.
+konfigurasi **historis**. Jangan deploy dari root repo dan jangan jalankan migrasi
+`--env production` dengan binding lama; paket rilis produksi disusun oleh
+`scripts/deploy/pages-release.mjs` di luar checkout. Migrasi D1 tidak dijalankan otomatis.
 
 Secrets per environment (`PASSWORD_PEPPER`, `SETTINGS_ENC_KEY`) diatur dengan
 `wrangler pages secret bulk <file.json> --project-name sikap-v2 --env preview|production`.

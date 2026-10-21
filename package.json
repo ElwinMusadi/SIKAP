@@ -14,8 +14,9 @@
     "preview": "npm run build && wrangler pages dev dist --local --port 8788",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
-    "test": "npm run test:api && npm run test:web && npm run test:migrate && npm run test:staging && npm run test:import",
+    "test": "npm run test:api && npm run test:web && npm run test:migrate && npm run test:staging && npm run test:import && npm run test:deploy",
     "test:staging": "node --test scripts/staging/*.test.mjs",
+    "test:deploy": "node --test scripts/deploy/*.test.mjs",
     "test:import": "node --test --test-concurrency=1 scripts/import/*.test.mjs",
     "staging:access:audit": "node scripts/staging/access-audit.mjs",
     "staging:target:check": "node scripts/staging/uat-target.mjs",
@@ -39,7 +40,6 @@
     "db:migrate:preview": "wrangler d1 migrations apply DB --remote --env preview",
     "db:migrate:production": "wrangler d1 migrations apply DB --remote --env production",
     "db:seed:dev": "node scripts/dev-seed.mjs && wrangler d1 execute DB --local --file .wrangler/dev-seed.sql",
-    "deploy:preview": "npm run build && wrangler pages deploy dist --project-name sikap-v2 --branch feat/cloudflare-migration",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings server/worker-configuration.d.ts",
     "cron:dev": "wrangler dev -c workers/cron/wrangler.toml --test-scheduled",
     "cron:check": "wrangler deploy -c workers/cron/wrangler.toml --env preview --dry-run"

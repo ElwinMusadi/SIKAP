@@ -32,16 +32,18 @@ Produksi: Pages project **`sikap-v2`** (branch `main` = production, upload langs
 | `npm run dev:api` | Pages Functions + D1/R2 lokal + Vite di `http://localhost:8788` (butuh `.dev.vars`, `db:migrate:local`, `db:seed:dev`) |
 | `npm run build` | `tsc -b && vite build` ke `dist/` |
 | `npm run typecheck` / `npm run lint` | Kualitas kode (CI menjalankan keduanya) |
-| `npm test` | api + web + migrate + staging + import |
+| `npm test` | api + web + migrate + staging + import + deploy |
 | `npm run test:import` | Suite importer (205 tes, `--test-concurrency=1`) |
 | `npm run db:migrate:local` / `npm run db:seed:dev` | Skema dan akun contoh lokal (password = 6 digit terakhir NIP, DEV ONLY) |
 
-CI (`.github/workflows/ci.yml`, job `verify`): typecheck, lint, test api/web/migrate/import/staging, lalu `vite build`, di Ubuntu. Tes harus lulus di Linux, bukan hanya Windows.
+CI (`.github/workflows/ci.yml`): job `verify` (typecheck, lint, test api/web/migrate/import/staging/deploy, `vite build`, di Ubuntu) pada setiap PR dan push ke `main`; job `deploy` sesudahnya hanya untuk `main`. Tes harus lulus di Linux, bukan hanya Windows.
 
 ## Deploy produksi (penting)
 
-- **Jangan** memakai `wrangler.toml` root `--env production` atau `npm run deploy:preview` untuk produksi: binding `env.production` di root dan `workers/cron` adalah **historis**.
-- Deploy produksi memakai **direktori rilis terisolasi di luar repo** (Wrangler 4 menelusuri `wrangler.toml` induk dan memuat `.env` dari cwd): salin `dist/` → `public/`, `functions/`, `server/`, `shared/`, `package.json`, `tsconfig*.json`, junction `node_modules`, dan `wrangler.toml` minimal (D1 + R2 produksi, `APP_URL`), lalu `wrangler pages deploy public --project-name sikap-v2 --branch main`. Lepas junction dengan `(Get-Item …).Delete()` sebelum menghapus direktori.
+- **Hanya ada branch `main`; setiap push/merge ke `main` = deploy produksi** lewat GitHub Actions (job `deploy`, environment GitHub `production`). Kerjakan perubahan di branch singkat + PR, lalu merge (merge hanya atas persetujuan pemilik). Panduan lengkap, penyiapan secret, dan rollback: [`docs/DEPLOY.md`](docs/DEPLOY.md).
+- `sikap-v2` proyek *Direct Upload* (tidak bisa diubah ke integrasi Git Cloudflare), jadi deploy memakai `wrangler pages deploy` dari Actions. Secret GitHub: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `PROD_D1_DATABASE_ID`. Tanpa ketiganya job deploy dilewati dengan peringatan.
+- **Jangan** deploy dari root repo atau memakai `wrangler.toml` root `--env production` / `db:migrate:production`: binding `env.production` di root dan `workers/cron` adalah **historis**, dan deploy berkonfigurasi menulis ulang binding proyek. `scripts/deploy/pages-release.mjs` menyusun paket rilis **di luar checkout** dengan `wrangler.toml` yang mencerminkan pengaturan live (D1 `sikap-import-prod-20261020`, R2 `sikap-import-prod-20261020-files`, `APP_URL` domain kustom; preview tetap di binding preview).
+- Migrasi D1 **tidak** dijalankan oleh deploy; migrasi baru butuh keputusan + backup terpisah.
 - Secret `PASSWORD_PEPPER` dan `SETTINGS_ENC_KEY` dipasang dengan `wrangler pages secret put` dari berkas privat milik pemilik (di luar repo); nilainya tidak pernah dicetak. Kehilangan pepper = semua password tidak valid.
 - `ACCESS_REQUIRED=1` hanya untuk host di belakang Access; di domain kustom harus tidak diset (Access hanya mencakup `*.pages.dev`).
 
@@ -77,11 +79,11 @@ CI (`.github/workflows/ci.yml`, job `verify`): typecheck, lint, test api/web/mig
 
 ## TODO / pekerjaan terbuka
 
-- **Redesign UI/UX** frontend — rencana di [`docs/RENCANA-REDESIGN-UIUX.md`](docs/RENCANA-REDESIGN-UIUX.md) (design system, pustaka pola, fase 0–6). §11 disetujui; fase 0–6 selesai di branch `feat/redesign-uiux`, **belum di-merge dan belum dirilis** (deploy hanya atas permintaan pemilik). Panduan pola: [`docs/POLA-UI.md`](docs/POLA-UI.md).
+- **Redesign UI/UX** frontend — rencana di [`docs/RENCANA-REDESIGN-UIUX.md`](docs/RENCANA-REDESIGN-UIUX.md) (design system, pustaka pola, fase 0–6). §11 disetujui; fase 0–6 selesai dan di-merge ke `main` (PR #3, 21 Okt 2026). Rilis ke produksi terjadi pada deploy pertama job `deploy` setelah secret GitHub dipasang. Panduan pola: [`docs/POLA-UI.md`](docs/POLA-UI.md).
 - **Backup otomatis belum ada**: binding `BACKUPS` + bucket privat + Worker cron (`workers/cron`) + kebijakan retensi ≥ 30 hari; D1 Time Travel sebagai pemulihan konsisten.
 - WAF Rate Limiting untuk `/api/auth/login`.
 - WhatsApp tetap nonaktif sampai diminta pemilik.
-- PR #2 (`feat/cloudflare-migration` → `main`) menunggu keputusan merge pemilik.
+- Pasang secret deploy di environment GitHub `production` (`docs/DEPLOY.md`), lalu jalankan deploy pertama dari tab Actions.
 - Pemantauan 30 hari; setelahnya keputusan dekomisi GAS (proyek, deployment, Sheets, folder Drive `SIKAP_Backups`/`SIKAP_Dokumen_Kepegawaian`).
 - Bersih-bersih oleh pemilik: folder Drive "SIKAP — Salinan Migrasi Privat", proyek GAS "Project tak berjudul" dan "Copy of SIKAP — Copy Sumber Nyata", sampah Drive; deployment preview lama di `sikap-v2`.
 - Perbarui status di `README.md` (masih menyebut sebelum cutover) dan tandai binding historis di `wrangler.toml` setelah konfigurasi produksi dipindah ke repo dengan aman.
