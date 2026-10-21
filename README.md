@@ -5,7 +5,7 @@ Aplikasi internal UPTD Pendapatan Daerah Wilayah Kota Kupang untuk mengelola dat
 > **Status:** produksi berjalan di Cloudflare sejak cutover 21 Oktober 2026 di
 > **https://sikap.uptdpenda-kupang.web.id** (Pages project `sikap-v2`, D1 + R2). Repo hanya memakai
 > branch `main`; setiap commit ke `main` di-deploy otomatis lewat GitHub Actions ([`docs/DEPLOY.md`](docs/DEPLOY.md)).
-> Redesign UI/UX v2 (fase 0–6) sudah di `main` dan tayang pada deploy otomatis pertama setelah secret deploy dipasang.
+> Redesign UI/UX v2 (fase 0–6) tayang di produksi sejak 22 Oktober 2026 lewat deploy otomatis pertama.
 > Sistem lama (GAS + Google Sheets + Drive) ada di [`legacy-gas/`](legacy-gas/), dibekukan, dan disimpan untuk
 > rollback selama masa pemantauan 30 hari. Riwayat fase, checkpoint, dan batas bukti ada di `MIGRATION_PLAN.md`.
 

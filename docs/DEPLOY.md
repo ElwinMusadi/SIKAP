@@ -35,9 +35,25 @@ Tidak berubah oleh deploy:
 - **migrasi D1**, yang tidak dijalankan otomatis (redesign tidak mengubah skema; migrasi baru perlu keputusan dan backup terpisah);
 - domain dan Cloudflare Access.
 
+## Jangan memakai integrasi Git Cloudflare
+
+Dashboard `sikap-v2` → *Settings* → *Build* menawarkan *Connect to a repository*. **Jangan dipakai**
+selama alur GitHub Actions ini aktif:
+
+- `wrangler.toml` root memuat `pages_build_output_dir`, jadi build Git Cloudflare memakainya sebagai
+  sumber konfigurasi, bukan binding di dashboard. `[env.production]`-nya berisi binding historis
+  (`sikap-db`, `sikap-files`, `sikap-backup`), sehingga produksi akan membaca dan menulis ke database yang salah.
+- Build Cloudflare tidak menunggu job `verify`; commit yang gagal tes tetap tayang.
+- Bersama job `deploy` di Actions, setiap commit akan di-deploy dua kali.
+
+Pindah ke integrasi Git hanya lewat PR yang lebih dulu mengganti `[env.production]` ke binding
+aktif (ID D1 produksi jadi tercatat di repo publik), menghapus `BACKUPS`, dan mematikan job `deploy`.
+
 ## Penyiapan satu kali (pemilik)
 
-Deploy dilewati, dengan peringatan "Deploy dilewati" di Actions, sampai tiga secret berikut terisi.
+Status: secret sudah dipasang dan deploy pertama berhasil pada 22 Okt 2026. Langkah di bawah dipakai
+lagi saat token diganti (sebelum kedaluwarsa) atau saat environment dibuat ulang. Tanpa ketiga secret,
+job deploy dilewati dengan peringatan "Deploy dilewati" di Actions.
 
 1. **Token API Cloudflare** (dashboard Cloudflare → *My Profile* → *API Tokens* → *Create Token* → *Custom token*):
    - Permissions: **Account → Cloudflare Pages → Edit**.

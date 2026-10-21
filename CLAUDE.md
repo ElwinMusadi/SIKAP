@@ -18,7 +18,7 @@ Dimigrasikan dari Google Apps Script + Sheets + Drive (kini di `legacy-gas/`) ke
 | `scripts/migrate`, `scripts/import`, `scripts/staging` | Alat migrasi offline, importer produksi, alat UAT |
 | `legacy-gas/` | Sistem lama, **dibekukan** (rollback selama masa pemantauan) |
 
-Produksi: Pages project **`sikap-v2`** (branch `main` = production, upload langsung, bukan Git-integrated), D1 `sikap-import-prod-20261020`, R2 `sikap-import-prod-20261020-files` (privat; file hanya lewat API terotorisasi). Host `*.sikap-v2.pages.dev` dilindungi Cloudflare Access (OTP pemilik); domain kustom publik.
+Produksi: Pages project **`sikap-v2`** (branch `main` = production; *Direct Upload* dari GitHub Actions, sengaja tanpa integrasi Git Cloudflare), D1 `sikap-import-prod-20261020`, R2 `sikap-import-prod-20261020-files` (privat; file hanya lewat API terotorisasi). Host `*.sikap-v2.pages.dev` dilindungi Cloudflare Access (OTP pemilik); domain kustom publik.
 
 ## Stack dan perintah
 
@@ -41,7 +41,7 @@ CI (`.github/workflows/ci.yml`): job `verify` (typecheck, lint, test api/web/mig
 ## Deploy produksi (penting)
 
 - **Hanya ada branch `main`; setiap push/merge ke `main` = deploy produksi** lewat GitHub Actions (job `deploy`, environment GitHub `production`). Kerjakan perubahan di branch singkat + PR, lalu merge (merge hanya atas persetujuan pemilik). Panduan lengkap, penyiapan secret, dan rollback: [`docs/DEPLOY.md`](docs/DEPLOY.md).
-- `sikap-v2` proyek *Direct Upload* (tidak bisa diubah ke integrasi Git Cloudflare), jadi deploy memakai `wrangler pages deploy` dari Actions. Secret GitHub: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `PROD_D1_DATABASE_ID`. Tanpa ketiganya job deploy dilewati dengan peringatan.
+- `sikap-v2` proyek *Direct Upload*; deploy memakai `wrangler pages deploy` dari Actions. Dashboard menawarkan *Connect to a repository*, tetapi **jangan dipakai**: build Git Cloudflare menjadikan `wrangler.toml` root (punya `pages_build_output_dir`) sumber konfigurasi sehingga produksi pindah ke binding historis, tidak menunggu tes CI, dan bersama Actions men-deploy dobel. Secret GitHub: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `PROD_D1_DATABASE_ID`. Tanpa ketiganya job deploy dilewati dengan peringatan.
 - **Jangan** deploy dari root repo atau memakai `wrangler.toml` root `--env production` / `db:migrate:production`: binding `env.production` di root dan `workers/cron` adalah **historis**, dan deploy berkonfigurasi menulis ulang binding proyek. `scripts/deploy/pages-release.mjs` menyusun paket rilis **di luar checkout** dengan `wrangler.toml` yang mencerminkan pengaturan live (D1 `sikap-import-prod-20261020`, R2 `sikap-import-prod-20261020-files`, `APP_URL` domain kustom; preview tetap di binding preview).
 - Migrasi D1 **tidak** dijalankan oleh deploy; migrasi baru butuh keputusan + backup terpisah.
 - Secret `PASSWORD_PEPPER` dan `SETTINGS_ENC_KEY` dipasang dengan `wrangler pages secret put` dari berkas privat milik pemilik (di luar repo); nilainya tidak pernah dicetak. Kehilangan pepper = semua password tidak valid.
@@ -71,7 +71,7 @@ CI (`.github/workflows/ci.yml`): job `verify` (typecheck, lint, test api/web/mig
 | GAS lambat, Sheets sebagai DB, celah keamanan S-01..S-05 | Migrasi ke Cloudflare; hotfix keamanan GAS sebelum cutover |
 | Penulisan ke GAS selama ekspor | Penjaga `assertCutoverOpen_` di 43 entry; freeze lewat Script Property `SIKAP_CUTOVER_STATE=frozen` |
 | Jendela import melebihi umur token OAuth wrangler | Token D1/R2 khusus berumur pendek, timeout request 15 s, budget request dan jendela dihitung sebelum run |
-| Wrangler memakai `wrangler.toml` root saat deploy | Direktori rilis terisolasi di luar repo |
+| Wrangler memakai `wrangler.toml` root saat deploy | Direktori rilis terisolasi di luar repo, kini otomatis di GitHub Actions (`scripts/deploy/pages-release.mjs`); deploy pertama 22 Okt 2026 menayangkan redesign v2 |
 | Copier menolak folder induk berisi | Folder induk baru yang kosong per salinan |
 | Disk C: penuh saat ekstraksi | Hapus salinan dry-run lama atas izin pemilik |
 | Token tanpa kedaluwarsa (`forever`) | Driver menolak (`CREDENTIAL_INVALID`) sebelum request; pemilik membuat ulang dengan TTL |
@@ -79,11 +79,10 @@ CI (`.github/workflows/ci.yml`): job `verify` (typecheck, lint, test api/web/mig
 
 ## TODO / pekerjaan terbuka
 
-- **Redesign UI/UX** frontend — rencana di [`docs/RENCANA-REDESIGN-UIUX.md`](docs/RENCANA-REDESIGN-UIUX.md) (design system, pustaka pola, fase 0–6). §11 disetujui; fase 0–6 selesai dan di-merge ke `main` (PR #3, 21 Okt 2026). Rilis ke produksi terjadi pada deploy pertama job `deploy` setelah secret GitHub dipasang. Panduan pola: [`docs/POLA-UI.md`](docs/POLA-UI.md).
 - **Backup otomatis belum ada**: binding `BACKUPS` + bucket privat + Worker cron (`workers/cron`) + kebijakan retensi ≥ 30 hari; D1 Time Travel sebagai pemulihan konsisten.
 - WAF Rate Limiting untuk `/api/auth/login`.
 - WhatsApp tetap nonaktif sampai diminta pemilik.
-- Pasang secret deploy di environment GitHub `production` (`docs/DEPLOY.md`), lalu jalankan deploy pertama dari tab Actions.
+- Ganti `CLOUDFLARE_API_TOKEN` di environment GitHub `production` sebelum kedaluwarsa (`docs/DEPLOY.md`).
 - Pemantauan 30 hari; setelahnya keputusan dekomisi GAS (proyek, deployment, Sheets, folder Drive `SIKAP_Backups`/`SIKAP_Dokumen_Kepegawaian`).
 - Bersih-bersih oleh pemilik: folder Drive "SIKAP — Salinan Migrasi Privat", proyek GAS "Project tak berjudul" dan "Copy of SIKAP — Copy Sumber Nyata", sampah Drive; deployment preview lama di `sikap-v2`.
 - Tandai binding historis di `wrangler.toml` setelah konfigurasi produksi dipindah ke repo dengan aman.

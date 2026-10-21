@@ -578,7 +578,7 @@ Sistem lama tetap berjalan beberapa minggu, sehingga celah kritis harus ditutup 
 - [x] R2 diaktifkan pemilik akun (16 Okt 2026).
 - [x] Project Pages **baru** `sikap-v2` dibuat; preview `https://feat-cloudflare-migration.sikap-v2.pages.dev` (D1/R2 preview + secret per environment). CPU nyata di edge: login 4 ms (13 ms saat cold start), ganti password 7–12 ms, dashboard 2–3 ms. Catatan asal: buat project Pages **baru** untuk preview (mis. `sikap-v2`) — project `sikap` yang ada melayani produksi GAS di `sikap.uptdpenda-kupang.web.id` dan tidak boleh disentuh sampai cutover. D1 Free: 6 dari 10 database terpakai; SIKAP butuh 2 (`sikap-db`, `sikap-db-preview`).
 - [x] CI GitHub Actions: `typecheck`, `lint`, `vitest`, `vite build`.
-- [x] Deploy otomatis: setiap push ke `main` di-deploy ke produksi `sikap-v2` oleh GitHub Actions (21 Okt 2026, `docs/DEPLOY.md`). Proyek Direct Upload tidak bisa diubah ke integrasi Git Cloudflare; `deploy:preview` dihapus karena memakai binding root historis. Hapus workflow `gas-deploy.yml` setelah cutover bila masih ada.
+- [x] Deploy otomatis: setiap push ke `main` di-deploy ke produksi `sikap-v2` oleh GitHub Actions (21 Okt 2026, `docs/DEPLOY.md`; deploy pertama berhasil 22 Okt 2026 dan menayangkan redesign v2). Integrasi Git Cloudflare (*Connect to a repository*) sengaja tidak dipakai karena `wrangler.toml` root akan menjadi sumber konfigurasi dengan binding historis; `deploy:preview` dihapus karena memakai binding root historis. Hapus workflow `gas-deploy.yml` setelah cutover bila masih ada.
 
 ### Fase 2 — Auth & Shell (3–4 hari)
 - [x] API `auth/*`, middleware sesi, `requireRole`, cek Origin, lockout, audit login.

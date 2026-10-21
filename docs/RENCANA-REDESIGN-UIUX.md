@@ -2,7 +2,7 @@
 
 Disusun 21 Oktober 2026 dari tiga sumber: (1) penelusuran visual aplikasi lokal dengan data fiktif (`scripts/dev-seed.mjs`) di desktop 1440 px dan ponsel 375 px, (2) audit kode `src/` (±15 ribu baris, 13 fitur), (3) perbandingan dengan proyek lain pemilik (PINTU `portal-uptdkotakupang`, `laravel-finance-tracker`, `SIP-IKP`, `kalkulator-pajak`) serta mockup `UIUX Stitch/` dan `Blueprint Product/Step 06`.
 
-Status: semua keputusan §11 disetujui pemilik (21 Okt 2026). **Fase 0–6 selesai dan di-merge ke `main`** (PR #3, 21 Okt 2026); tayang di produksi pada deploy otomatis pertama setelah secret deploy dipasang ([`DEPLOY.md`](DEPLOY.md)). Panduan pemakaian komponen: [`POLA-UI.md`](POLA-UI.md). Produksi hidup, jadi redesign hanya menyentuh frontend (`src/`), tanpa perubahan API, skema D1, atau perilaku bisnis.
+Status: semua keputusan §11 disetujui pemilik (21 Okt 2026). **Fase 0–6 selesai dan di-merge ke `main`** (PR #3, 21 Okt 2026); tayang di produksi sejak 22 Okt 2026 lewat deploy otomatis pertama ([`DEPLOY.md`](DEPLOY.md)). Panduan pemakaian komponen: [`POLA-UI.md`](POLA-UI.md). Produksi hidup, jadi redesign hanya menyentuh frontend (`src/`), tanpa perubahan API, skema D1, atau perilaku bisnis.
 
 Catatan implementasi fase 0–1:
 
