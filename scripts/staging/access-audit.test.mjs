@@ -221,9 +221,12 @@ test('301/308 and followed/opaque redirects are not accepted', async () => {
 
 test('timeout and network errors are sanitized', async () => {
   const secret = 'Authorization: Bearer SECRET-TOKEN cf_clearance=abc';
+  // AbortSignal.timeout() uses an unref'd timer: without a ref'd one the event loop (Linux CI)
+  // is considered empty while the fake fetch hangs and node:test cancels the file.
   const hang = (_url, init) =>
     new Promise((_resolve, reject) => {
-      init.signal.addEventListener('abort', () => reject(init.signal.reason));
+      const keepAlive = setTimeout(() => {}, 5_000);
+      init.signal.addEventListener('abort', () => { clearTimeout(keepAlive); reject(init.signal.reason); });
     });
   const { report: timedOut } = await auditInventory(inventory({ hosts: [ROOT] }), {
     fetchImpl: hang,
