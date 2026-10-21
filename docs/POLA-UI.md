@@ -4,12 +4,12 @@ Panduan singkat memakai komponen dan aturan tampilan SIKAP setelah redesign (21 
 
 ## Aturan dasar
 
-- **Warna hanya dari token** di `src/index.css`: `background`/`foreground`, `card`, `muted`, `primary` (navy), `accent-soft`, `status-*` beserta `*-muted`, dan `ink`. Pengecualiannya hanya ilustrasi yang memang menggambarkan tema tertentu, yaitu swatch tema di halaman Akun.
+- **Warna hanya dari token** di `src/index.css`: `background`/`foreground`, `card`, `muted`, `primary` (navy), `accent-soft`, `status-*` beserta `*-muted`, dan `ink`. Jangan menulis warna mentah (`bg-[#…]`) di komponen.
 - **Merah hanya untuk gagal/ditolak.** "Belum diunggah", nonaktif, dan dibatalkan tampil netral. Amber dipakai untuk menunggu atau perlu perhatian, hijau untuk berhasil atau terverifikasi.
 - **Status selalu lewat registri** `src/lib/status.ts` (domain `dokumen`, `pengajuan`, `akun`, `kelengkapan`, `hasil`, `aktif`, `backup`, `log`). Tampilkan dengan `<StatusBadge domain status />`. Satu kata selalu punya satu warna dan satu ikon di semua layar; tes registri menjaga aturan ini.
 - **Tipografi:** `text-display` (judul halaman), `text-h2`, `text-h3`, `text-eyebrow` (label kecil kapital), `text-metric` (angka KPI). **Impor `cn` dari `@/lib/utils`**, karena paket `cn` bawaan membuang kelas tipografi ini.
 - **Elevasi:** `shadow-card` (kartu), `shadow-pop` (popover, sheet, bar melayang), `shadow-dialog`.
-- **Mode gelap:** setiap pasangan token lolos AA. Jangan menulis `dark:` dengan warna mentah; kalau perlu warna baru, tambahkan tokennya.
+- **Mode gelap:** terang adalah bawaan dan tema sistem operasi diabaikan. Mode gelap hanya menyala lewat switch *Mode gelap* (menu pengguna, ⌘K, dan Akun → Tampilan), disimpan per perangkat (`src/app/theme.tsx`, `public/theme-init.js`). Setiap pasangan token lolos AA. Jangan menulis `dark:` dengan warna mentah; kalau perlu warna baru, tambahkan tokennya.
 
 ## Kerangka halaman
 

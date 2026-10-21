@@ -1,66 +1,49 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { THEME_STORAGE_KEY, themeFromStored, type Theme } from '@/app/theme-storage';
 
-export type ThemePreference = 'light' | 'dark' | 'system';
-export type ResolvedTheme = 'light' | 'dark';
+export type { Theme } from '@/app/theme-storage';
 
-/** Same key as public/theme-init.js (applies the class before React renders, so no flash). */
-export const THEME_STORAGE_KEY = 'sikap.theme';
-const THEME_COLORS: Record<ResolvedTheme, string> = { light: '#f7f6f2', dark: '#0d0e11' };
+const THEME_COLORS: Record<Theme, string> = { light: '#f7f6f2', dark: '#0d0e11' };
 
 interface ThemeContextValue {
-  preference: ThemePreference;
-  resolved: ResolvedTheme;
-  setPreference: (preference: ThemePreference) => void;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function readPreference(): ThemePreference {
+function readTheme(): Theme {
   try {
-    const value = localStorage.getItem(THEME_STORAGE_KEY);
-    return value === 'light' || value === 'dark' ? value : 'system';
+    return themeFromStored(localStorage.getItem(THEME_STORAGE_KEY));
   } catch {
-    return 'system';
+    return 'light';
   }
 }
 
-function systemTheme(): ResolvedTheme {
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
-function applyTheme(theme: ResolvedTheme) {
+function applyTheme(theme: Theme) {
   const root = document.documentElement;
   root.classList.toggle('dark', theme === 'dark');
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[theme]);
 }
 
-/** Per-device light/dark/system preference (docs/RENCANA-REDESIGN-UIUX.md §9). */
+/** Light by default; dark only when switched on manually, per device (docs/RENCANA-REDESIGN-UIUX.md §9). */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, setPreferenceState] = useState<ThemePreference>(readPreference);
-  const [system, setSystem] = useState<ResolvedTheme>(systemTheme);
-  const resolved: ResolvedTheme = preference === 'system' ? system : preference;
+  const [theme, setThemeState] = useState<Theme>(readTheme);
 
-  useEffect(() => {
-    const media = window.matchMedia?.('(prefers-color-scheme: dark)');
-    if (!media) return;
-    const onChange = () => setSystem(media.matches ? 'dark' : 'light');
-    media.addEventListener('change', onChange);
-    return () => media.removeEventListener('change', onChange);
-  }, []);
+  useEffect(() => applyTheme(theme), [theme]);
 
-  useEffect(() => applyTheme(resolved), [resolved]);
-
-  const setPreference = useCallback((next: ThemePreference) => {
+  const setTheme = useCallback((next: Theme) => {
     try {
-      if (next === 'system') localStorage.removeItem(THEME_STORAGE_KEY);
-      else localStorage.setItem(THEME_STORAGE_KEY, next);
+      // Light is the default, so only the opt-in is stored.
+      if (next === 'dark') localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+      else localStorage.removeItem(THEME_STORAGE_KEY);
     } catch {
       // Storage unavailable (private mode): the choice lasts for this tab only.
     }
-    setPreferenceState(next);
+    setThemeState(next);
   }, []);
 
-  const value = useMemo(() => ({ preference, resolved, setPreference }), [preference, resolved, setPreference]);
+  const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

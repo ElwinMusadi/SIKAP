@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CircleCheck, CircleDashed, CircleX, Clock, Plus, Search } from 'lucide-react';
 import { PatternsShowcase } from '@/app/design-patterns';
-import { useTheme, type ThemePreference } from '@/app/theme';
+import { useTheme, type Theme } from '@/app/theme';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,7 +53,7 @@ function ratio(a: string, b: string): number {
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 }
 
-function useContrast(resolved: string) {
+function useContrast(theme: string) {
   const [rows, setRows] = useState<{ label: string; value: number; min: number }[]>([]);
   useEffect(() => {
     // Next frame: ThemeProvider toggles html.dark in its own effect, so read the variables afterwards.
@@ -63,7 +63,7 @@ function useContrast(resolved: string) {
       setRows(PAIRS.map(([label, fg, bg, min]) => ({ label, value: ratio(v(fg), v(bg)), min })));
     });
     return () => cancelAnimationFrame(id);
-  }, [resolved]);
+  }, [theme]);
   return rows;
 }
 
@@ -75,8 +75,8 @@ const STATUS = [
 ] as const;
 
 export default function DesignPage() {
-  const { preference, resolved, setPreference } = useTheme();
-  const contrast = useContrast(resolved);
+  const { theme, setTheme } = useTheme();
+  const contrast = useContrast(theme);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 p-6 lg:p-10">
@@ -84,18 +84,17 @@ export default function DesignPage() {
         <div className="flex flex-col gap-1">
           <p className="text-eyebrow text-muted-foreground uppercase">SIKAP design system v2</p>
           <h1 className="text-display">Panduan visual</h1>
-          <p className="text-sm text-muted-foreground">Token, tipografi, dan komponen inti dalam tema aktif ({resolved}).</p>
+          <p className="text-sm text-muted-foreground">Token, tipografi, dan komponen inti dalam tema aktif ({theme}).</p>
         </div>
         <ToggleGroup
           type="single"
           variant="outline"
-          value={preference}
-          onValueChange={(value) => value && setPreference(value as ThemePreference)}
+          value={theme}
+          onValueChange={(value) => value && setTheme(value as Theme)}
           aria-label="Tema"
         >
           <ToggleGroupItem value="light">Terang</ToggleGroupItem>
           <ToggleGroupItem value="dark">Gelap</ToggleGroupItem>
-          <ToggleGroupItem value="system">Sistem</ToggleGroupItem>
         </ToggleGroup>
       </header>
 

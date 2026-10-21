@@ -8,8 +8,8 @@ Catatan implementasi fase 0–1:
 
 - Token v2 ada di `src/index.css` (terang + gelap). Utilitas tipografi tersedia: `text-display`, `text-h2`, `text-h3`, `text-eyebrow`, `text-metric`. Bayangan: `shadow-card`, `shadow-pop`, `shadow-dialog`.
 - **`cn` wajib diimpor dari `@/lib/utils`.** Instance di sana mengenal token-token di atas. Paket `cn` bawaan menganggap `text-eyebrow` sebagai warna, sehingga membuangnya bila digabung dengan `text-muted-foreground`. Setelah `shadcn add`, ganti impor `from "cn"`.
-- Tema: `src/app/theme.tsx` (terang/gelap/sistem per perangkat) dan `public/theme-init.js` (dimuat sebelum render; CSP melarang skrip inline).
-- Shell: sidebar terang dengan lockup `INSTANSI` (`src/lib/instansi.ts`) dan menu pengguna di footer yang berisi pilihan tema. Header berisi breadcrumb, palet ⌘K (`src/app/command-menu.tsx`, termasuk cari pegawai untuk Admin) dan menu tugas (`src/app/tasks-menu.tsx`). Di ponsel ada bottom nav (`src/app/mobile-nav.tsx`). Banner password default diganti pengingat ringkas di Beranda saja.
+- Tema: `src/app/theme.tsx` (terang bawaan, mode gelap lewat switch per perangkat; sejak 22 Okt 2026 tema sistem operasi tidak lagi diikuti) dan `public/theme-init.js` (dimuat sebelum render; CSP melarang skrip inline).
+- Shell: sidebar terang dengan lockup `INSTANSI` (`src/lib/instansi.ts`) dan menu pengguna di footer yang berisi switch *Mode gelap*. Header berisi breadcrumb, palet ⌘K (`src/app/command-menu.tsx`, termasuk cari pegawai untuk Admin) dan menu tugas (`src/app/tasks-menu.tsx`). Di ponsel ada bottom nav (`src/app/mobile-nav.tsx`). Banner password default diganti pengingat ringkas di Beranda saja.
 - Ukuran kontrol naik satu tingkat (+ `pointer-coarse` ≥ 40 px). `CardTitle` dirender sebagai `h2` (pakai `as="h3"` bila bersarang). Header tabel kini eyebrow berwarna lembut.
 - `/_design` hanya ada di build dev. Halaman ini menghitung kontras token secara langsung; semua lolos di terang dan gelap.
 
@@ -44,7 +44,7 @@ Catatan implementasi fase 4 (layar pegawai, tanpa perubahan API):
 | Beranda Pegawai | `ProgressMeter` kelengkapan wajib (dihitung dari `/me/documents`), **daftar tugas berurutan** (`src/features/beranda/pegawai-tasks.ts`: lengkapi data diri → status kepegawaian → perbaiki ditolak → unggah wajib → menunggu, sisa di luar 5 prioritas diringkas), kartu data diri, dokumen terbaru, dan status pengajuan perubahan. Admin melihat hal yang sama di tab "Data saya" |
 | Arsip Dokumen | Menu **"Unggah dokumen"** di header (yang perlu diunggah lebih dulu, lalu "Ganti file"), `ProgressMeter`, satu callout profil belum lengkap, tab Wajib/Opsional, **grid kartu per jenis** (ikon bertone status, versi, file, catatan penolakan, aksi utama + menu "…"); tampilan tabel tersedia di desktop dan diingat per perangkat. Sheet pratinjau: riwayat memakai `Timeline`, keadaan kosong/galat standar |
 | Profil Pegawai | Kolom kiri menempel (foto + crop, NIP, chip, data diri terisi, pangkat/jabatan/unit, navigasi seksi); kanan: Identitas → Kepegawaian (baca saja + gembok + "Ajukan perubahan") → Kontak → Riwayat pengajuan, `StickySaveBar`. `/profil#kepegawaian` langsung ke seksinya |
-| Pengaturan Akun | Navigasi seksi; Keamanan (indikator kekuatan bersegmen + daftar syarat), Sesi aktif ("Keluarkan semua"), **Tampilan** (Terang/Gelap/Ikuti perangkat), Informasi akun |
+| Pengaturan Akun | Navigasi seksi; Keamanan (indikator kekuatan bersegmen + daftar syarat), Sesi aktif ("Keluarkan semua"), **Tampilan** (switch Mode gelap; terang bawaan), Informasi akun |
 | Login | Foto kantor dengan overlay tinta (token tetap `ink`, tidak ikut mode gelap), "SIKAP" display, kartu `shadow-pop` dengan `h1`, input 40 px, petunjuk lupa password. Di ponsel lambang di atas |
 
 Perbaikan pola: `StickySaveBar` hanya menempel saat ada perubahan dan teks statusnya tidak lagi menimpa tombol di layar sempit; `SectionCard` punya `wideAction` (aksi berlabel pindah ke bawah deskripsi di ponsel); `SelectControl` meneruskan `ref` agar select yang tidak valid mendapat fokus; sheet pratinjau dokumen dan form pegawai kini selebar layar di ponsel. QA: tanpa overflow horizontal di 375 px, tata letak 1440 px diukur, dan pemindaian kontras otomatis seluruh teks keempat layar lolos AA di terang dan gelap. Tes baru: `pegawai-tasks` (3) dan ringkasan dokumen di `dokumen-utils` (3).
@@ -254,7 +254,7 @@ Mode gelap: latar `#0D0E11`, kartu `#141519`, garis `#26272C`, teks `#F4F4F3`, a
   - breadcrumb;
   - **palet perintah ⌘K** (lompat ke halaman, cari pegawai by nama/NIP, aksi cepat "Tambah pegawai", "Unggah dokumen");
   - **ikon tugas/notifikasi** berisi antrean verifikasi, pengajuan, dan pengingat password default;
-  - menu pengguna (Profil, Pengaturan akun, Tema terang/gelap/sistem, Keluar).
+  - menu pengguna (Profil, Pengaturan akun, switch Mode gelap, Keluar).
 - **Peringatan password default**: dihapus dari semua halaman. Diganti satu titik amber di avatar + item di menu tugas + satu kartu di Beranda. Banner penuh hanya bila suatu aksi benar-benar diblokir.
 - **Ponsel:**
   - header ringkas dengan lambang;
@@ -286,7 +286,7 @@ Mode gelap: latar `#0D0E11`, kartu `#141519`, garis `#26272C`, teks `#F4F4F3`, a
 | `EntitySheet` / `FormDialog` | **aturan**: buat/ubah entitas dengan > 6 bidang → Sheet kanan (lebar tetap `sm:max-w-xl`); ≤ 6 bidang → Dialog `sm:max-w-lg`; destruktif → AlertDialog; tombol utama **selalu kanan** | 3 lebar dialog, 3 lebar sheet, posisi tombol campur |
 | `Timeline` | aktivitas dengan ikon tindakan, aktor, waktu relatif + WITA | daftar aktivitas ad hoc |
 | `CommandMenu` | ⌘K global | baru |
-| `ThemeProvider` + `ThemeToggle` | terang/gelap/sistem, disimpan per perangkat (`localStorage`, dengan try/catch) | sonner terkunci `light` |
+| `ThemeProvider` + switch Mode gelap | terang bawaan, gelap dinyalakan manual, disimpan per perangkat (`localStorage`, dengan try/catch) | sonner terkunci `light` |
 | `Chart` (shadcn + recharts) | area/bar/donut dengan token `--chart-*`, tooltip berbahasa Indonesia | token grafik tak terpakai |
 
 Panduan teks: kalimat biasa (sentence case) untuk tombol dan judul ("Simpan perubahan"), elipsis "…", kata "Ubah" (bukan "Edit"), dan waktu selalu "21 Okt 2026, 13.45 WITA".
@@ -316,7 +316,7 @@ Panduan teks: kalimat biasa (sentence case) untuk tombol dan judul ("Simpan peru
 
 ## 9. Mode gelap, tema, aksesibilitas
 
-- **Mode gelap** penuh: token `.dark`, `ThemeProvider` berbasis kelas (`html.dark`), sonner mengikuti tema, dan grafik memakai token. Pilihan disimpan per perangkat.
+- **Mode gelap** penuh: token `.dark`, `ThemeProvider` berbasis kelas (`html.dark`), sonner mengikuti tema, dan grafik memakai token. Terang adalah bawaan (tema sistem operasi diabaikan); mode gelap dinyalakan manual lewat switch dan disimpan per perangkat.
 - **Tema Admin** (opsional, fase 6): tab *Tampilan* di Pengaturan Sistem, mencontoh PINTU D-057. Isinya pilihan aksen (dengan turunan yang dipaksa lolos kontras AA), kelengkungan sudut, kepadatan tabel, dan skala 90–110%. Disimpan di D1 lewat API pengaturan. Butuh perubahan backend kecil, jadi diputuskan terpisah.
 - **Aksesibilitas (wajib lulus per fase):**
   - semua judul seksi berupa heading berurutan; login punya `h1`;
