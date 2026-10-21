@@ -97,7 +97,7 @@ async function readFileBytes(file) {
 // CREDENTIAL_FORMAT and never carry a value, key text or line content.
 export function parseCredentialEnv(text) {
   if (typeof text !== 'string') throw new ReaderError('CREDENTIAL_FORMAT');
-  const lines = text.replace(/^﻿/, '').split(/\r?\n/);
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/);
   const pick = (key) => {
     const found = lines.filter((line) => new RegExp(`^[ \\t]*(?:export[ \\t]+)?${key}[ \\t]*=`).test(line));
     if (found.length !== 1) throw new ReaderError('CREDENTIAL_FORMAT');

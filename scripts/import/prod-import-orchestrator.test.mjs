@@ -231,7 +231,7 @@ test('credential window: short-lived credential stops CREDENTIAL_WINDOW_INSUFFIC
     assert.equal((await go(credential(badInstant))).code, 'CREDENTIAL_INVALID');
     assert.equal((await go(credential(ok3h, badInstant))).code, 'CREDENTIAL_INVALID');
   }
-  const { r2ExpiresAt: _drop, ...noR2 } = credential(ok3h);
+  const noR2 = { ...credential(ok3h) }; delete noR2.r2ExpiresAt;
   assert.equal((await go(noR2)).code, 'CREDENTIAL_INVALID');
   const r2Short = await go(credential(ok3h, new Date(Date.parse(BASE) + 30 * 60 * 1000).toISOString()));
   assert.equal(r2Short.code, 'CREDENTIAL_WINDOW_INSUFFICIENT');
