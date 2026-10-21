@@ -1,14 +1,17 @@
 name: CI
 
+# Every PR and every push to main runs the full verify job. A push to main (or a manual run on main)
+# then deploys to Cloudflare Pages production (project sikap-v2): docs/DEPLOY.md.
 on:
   push:
-    branches: [feat/cloudflare-migration]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a run on main halfway through a deploy; newer main runs queue behind it.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -49,5 +52,84 @@ jobs:
       - name: Test staging guards (offline, no real credentials)
         run: npm run test:staging
 
+      - name: Test deploy packaging (fictitious IDs, no network)
+        run: npm run test:deploy
+
       - name: Build
         run: npx vite build
+
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://sikap.uptdpenda-kupang.web.id
+    concurrency:
+      group: pages-production
+      cancel-in-progress: false
+    steps:
+      - name: Check deploy secrets
+        id: secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROD_D1_DATABASE_ID: ${{ secrets.PROD_D1_DATABASE_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$PROD_D1_DATABASE_ID" ]; then
+            echo "::warning title=Deploy dilewati::Secret CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID dan PROD_D1_DATABASE_ID belum lengkap. Lihat docs/DEPLOY.md."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.ready == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+        if: steps.secrets.outputs.ready == 'true'
+
+      - name: Build
+        if: steps.secrets.outputs.ready == 'true'
+        run: npm run build
+
+      # Outside the checkout: Wrangler must never see the root wrangler.toml (historical bindings).
+      - name: Prepare release package
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          PROD_D1_DATABASE_ID: ${{ secrets.PROD_D1_DATABASE_ID }}
+        run: node scripts/deploy/pages-release.mjs "$RUNNER_TEMP/sikap-release"
+
+      - name: Deploy to Cloudflare Pages (production)
+        if: steps.secrets.outputs.ready == 'true'
+        working-directory: ${{ runner.temp }}/sikap-release
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          node "$GITHUB_WORKSPACE/node_modules/wrangler/bin/wrangler.js" pages deploy public \
+            --project-name sikap-v2 --branch main \
+            --commit-hash "$GITHUB_SHA" \
+            --commit-message "$(git -C "$GITHUB_WORKSPACE" log -1 --pretty=%s)" \
+            --commit-dirty=true
+
+      - name: Production health check
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if body=$(curl -fsS --max-time 15 https://sikap.uptdpenda-kupang.web.id/api/health) && echo "$body" | grep -q '"db":"ok"'; then
+              echo "$body"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error title=Health check gagal::/api/health produksi tidak sehat setelah deploy. Rollback lewat dashboard Cloudflare (docs/DEPLOY.md)."
+          exit 1
