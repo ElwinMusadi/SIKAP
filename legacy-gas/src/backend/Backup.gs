@@ -14,6 +14,7 @@ var BACKUP_ROOT_FOLDER_NAME = 'SIKAP_Backups';
  * @returns {Object} Result with backup folder URL.
  */
 function adminBackupDatabase(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN]);
     if (!auth.authorized) {
@@ -66,6 +67,7 @@ function adminBackupDatabase(token) {
  * @returns {Object} Result with backup folder URL.
  */
 function adminBackupFull(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN]);
     if (!auth.authorized) {
@@ -129,6 +131,7 @@ function adminBackupFull(token) {
  * @returns {GoogleAppsScript.Drive.Folder}
  */
 function _getOrCreateBackupRootFolder() {
+  assertCutoverOpen_();
   var folders = DriveApp.getFoldersByName(BACKUP_ROOT_FOLDER_NAME);
   if (folders.hasNext()) {
     return folders.next();
@@ -144,6 +147,7 @@ function _getOrCreateBackupRootFolder() {
  * @returns {Object} { success, count, message }
  */
 function _copyDocumentsFolderToBackup(backupFolder, timestamp) {
+  assertCutoverOpen_();
   try {
     var rootFolders = DriveApp.getFoldersByName(DRIVE_ROOT_FOLDER_NAME);
     if (!rootFolders.hasNext()) {

@@ -7,6 +7,7 @@
  * @returns {string} A UUID string.
  */
 function generateUUID() {
+  assertCutoverOpen_();
   return Utilities.getUuid();
 }
 
@@ -18,6 +19,7 @@ function generateUUID() {
  * @returns {string} The hex-encoded SHA-256 hash.
  */
 function hashPassword(password) {
+  assertCutoverOpen_();
   var rawHash = Utilities.computeDigest(
     Utilities.DigestAlgorithm.SHA_256,
     password,
@@ -36,6 +38,7 @@ function hashPassword(password) {
  * @returns {string} ISO-formatted timestamp.
  */
 function getTimestamp() {
+  assertCutoverOpen_();
   return Utilities.formatDate(
     new Date(),
     'Asia/Makassar',
@@ -49,6 +52,7 @@ function getTimestamp() {
  * @returns {string} The default password (last 6 digits).
  */
 function getDefaultPassword(nip) {
+  assertCutoverOpen_();
   if (!nip || nip.length < 6) return nip || '';
   return nip.slice(-6);
 }
@@ -61,6 +65,7 @@ function getDefaultPassword(nip) {
  * @returns {string} Formatted string with single quote prefix if non-empty.
  */
 function formatPhoneForStorage(phone) {
+  assertCutoverOpen_();
   if (phone === null || phone === undefined) return '';
   var clean = String(phone).trim();
   if (!clean) return '';
@@ -82,6 +87,7 @@ function formatPhoneForStorage(phone) {
  * @returns {string} Cleaned phone number string with leading zero.
  */
 function formatPhoneForDisplay(phone) {
+  assertCutoverOpen_();
   if (phone === null || phone === undefined) return '';
   var clean = String(phone).replace(/^'+/, '').trim();
   if (!clean) return '';
@@ -103,6 +109,7 @@ function formatPhoneForDisplay(phone) {
  * @returns {boolean} True if valid or empty.
  */
 function isValidPhoneNumber(phone) {
+  assertCutoverOpen_();
   if (phone === null || phone === undefined) return true;
   var str = String(phone).replace(/^'+/, '').trim();
   if (!str) return true; // Optional field
@@ -116,6 +123,7 @@ function isValidPhoneNumber(phone) {
  * @returns {boolean} True if valid or empty.
  */
 function isValidEmail(email) {
+  assertCutoverOpen_();
   if (email === null || email === undefined) return true;
   var str = String(email).trim();
   if (!str) return true; // Optional field
@@ -128,6 +136,7 @@ function isValidEmail(email) {
  * @returns {string} Formatted date string (e.g. "13 Aug 2026, 22:30").
  */
 function formatDateForDisplay(val) {
+  assertCutoverOpen_();
   try {
     if (!val || val === '-') return '-';
     var d = new Date(val);
@@ -144,6 +153,7 @@ function formatDateForDisplay(val) {
  * @returns {string} Formatted date (YYYY-MM-DD) or empty string.
  */
 function formatDateOnly(val) {
+  assertCutoverOpen_();
   try {
     if (!val || val === '-') return '';
     var d = new Date(val);
@@ -163,6 +173,7 @@ function formatDateOnly(val) {
  * @returns {string} Formatted NIK with leading single quote.
  */
 function formatNikForStorage(nik) {
+  assertCutoverOpen_();
   if (nik === null || nik === undefined) return '';
   var clean = String(nik).replace(/^'+/, '').trim();
   return clean ? "'" + clean : '';
@@ -174,6 +185,7 @@ function formatNikForStorage(nik) {
  * @returns {string} Cleaned NIK string.
  */
 function formatNikForDisplay(nik) {
+  assertCutoverOpen_();
   if (nik === null || nik === undefined) return '';
   return String(nik).replace(/^'+/, '').trim();
 }
@@ -185,6 +197,7 @@ function formatNikForDisplay(nik) {
  * @returns {boolean} True if duplicate NIK is found.
  */
 function isNikDuplicate(nik, excludeNip) {
+  assertCutoverOpen_();
   if (!nik) return false;
   var cleanNik = String(nik).replace(/^'+/, '').trim();
   if (!cleanNik) return false;
@@ -210,6 +223,7 @@ function isNikDuplicate(nik, excludeNip) {
  * @returns {string} Sanitized string safe for Google Sheets.
  */
 function escapeFormula(val) {
+  assertCutoverOpen_();
   if (val === null || val === undefined) return '';
   var str = String(val).trim();
   if (!str) return '';
@@ -225,6 +239,7 @@ function escapeFormula(val) {
  * @returns {string} Clean string.
  */
 function unescapeFormula(val) {
+  assertCutoverOpen_();
   if (val === null || val === undefined) return '';
   return String(val).replace(/^'+/, '').trim();
 }
@@ -235,6 +250,7 @@ function unescapeFormula(val) {
  * @returns {Object|null} Structured employee data object or null.
  */
 function _mapPegawaiRowToObject(d) {
+  assertCutoverOpen_();
   if (!d || !d.length) return null;
   var fotoDriveId = String(d[COL_PEGAWAI.FOTO_DRIVE_ID] || '').replace(/^'+/, '').trim();
   var fotoUrl = fotoDriveId ? 'https://drive.google.com/thumbnail?id=' + fotoDriveId + '&sz=w500' : '';

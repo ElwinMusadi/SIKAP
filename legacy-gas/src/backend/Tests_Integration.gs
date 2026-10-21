@@ -8,12 +8,14 @@ var MOCK_DOC_ID = 'DOC-KTP';
 var MOCK_BASE64_DATA = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // 1x1 transparent PNG
 
 function _assert(condition, message) {
+  assertCutoverOpen_();
   if (!condition) {
     throw new Error('ASSERTION FAILED: ' + message);
   }
 }
 
 function _logTestResult(testName, passed, message) {
+  assertCutoverOpen_();
   var prefix = passed ? '✅ PASS' : '❌ FAIL';
   Logger.log(prefix + ' | ' + testName + (message ? ' - ' + message : ''));
 }
@@ -23,6 +25,7 @@ function _logTestResult(testName, passed, message) {
  * @returns {string} token
  */
 function _createTempAdminSession() {
+  assertCutoverOpen_();
   var sheetData = getAllData(SHEET_NAMES.DATA_PEGAWAI);
   var adminNip = null;
   for (var i = 0; i < sheetData.length; i++) {
@@ -46,6 +49,7 @@ function _createTempAdminSession() {
  * Creates a temporary employee session directly.
  */
 function _createTempEmpSession(nip) {
+  assertCutoverOpen_();
   var token = 'TEST-EMP-TOKEN-' + generateUUID();
   var expiry = new Date();
   expiry.setHours(expiry.getHours() + 1);
@@ -55,6 +59,7 @@ function _createTempEmpSession(nip) {
 }
 
 function _cleanupMockData() {
+  assertCutoverOpen_();
   Logger.log('Menjalankan Cleanup Mock Data...');
   
   // Clean Data_Pegawai
@@ -115,6 +120,7 @@ function _cleanupMockData() {
 // ============================================================
 
 function test_journey1_newEmployee(adminToken) {
+  assertCutoverOpen_();
   try {
     var payload = {
       nip: MOCK_EMP_NIP,
@@ -170,6 +176,7 @@ function test_journey1_newEmployee(adminToken) {
 }
 
 function test_journey2_employeeDocument(empToken) {
+  assertCutoverOpen_();
   try {
     // 1. Employee Uploads Document
     var resUpload = uploadDokumen(empToken, MOCK_DOC_ID, MOCK_BASE64_DATA, 'image/png');
@@ -204,6 +211,7 @@ function test_journey2_employeeDocument(empToken) {
 }
 
 function test_journey3_adminVerification(adminToken, idArsip) {
+  assertCutoverOpen_();
   try {
     // 1. Admin sees queue
     var queueRes = adminGetVerificationQueue(adminToken);
@@ -234,6 +242,7 @@ function test_journey3_adminVerification(adminToken, idArsip) {
 }
 
 function test_journey4_rejectionAndReupload(adminToken, empToken, idArsip) {
+  assertCutoverOpen_();
   try {
     // Note: It's already 'Terverifikasi' from Journey 3. Let's upload a fresh one to test reject.
     // For simplicity, we manually reset status to 'Menunggu' first before rejecting so it simulates fresh queue
@@ -262,6 +271,7 @@ function test_journey4_rejectionAndReupload(adminToken, empToken, idArsip) {
 }
 
 function test_journey5_securityAndEdgeCases(adminToken, empToken) {
+  assertCutoverOpen_();
   try {
     // 1. Cross Access (Employee tries Admin Route)
     var resAdminAction = adminGetAllPegawai(empToken);
@@ -298,6 +308,7 @@ function test_journey5_securityAndEdgeCases(adminToken, empToken) {
 }
 
 function test_contact_validationAndCrud(adminToken, empToken) {
+  assertCutoverOpen_();
   try {
     // 1. Test Phone Validation Helper
     _assert(isValidPhoneNumber('081234567890'), '081234567890 should be valid');
@@ -374,6 +385,7 @@ function test_contact_validationAndCrud(adminToken, empToken) {
 }
 
 function test_document_uploadAndValidation(adminToken, empToken) {
+  assertCutoverOpen_();
   try {
     // 1. Test Valid Upload & File ID & Metadata Persistence
     var validRes = uploadDokumen(empToken, 'DOC-KK', MOCK_BASE64_DATA, 'application/pdf');
@@ -436,6 +448,7 @@ function test_document_uploadAndValidation(adminToken, empToken) {
  * MAIN EXECUTION ENTRY POINT
  */
 function runAllIntegrationTests() {
+  assertCutoverOpen_();
   Logger.log('============================================');
   Logger.log('STARTING SIKAP INTEGRATION TESTS (PHASE 09)');
   Logger.log('============================================');

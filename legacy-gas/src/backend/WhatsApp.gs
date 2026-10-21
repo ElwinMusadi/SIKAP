@@ -31,6 +31,7 @@ var SIKAP_APP_URL = 'https://sikap.uptdpenda-kupang.web.id';
  * @returns {boolean}
  */
 function _isNotifEnabled(key) {
+  assertCutoverOpen_();
   try {
     var val = PropertiesService.getScriptProperties().getProperty(key);
     // null means never set => default enabled; 'false' means explicitly disabled
@@ -42,21 +43,25 @@ function _isNotifEnabled(key) {
 }
 
 function _getFonnteToken() {
+  assertCutoverOpen_();
   try { return PropertiesService.getScriptProperties().getProperty(FONNTE_TOKEN_KEY); }
   catch (e) { Logger.log('_getFonnteToken error: ' + e); return null; }
 }
 
 function _getMetaToken() {
+  assertCutoverOpen_();
   try { return PropertiesService.getScriptProperties().getProperty(META_TOKEN_KEY); }
   catch (e) { Logger.log('_getMetaToken error: ' + e); return null; }
 }
 
 function _getMetaPhoneId() {
+  assertCutoverOpen_();
   try { return PropertiesService.getScriptProperties().getProperty(META_PHONE_ID_KEY); }
   catch (e) { Logger.log('_getMetaPhoneId error: ' + e); return null; }
 }
 
 function _getWaProvider() {
+  assertCutoverOpen_();
   try { return PropertiesService.getScriptProperties().getProperty(WA_PROVIDER_KEY) || 'fonnte'; }
   catch (e) { return 'fonnte'; }
 }
@@ -66,6 +71,7 @@ function _getWaProvider() {
 // ============================================================
 
 function sendFonnteMessage(target, message) {
+  assertCutoverOpen_();
   try {
     var token = _getFonnteToken();
     if (!token) return { success: false, message: 'Token Fonnte belum dikonfigurasi.' };
@@ -114,11 +120,13 @@ function sendFonnteMessage(target, message) {
 // ============================================================
 
 function _normalizePhoneE164(phone) {
+  assertCutoverOpen_();
   var n = String(phone || '').replace(/\D/g, '');
   return n.startsWith('0') ? '62' + n.substring(1) : n;
 }
 
 function sendMetaMessage(target, message, templateData) {
+  assertCutoverOpen_();
   try {
     var token = _getMetaToken();
     var phoneId = _getMetaPhoneId();
@@ -185,6 +193,7 @@ function sendMetaMessage(target, message, templateData) {
 // ============================================================
 
 function sendWhatsApp(target, message, templateData) {
+  assertCutoverOpen_();
   var provider = _getWaProvider();
 
   if (provider === 'meta') {
@@ -212,6 +221,7 @@ function sendWhatsApp(target, message, templateData) {
 // ============================================================
 
 function notifyDokumenApproved(targetNip, namaDokumen, namaLengkap) {
+  assertCutoverOpen_();
   try {
     if (!_isNotifEnabled(NOTIF_KEY_DOKUMEN_APPROVED)) return 'Notifikasi dinonaktifkan';
 
@@ -252,6 +262,7 @@ function notifyDokumenApproved(targetNip, namaDokumen, namaLengkap) {
 }
 
 function notifyDokumenRejected(targetNip, namaDokumen, namaLengkap, alasan) {
+  assertCutoverOpen_();
   try {
     if (!_isNotifEnabled(NOTIF_KEY_DOKUMEN_REJECTED)) return 'Notifikasi dinonaktifkan';
 
@@ -294,6 +305,7 @@ function notifyDokumenRejected(targetNip, namaDokumen, namaLengkap, alasan) {
 }
 
 function notifyAdminsNewDocument(namaPegawai, namaDokumen) {
+  assertCutoverOpen_();
   try {
     if (!_isNotifEnabled(NOTIF_KEY_DOKUMEN_BARU)) return 'Notifikasi dinonaktifkan';
 
@@ -349,6 +361,7 @@ function notifyAdminsNewDocument(namaPegawai, namaDokumen) {
 // ============================================================
 
 function adminSaveFonnteToken(token, fonnteToken) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -363,6 +376,7 @@ function adminSaveFonnteToken(token, fonnteToken) {
 }
 
 function adminGetFonnteStatus(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -374,6 +388,7 @@ function adminGetFonnteStatus(token) {
 }
 
 function adminTestFonnteMessage(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -396,6 +411,7 @@ function adminTestFonnteMessage(token) {
 }
 
 function adminSaveMetaConfig(token, metaToken, metaPhoneId) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -414,6 +430,7 @@ function adminSaveMetaConfig(token, metaToken, metaPhoneId) {
 }
 
 function adminGetWaProvider(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -435,6 +452,7 @@ function adminGetWaProvider(token) {
 }
 
 function adminSetWaProvider(token, provider) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -451,6 +469,7 @@ function adminSetWaProvider(token, provider) {
 }
 
 function adminTestMetaMessage(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -471,7 +490,7 @@ function adminTestMetaMessage(token) {
   }
 }
 
-function _forceAuth() { UrlFetchApp.fetch("https://google.com"); }
+function _forceAuth() { assertCutoverOpen_(); UrlFetchApp.fetch("https://google.com"); }
 
 // ============================================================
 // NOTIFICATION SETTINGS API (Admin)
@@ -483,6 +502,7 @@ function _forceAuth() { UrlFetchApp.fetch("https://google.com"); }
  * @returns {Object} Result with data: { dokumenBaru, dokumenApproved, dokumenRejected }
  */
 function adminGetNotifSettings(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -506,6 +526,7 @@ function adminGetNotifSettings(token) {
  * @returns {Object} Result object.
  */
 function adminSaveNotifSettings(token, settings) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };

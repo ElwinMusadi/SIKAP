@@ -36,6 +36,7 @@ var DOC_STATUS = {
  * @returns {Object} Result with profile data.
  */
 function getMyProfile(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, null, false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -61,6 +62,7 @@ function getMyProfile(token) {
  * @returns {Object} Result object.
  */
 function updateMyProfile(token, updates) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, null, false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -168,6 +170,7 @@ function updateMyProfile(token, updates) {
  * @returns {Object} Result with new photo drive ID and URL.
  */
 function uploadFotoProfil(token, base64Data, mimeType) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, null, false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -265,6 +268,7 @@ function uploadFotoProfil(token, base64Data, mimeType) {
  * @returns {Object} Result with profile, required-document, and priority stats.
  */
 function getMyDashboard(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, null, false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -466,6 +470,7 @@ function getMyDashboard(token) {
  * @returns {string} Formatted date string.
  */
 function _formatDate(val) {
+  assertCutoverOpen_();
   try {
     if (!val || val === '-') return '-';
     var d = new Date(val);
@@ -482,6 +487,7 @@ function _formatDate(val) {
  * @returns {string} Formatted date/time string.
  */
 function _formatDateTime(val) {
+  assertCutoverOpen_();
   try {
     if (!val || val === '-') return '-';
     var d = new Date(val);
@@ -502,6 +508,7 @@ function _formatDateTime(val) {
  * Run from Script Editor to validate.
  */
 function test_updateMyProfile_ownership() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: updateMyProfile ownership ===');
 
   // Test 1: Invalid token → should fail
@@ -524,6 +531,7 @@ function test_updateMyProfile_ownership() {
  * Tests phone, email, and blood type validation.
  */
 function test_updateMyProfile_validation() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: updateMyProfile validation ===');
 
   // Get a live token from Sesi_Login for testing
@@ -559,6 +567,7 @@ function test_updateMyProfile_validation() {
  * TEST: getMyDashboard completeness calculation.
  */
 function test_getMyDashboard() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: getMyDashboard ===');
 
   var sessions = getAllData(SHEET_NAMES.SESI_LOGIN);

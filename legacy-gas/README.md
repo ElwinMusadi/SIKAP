@@ -1,5 +1,12 @@
 # SIKAP — Sistem Informasi Kepegawaian
 
+> **Audit 18 Oktober 2026: jangan push/deploy tree ini.** Source live versi 140 memuat hotfix
+> keamanan yang belum ada pada snapshot lokal ini (helper private, whitelist 40 action,
+> lockout, validasi upload dan file Maintenance). Guard cutover 122 fungsi lokal adalah
+> prototipe pada baseline usang, bukan kandidat live. Port berikutnya harus berangkat dari
+> baseline v140 terverifikasi dan mempertahankan hotfix. Lihat `../MIGRATION_PLAN.md` bagian
+> audit GAS read-only; tidak ada freeze atau perubahan deployment dari audit tersebut.
+
 SIKAP adalah aplikasi Sistem Informasi Kepegawaian berskala _enterprise_ tingkat lanjut yang menerapkan **Unified Architecture**. Sistem ini mengintegrasikan pengiriman Frontend modern super cepat (Cloudflare Pages) dengan keandalan Backend tanpa peladen (Google Apps Script).
 
 ---

@@ -77,6 +77,7 @@ var COL_MASTER_DOKUMEN = {
  */
 var _spreadsheet = null;
 function getSpreadsheet() {
+  assertCutoverOpen_();
   if (!_spreadsheet) {
     _spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
   }
@@ -89,6 +90,7 @@ function getSpreadsheet() {
  * @returns {GoogleAppsScript.Spreadsheet.Sheet}
  */
 function getSheet(sheetName) {
+  assertCutoverOpen_();
   return getSpreadsheet().getSheetByName(sheetName);
 }
 
@@ -99,6 +101,7 @@ function getSheet(sheetName) {
  * @returns {Array[]} 2D array of cell values.
  */
 function getAllData(sheetName) {
+  assertCutoverOpen_();
   var sheet = getSheet(sheetName);
   if (!sheet) return [];
   var data = sheet.getDataRange().getValues();
@@ -114,6 +117,7 @@ function getAllData(sheetName) {
  * @returns {Object|null} { rowIndex (1-based), data (array) } or null.
  */
 function findByPrimaryKey(sheetName, key) {
+  assertCutoverOpen_();
   var sheet = getSheet(sheetName);
   if (!sheet) return null;
   var data = sheet.getDataRange().getValues();
@@ -132,6 +136,7 @@ function findByPrimaryKey(sheetName, key) {
  * @param {Array} rowData - Array of values to append.
  */
 function appendRow(sheetName, rowData) {
+  assertCutoverOpen_();
   var sheet = getSheet(sheetName);
   if (sheet) {
     sheet.appendRow(rowData);
@@ -147,6 +152,7 @@ function appendRow(sheetName, rowData) {
  * @param {*} value - The value to set.
  */
 function updateCell(sheetName, row, col, value) {
+  assertCutoverOpen_();
   var sheet = getSheet(sheetName);
   if (sheet) {
     sheet.getRange(row, col).setValue(value);
@@ -161,6 +167,7 @@ function updateCell(sheetName, row, col, value) {
  * @param {string} key - The primary key value.
  */
 function deleteByPrimaryKey(sheetName, key) {
+  assertCutoverOpen_();
   deleteByColumnValue(sheetName, 0, key);
 }
 
@@ -171,6 +178,7 @@ function deleteByPrimaryKey(sheetName, key) {
  * @param {string} value - The value to match.
  */
 function deleteByColumnValue(sheetName, colIndex, value) {
+  assertCutoverOpen_();
   var sheet = getSheet(sheetName);
   if (!sheet) return;
   var data = sheet.getDataRange().getValues();
@@ -191,6 +199,7 @@ function deleteByColumnValue(sheetName, colIndex, value) {
  * @param {Object} fields - Map of { columnIndex (0-based): value }.
  */
 function updateRowFields(sheetName, rowIndex, fields) {
+  assertCutoverOpen_();
   var sheet = getSheet(sheetName);
   if (!sheet) return;
   for (var colIndex in fields) {
@@ -208,6 +217,7 @@ function updateRowFields(sheetName, rowIndex, fields) {
  * @returns {Array} Array of { rowIndex (1-based), data (array) } matches.
  */
 function findAllByColumnValue(sheetName, colIndex, value) {
+  assertCutoverOpen_();
   var sheet = getSheet(sheetName);
   if (!sheet) return [];
   var data = sheet.getDataRange().getValues();

@@ -14,6 +14,7 @@
  * @returns {Object} { success, data: { totalPegawai, pns, cpns, p3k, pendingVerifikasi, docPct, recentActivities } }
  */
 function adminGetDashboardStats(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -135,6 +136,7 @@ function adminGetDashboardStats(token) {
  * @returns {Object} Result object.
  */
 function adminGetLogAktivitas(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -190,6 +192,7 @@ function adminGetLogAktivitas(token) {
  * @returns {Object} Result with array of employee rows + summary counts.
  */
 function adminGetAllPegawai(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -268,6 +271,7 @@ function adminGetAllPegawai(token) {
  * @returns {Object} Result with complete employee data.
  */
 function adminGetPegawaiDetail(token, targetNip) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -302,6 +306,7 @@ function adminGetPegawaiDetail(token, targetNip) {
  * @returns {Object} Result object.
  */
 function adminTambahPegawai(token, data) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -463,6 +468,7 @@ function adminTambahPegawai(token, data) {
  * @returns {Object} Result object.
  */
 function adminUpdatePegawai(token, targetNip, updates) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -604,6 +610,7 @@ function adminUpdatePegawai(token, targetNip, updates) {
  * @returns {Object} Result object.
  */
 function adminUploadFotoPegawai(token, targetNip, base64Data, mimeType) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -701,6 +708,7 @@ function adminUploadFotoPegawai(token, targetNip, base64Data, mimeType) {
  * @returns {Object} Result object.
  */
 function adminSetStatusAkun(token, targetNip, newStatus) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -742,6 +750,7 @@ function adminSetStatusAkun(token, targetNip, newStatus) {
  * @returns {Object} Result object.
  */
 function adminDeletePegawai(token, targetNip) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -798,6 +807,7 @@ function adminDeletePegawai(token, targetNip) {
  * @returns {Object} Result object.
  */
 function adminResetPassword(token, targetNip) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -836,6 +846,7 @@ function adminResetPassword(token, targetNip) {
  * @returns {Object} Result object { success: true, data: queueArray }.
  */
 function _getColIdx(headerRow, colName, defaultIdx) {
+  assertCutoverOpen_();
   if (!headerRow || !headerRow.length) return defaultIdx;
   var target = String(colName).toLowerCase().replace(/[^a-z0-9]/g, '');
   for (var i = 0; i < headerRow.length; i++) {
@@ -852,6 +863,7 @@ function _getColIdx(headerRow, colName, defaultIdx) {
  * @returns {Object} Result object { success: true, data: queueArray }.
  */
 function adminGetVerificationQueue(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -991,6 +1003,7 @@ function adminGetVerificationQueue(token) {
  * @returns {Object} Result object.
  */
 function adminApproveDokumen(token, idArsip) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -1047,6 +1060,7 @@ function adminApproveDokumen(token, idArsip) {
  * @returns {Object} Result object.
  */
 function adminRejectDokumen(token, idArsip, alasanPenolakan) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, [ROLES.ADMIN], false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -1108,6 +1122,7 @@ function adminRejectDokumen(token, idArsip, alasanPenolakan) {
  * TEST: RBAC enforcement — non-admin token is rejected.
  */
 function test_admin_rbac() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: Admin RBAC ===');
 
   // Test 1: No token
@@ -1143,6 +1158,7 @@ function test_admin_rbac() {
  * TEST: Duplicate NIP detection on tambah.
  */
 function test_admin_tambah_duplicate_nip() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: Duplicate NIP ===');
 
   var sessions = getAllData(SHEET_NAMES.SESI_LOGIN);
@@ -1185,6 +1201,7 @@ function test_admin_tambah_duplicate_nip() {
  * TEST: Duplicate NIK detection and validation on tambah & update.
  */
 function test_admin_pegawai_crud_validation() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: Pegawai CRUD Validation (NIP, NIK, Updates) ===');
 
   var sessions = getAllData(SHEET_NAMES.SESI_LOGIN);
@@ -1236,6 +1253,7 @@ function test_admin_pegawai_crud_validation() {
  * TEST: Document verification engine (Queue, Approve, Reject, Authorization).
  */
 function test_admin_verification() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: Admin Verification Engine ===');
 
   // Test 1: Unauthorized access with null token

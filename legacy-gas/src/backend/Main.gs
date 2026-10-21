@@ -11,6 +11,7 @@
  * This is the single entry point for the web application.
  */
 function doGet(e) {
+  assertCutoverOpen_();
   return HtmlService.createTemplateFromFile("frontend/Index")
     .evaluate()
     .setTitle("SIKAP — Sistem Informasi Kepegawaian")
@@ -26,6 +27,7 @@ function doGet(e) {
  * @returns {string} The evaluated HTML content of the file.
  */
 function include(filename) {
+  assertCutoverOpen_();
   try {
     return HtmlService.createHtmlOutputFromFile(filename).getContent();
   } catch (e) {

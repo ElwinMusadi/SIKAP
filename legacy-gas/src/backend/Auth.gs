@@ -22,6 +22,7 @@ var ENABLE_FORCE_CHANGE_PASSWORD = false;
  * @returns {Object} Result object with success, data, message.
  */
 function login(nip, password) {
+  assertCutoverOpen_();
   try {
     if (!nip || !password) {
       return { success: false, message: 'NIP dan Password harus diisi.' };
@@ -100,6 +101,7 @@ function login(nip, password) {
  * @returns {Object|null} User session data or null if invalid.
  */
 function validateSession(token) {
+  assertCutoverOpen_();
   if (!token) return null;
 
   var allSessions = getAllData(SHEET_NAMES.SESI_LOGIN);
@@ -152,6 +154,7 @@ function validateSession(token) {
  * @returns {Object} { authorized: boolean, session: Object|null, error: string|null }
  */
 function authorize(token, allowedRoles, allowForceChange) {
+  assertCutoverOpen_();
   if (!token) {
     return { authorized: false, session: null, error: 'Sesi tidak valid. Silakan login kembali.' };
   }
@@ -182,6 +185,7 @@ function authorize(token, allowedRoles, allowForceChange) {
  * @returns {Object} Result with user data or error.
  */
 function checkSession(token) {
+  assertCutoverOpen_();
   try {
     var session = validateSession(token);
     if (session) {
@@ -201,6 +205,7 @@ function checkSession(token) {
  * @returns {Object} Result with user profile data.
  */
 function getUserProfile(token) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, null, false);
     if (!auth.authorized) {
@@ -227,6 +232,7 @@ function getUserProfile(token) {
  * Can be run as a time-driven trigger or manually.
  */
 function cleanExpiredSessions() {
+  assertCutoverOpen_();
   try {
     var sheet = getSheet(SHEET_NAMES.SESI_LOGIN);
     if (!sheet) return;
@@ -262,6 +268,7 @@ function cleanExpiredSessions() {
  * @returns {Object} Result object.
  */
 function changePassword(token, newPassword, currentPassword) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, null, false);
     if (!auth.authorized) {
@@ -346,6 +353,7 @@ function changePassword(token, newPassword, currentPassword) {
  * @returns {Object} Result object.
  */
 function forceChangePassword(token, newPassword) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, null, true); // Allow even if forceChangePassword is true
     if (!auth.authorized) {
@@ -425,6 +433,7 @@ function forceChangePassword(token, newPassword) {
  * @returns {Object} Result object.
  */
 function logout(token) {
+  assertCutoverOpen_();
   try {
     if (token) {
       // Get user info before deleting session for audit log
@@ -455,6 +464,7 @@ function logout(token) {
  * @param {string} result - Result (SUCCESS, FAILURE).
  */
 function logActivity(actorNip, actorRole, action, targetType, targetId, description, result) {
+  assertCutoverOpen_();
   try {
     appendRow(SHEET_NAMES.LOG_AKTIVITAS, [
       generateUUID(),
@@ -478,6 +488,7 @@ function logActivity(actorNip, actorRole, action, targetType, targetId, descript
  * Run this manually once to populate the spreadsheet.
  */
 function seedData() {
+  assertCutoverOpen_();
   var ss = getSpreadsheet();
   
   // --- Create or get sheets ---
@@ -601,6 +612,7 @@ function seedData() {
  * TEST: Verifies audit log entries for all 10 action categories.
  */
 function test_audit_logging() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: Audit Logging Suite ===');
 
   var actionsToTest = [

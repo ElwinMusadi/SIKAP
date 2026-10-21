@@ -7,6 +7,7 @@
  * Processes JSON requests, maps arguments, and safely invokes backend functions.
  */
 function doPost(e) {
+  assertCutoverOpen_();
   try {
     // 1. Validate action parameter
     var action = e.parameter.action;

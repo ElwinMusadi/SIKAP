@@ -33,6 +33,7 @@ var MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
  * @returns {GoogleAppsScript.Drive.Folder}
  */
 function _getSikapRootFolder() {
+  assertCutoverOpen_();
   var folders = DriveApp.getFoldersByName(DRIVE_ROOT_FOLDER_NAME);
   var rootFolder;
   if (folders.hasNext()) {
@@ -59,6 +60,7 @@ function _getSikapRootFolder() {
  * @returns {GoogleAppsScript.Drive.Folder}
  */
 function _getOrCreateSubFolder(parent, name) {
+  assertCutoverOpen_();
   var sub = parent.getFoldersByName(name);
   if (sub.hasNext()) {
     return sub.next();
@@ -76,6 +78,7 @@ function _getOrCreateSubFolder(parent, name) {
  * @returns {GoogleAppsScript.Drive.Folder} The personal employee folder.
  */
 function getOrCreateEmployeeFolder(nip) {
+  assertCutoverOpen_();
   var user = findByPrimaryKey(SHEET_NAMES.DATA_PEGAWAI, nip);
   if (!user) throw new Error('Pegawai tidak ditemukan: ' + nip);
 
@@ -125,6 +128,7 @@ function getOrCreateEmployeeFolder(nip) {
  * @returns {Object} { success, data: { pct, counts, tableRows, wajibRows, opsionalRows, totalDocs, availableCount, wajibTotal, wajibAvailable, wajibVerified } }
  */
 function getArsipDokumenPegawai(token, targetNip) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, null, false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -292,6 +296,7 @@ function getArsipDokumenPegawai(token, targetNip) {
  * @returns {Object} Result object.
  */
 function hapusDokumen(token, idArsip) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, null, false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -361,6 +366,7 @@ function hapusDokumen(token, idArsip) {
  * @returns {Object} { success, data }
  */
 function getDokumenPreview(token, idArsip) {
+  assertCutoverOpen_();
   try {
     var auth = authorize(token, null, false);
     if (!auth.authorized) return { success: false, message: auth.error };
@@ -466,6 +472,7 @@ function getDokumenPreview(token, idArsip) {
  * @returns {Object} { success, message, data: { idArsip, status, fileUrl, fileName } }
  */
 function uploadDokumen(token, idDokumen, base64Data, mimeType) {
+  assertCutoverOpen_();
   try {
     // ---- Auth ----
     var auth = authorize(token, null, false);
@@ -707,6 +714,7 @@ function uploadDokumen(token, idDokumen, base64Data, mimeType) {
  * @returns {string}
  */
 function _formatDate(val) {
+  assertCutoverOpen_();
   try {
     if (!val || val === '-') return '-';
     var d = new Date(val);
@@ -725,6 +733,7 @@ function _formatDate(val) {
  * TEST: Upload — invalid MIME type must be rejected.
  */
 function test_upload_invalid_type() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: Upload — invalid MIME type ===');
   var sessions = getAllData(SHEET_NAMES.SESI_LOGIN);
   if (!sessions.length) { Logger.log('No sessions. Login first.'); return; }
@@ -738,6 +747,7 @@ function test_upload_invalid_type() {
  * TEST: Upload — oversized file (~7 MB) must be rejected.
  */
 function test_upload_oversized() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: Upload — oversized file ===');
   var sessions = getAllData(SHEET_NAMES.SESI_LOGIN);
   if (!sessions.length) { Logger.log('No sessions. Login first.'); return; }
@@ -754,6 +764,7 @@ function test_upload_oversized() {
  * TEST: Duplicate submission — blocked when status is Menunggu.
  */
 function test_upload_duplicate_menunggu() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: Upload — duplicate Menunggu ===');
   var sessions = getAllData(SHEET_NAMES.SESI_LOGIN);
   if (!sessions.length) { Logger.log('No sessions. Login first.'); return; }
@@ -780,6 +791,7 @@ function test_upload_duplicate_menunggu() {
  * TEST: Preview — unauthorized access by different user must be rejected.
  */
 function test_preview_unauthorized() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: Preview — unauthorized access ===');
   var sessions = getAllData(SHEET_NAMES.SESI_LOGIN);
   if (sessions.length < 2) { Logger.log('Need at least 2 active sessions.'); return; }
@@ -806,6 +818,7 @@ function test_preview_unauthorized() {
  * TEST: Ownership — null and fake tokens must be rejected.
  */
 function test_ownership_getArsip() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: Ownership — getArsipDokumenPegawai ===');
   var r1 = getArsipDokumenPegawai(null);
   Logger.log('T1 (null token): '  + (r1.success === false ? 'PASS ✓' : 'FAIL ✗'));
@@ -817,6 +830,7 @@ function test_ownership_getArsip() {
  * TEST: Re-upload — Ditolak doc should NOT be blocked by duplicate check.
  */
 function test_reupload_not_blocked() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: Re-upload — Ditolak not blocked ===');
   var sessions = getAllData(SHEET_NAMES.SESI_LOGIN);
   if (!sessions.length) { Logger.log('No sessions. Login first.'); return; }
@@ -850,6 +864,7 @@ function test_reupload_not_blocked() {
  * TEST: Upload failure — missing required params.
  */
 function test_upload_failure_missing_params() {
+  assertCutoverOpen_();
   Logger.log('=== TEST: Upload failure — missing params ===');
   var sessions = getAllData(SHEET_NAMES.SESI_LOGIN);
   if (!sessions.length) { Logger.log('No sessions. Login first.'); return; }
