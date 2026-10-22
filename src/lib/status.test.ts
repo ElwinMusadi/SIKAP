@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LOG_RESULT, STATUS_AKUN, STATUS_DOKUMEN, STATUS_PENGAJUAN } from '@shared/enums';
 import { KELENGKAPAN } from '@shared/pegawai';
 import { BACKUP_STATUS_LABEL } from '@/features/backup/backup-utils';
-import { STATUS_REGISTRY, TONE_CLASSES, statusSpec } from './status';
+import { KUNCI_API_STATUS, STATUS_REGISTRY, TONE_CLASSES, statusSpec } from './status';
 
 describe('status registry', () => {
   it('covers every enum value of each domain', () => {
@@ -12,6 +12,7 @@ describe('status registry', () => {
     expect(Object.keys(STATUS_REGISTRY.kelengkapan).sort()).toEqual([...KELENGKAPAN].sort());
     expect(Object.keys(STATUS_REGISTRY.log).sort()).toEqual([...LOG_RESULT].sort());
     expect(Object.keys(STATUS_REGISTRY.backup).sort()).toEqual(Object.keys(BACKUP_STATUS_LABEL).sort());
+    expect(Object.keys(STATUS_REGISTRY.kunciApi).sort()).toEqual([...KUNCI_API_STATUS].sort());
     for (const [status, label] of Object.entries(BACKUP_STATUS_LABEL)) {
       expect(statusSpec('backup', status as keyof typeof BACKUP_STATUS_LABEL).label).toBe(label);
     }
@@ -31,6 +32,7 @@ describe('status registry', () => {
     expect(statusSpec('dokumen', 'Belum diunggah').tone).toBe('neutral');
     expect(statusSpec('akun', 'Nonaktif').tone).toBe('neutral');
     expect(statusSpec('pengajuan', 'Dibatalkan').tone).toBe('neutral');
+    expect(statusSpec('kunciApi', 'Kedaluwarsa').tone).toBe('neutral');
     expect(statusSpec('dokumen', 'Ditolak').tone).toBe('rejected');
     expect(statusSpec('hasil', 'Gagal').tone).toBe('rejected');
   });

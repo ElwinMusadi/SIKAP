@@ -75,6 +75,9 @@ const FALLBACK_MESSAGES: Record<ClientErrorCode, string> = {
   NOT_FOUND: 'Data tidak ditemukan.',
   CONFLICT: 'Data telah berubah. Muat ulang lalu coba lagi.',
   RATE_LIMITED: 'Terlalu banyak percobaan. Coba lagi nanti.',
+  // Only returned by /api/v1 (integration clients), never to the SPA; listed for completeness.
+  API_KEY_INVALID: 'Kunci API tidak valid atau sudah tidak berlaku.',
+  API_SCOPE_DENIED: 'Kunci API ini tidak memiliki izin untuk permintaan tersebut.',
   INTERNAL_ERROR: 'Terjadi kesalahan pada server. Silakan coba lagi.',
   NETWORK_ERROR: 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
 };

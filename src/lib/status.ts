@@ -2,6 +2,8 @@
 // label, one tone and one icon here, so the same word never changes colour or icon between screens.
 // Red is reserved for failed/rejected states; "not yet uploaded"/inactive/cancelled are neutral.
 import {
+  CalendarClock,
+  CalendarX2,
   CircleAlert,
   CircleCheck,
   CircleDashed,
@@ -61,6 +63,9 @@ export const TONE_CLASSES: Record<StatusTone, { badge: string; soft: string; tex
 export type DokumenStatus = StatusDokumen | 'Belum diunggah';
 export type HasilStatus = 'Berhasil' | 'Gagal';
 export type AktifStatus = 'Aktif' | 'Nonaktif';
+/** Integration API key validity, derived from expiresAt (src/features/integrasi/kunci-api-utils.ts). */
+export const KUNCI_API_STATUS = ['Aktif', 'Segera kedaluwarsa', 'Kedaluwarsa'] as const;
+export type KunciApiStatus = (typeof KUNCI_API_STATUS)[number];
 
 export const STATUS_REGISTRY = {
   dokumen: {
@@ -105,6 +110,12 @@ export const STATUS_REGISTRY = {
     WARNING: { label: 'Peringatan', tone: 'pending', icon: TriangleAlert },
     PARTIAL: { label: 'Sebagian', tone: 'pending', icon: CircleAlert },
   },
+  /** Integration API key validity; an expired key is not a failure, so it stays neutral. */
+  kunciApi: {
+    Aktif: { label: 'Aktif', tone: 'verified', icon: CircleCheck },
+    'Segera kedaluwarsa': { label: 'Segera kedaluwarsa', tone: 'pending', icon: CalendarClock },
+    Kedaluwarsa: { label: 'Kedaluwarsa', tone: 'neutral', icon: CalendarX2 },
+  },
 } as const satisfies {
   dokumen: Record<DokumenStatus, StatusSpec>;
   pengajuan: Record<StatusPengajuan, StatusSpec>;
@@ -114,6 +125,7 @@ export const STATUS_REGISTRY = {
   aktif: Record<AktifStatus, StatusSpec>;
   backup: Record<BackupStatus, StatusSpec>;
   log: Record<LogResult, StatusSpec>;
+  kunciApi: Record<KunciApiStatus, StatusSpec>;
 };
 
 export type StatusDomain = keyof typeof STATUS_REGISTRY;

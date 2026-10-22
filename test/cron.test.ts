@@ -34,6 +34,26 @@ describe('scheduled companion', () => {
     expect(await env.DB.prepare('SELECT 1 FROM rate_limit WHERE key=?1').bind(freshWindow).first()).not.toBeNull();
   });
 
+  it('removes integration API windows only after their own window length', async () => {
+    const now = Date.parse('2030-01-02T00:00:00.000Z');
+    const at = (msAgo: number) => new Date(now - msAgo).toISOString();
+    const rows: [string, string][] = [
+      [`api:old-${crypto.randomUUID()}`, at(2 * 60_000)], // per-key window: 60 s
+      [`api:fresh-${crypto.randomUUID()}`, at(30_000)],
+      [`api-auth-ip:old-${crypto.randomUUID()}`, at(16 * 60_000)], // auth failures: 15 min
+      [`api-auth-ip:fresh-${crypto.randomUUID()}`, at(5 * 60_000)],
+    ];
+    await env.DB.batch(
+      rows.map(([key, ws]) => env.DB.prepare(`INSERT INTO rate_limit(key,window_start,count) VALUES (?1,?2,1)`).bind(key, ws)),
+    );
+    await cleanupExpired(env.DB, now);
+    const present = async (key: string) => (await env.DB.prepare('SELECT 1 FROM rate_limit WHERE key=?1').bind(key).first()) !== null;
+    expect(await present(rows[0]![0])).toBe(false);
+    expect(await present(rows[1]![0])).toBe(true);
+    expect(await present(rows[2]![0])).toBe(false);
+    expect(await present(rows[3]![0])).toBe(true);
+  });
+
   it('does not execute anything for an unknown cron expression', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch');
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);

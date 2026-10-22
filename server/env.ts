@@ -1,4 +1,5 @@
 import type { Role, StatusKepegawaian } from '../shared/enums';
+import type { IzinApi } from '../shared/integrasi';
 
 /** Cloudflare bindings, vars and secrets (wrangler.toml + `.dev.vars` / Pages secrets). */
 export interface Bindings {
@@ -40,9 +41,21 @@ export interface AuthContext {
   tokenHash: string;
 }
 
+/** Integration client resolved by `apiKeyAuth` (/api/v1 only). */
+export interface ApiClient {
+  /** `kunci_api.id` */
+  id: number;
+  idPublik: string;
+  nama: string;
+  izin: IzinApi[];
+  expiresAt: string;
+}
+
 export interface Variables {
   /** Set by `requireSession`; absent on public routes. */
   auth?: AuthContext;
+  /** Set by `apiKeyAuth`; only on /api/v1 routes. */
+  apiClient?: ApiClient;
 }
 
 export interface AppEnv {

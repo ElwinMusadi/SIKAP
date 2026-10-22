@@ -12,6 +12,7 @@
 // CPU budget (Workers Free = 10 ms/request): one HMAC + one 10k PBKDF2 per verify.
 
 import { AUTH_POLICY } from '../../shared/enums';
+import { API_KEY_PATTERN } from '../../shared/integrasi';
 
 export const HASH_PREFIX = 'pbkdf2-sha256';
 export const LEGACY_PREFIX = 'legacy-wrap';
@@ -173,4 +174,33 @@ export function hashSessionToken(token: string): Promise<string> {
 /** Public, non-secret session identifier exposed by GET /api/auth/sessions. */
 export function sessionPublicId(tokenHash: string): string {
   return tokenHash.slice(0, 16);
+}
+
+// ---------------------------------------------------------------------------
+// Integration API keys (shared/integrasi.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * New key `skp_<idPublik>_<secret>`: 6 random bytes as the public id (lookup, shown in the UI)
+ * and 32 random bytes as the secret. Only `hashApiKey(kunci)` is stored.
+ */
+export function generateApiKey(): { kunci: string; idPublik: string } {
+  const idPublik = bytesToHex(crypto.getRandomValues(new Uint8Array(6)));
+  const secret = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+  return { kunci: `skp_${idPublik}_${secret}`, idPublik };
+}
+
+/** Public id of a well-formed key, or null. Never logs or returns the secret part. */
+export function apiKeyPublicId(kunci: string): string | null {
+  return API_KEY_PATTERN.exec(kunci)?.[1] ?? null;
+}
+
+/** Value stored in `kunci_api.token_hash` (SHA-256 hex of the full key). */
+export function hashApiKey(kunci: string): Promise<string> {
+  return sha256Hex(kunci);
+}
+
+/** Constant-time comparison of two SHA-256 hex digests. */
+export function hexDigestEqual(a: string, b: string): boolean {
+  return constantTimeEqual(encoder.encode(a), encoder.encode(b));
 }

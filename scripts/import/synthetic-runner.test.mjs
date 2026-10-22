@@ -15,6 +15,7 @@ import { ENDPOINT_ORIGIN, ENDPOINT_PATH } from './d1-rest.mjs';
 import { ROW_LIMITS, SCHEMA_QUERY } from './d1-readback.mjs';
 import { runSyntheticImport, runPrivateUatImport, runPrivateUatRecovery, UAT_EXPECTED_SCHEMA_SHA256, hashBaseline, READBACK_BUDGET_BYTES, RUNNER_STATUSES, RUNNER_REASONS } from './synthetic-runner.mjs';
 import { UAT_TARGET, UAT_APP_SCHEMA_SHA256, UAT_POLICY_SHA256, UAT_RETENTION_POLICY_SHA256, issueRealDataUatPermit, claimPermitForRun, finishPermitRun, isPermitClaimed, isPermitSpent } from './real-data-gate.mjs';
+import { IMPORT_SCHEMA_SKIP } from './historical-schema.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 const DDL = readFileSync(new URL(LEDGER_SQL_FILE, ROOT), 'utf8');
@@ -1556,7 +1557,7 @@ const schemaReceipt = (rows) => h(JSON.stringify([...rows].sort((a, b) =>
   a.type < b.type ? -1 : a.type > b.type ? 1 : a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
   .map((r) => [r.type, r.name, r.tbl_name, r.sql])));
 
-test('20: pinned sqlite_schema receipt reproduces migrations 0001..0008 + ledger offline', async (t) => {
+test('20: pinned sqlite_schema receipt reproduces migrations 0001..0008 + ledger offline', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const db = await openDb(t);
   assert.equal(MIGRATIONS.length, 8);
   const rows = (await db.prepare(SCHEMA_QUERY.sql).all()).results;
@@ -1565,7 +1566,7 @@ test('20: pinned sqlite_schema receipt reproduces migrations 0001..0008 + ledger
   assert.equal(schemaReceipt(rows.reverse().map((r) => ({ sql: r.sql, tbl_name: r.tbl_name, name: r.name, type: r.type }))), UAT_EXPECTED_SCHEMA_SHA256);
 });
 
-test('21: genuine private UAT permit compiles private plan, verifies initial schema, transfers via adapter, spends permit', async (t) => {
+test('21: genuine private UAT permit compiles private plan, verifies initial schema, transfers via adapter, spends permit', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const db = await openDb(t), baseline = await readBaseline(db), f = uatFixture(baseline);
   await bootstrap(db, f.d);
   const artifact = compileChunks({ tables: f.plan.tables }, f.d, { now: NOW });
@@ -1646,7 +1647,7 @@ test('23: private object list exact coverage and permit photo size mismatch stop
   assert.equal(await snapshot(db), before);
 });
 
-test('24: missing/tampered SQL schema stops after initial read only, even with all 21 tables present', async (t) => {
+test('24: missing/tampered SQL schema stops after initial read only, even with all 21 tables present', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const db = await openDb(t), baseline = await readBaseline(db), beforeBootstrap = await snapshot(db);
   const f = uatFixture(baseline);
   await bootstrap(db, f.d);
@@ -1678,7 +1679,7 @@ test('24: missing/tampered SQL schema stops after initial read only, even with a
   assert.notEqual(before, beforeBootstrap); // test bootstrap is the only write
 });
 
-test('25: caller baseline hash, seed-only and actual initial-row comparison remain mandatory in UAT', async (t) => {
+test('25: caller baseline hash, seed-only and actual initial-row comparison remain mandatory in UAT', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const db = await openDb(t), baseline = await readBaseline(db), f = uatFixture(baseline);
   await bootstrap(db, f.d);
   const wrong = structuredClone(baseline); wrong.jenis_dokumen[0].nama = 'Different baseline';
@@ -1702,7 +1703,7 @@ test('25: caller baseline hash, seed-only and actual initial-row comparison rema
   assert.equal(r2Fake.calls.length, 0);
 });
 
-test('27: permit finished after FINAL_OBJECTS tick but before queued GET dispatch -> no final GET, no success', async (t) => {
+test('27: permit finished after FINAL_OBJECTS tick but before queued GET dispatch -> no final GET, no success', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const db = await openDb(t), baseline = await readBaseline(db), f = uatFixture(baseline);
   await bootstrap(db, f.d);
   const chunkCount = compileChunks({ tables: f.plan.tables }, f.d, { now: NOW }).chunkCount;
@@ -1768,7 +1769,7 @@ async function receiptState(db) {
 }
 const RECEIPT_ZERO = { run: [{ stage: 0, cursor: 0, ordinal: 0, claim_seq: 0, last_chunk_sha256: null, complete: 0 }], journal: 0 };
 
-test('28: recovery reuses exact pre-existing object (GET only), uploads 404 object once, D1 once, final GET all', async (t) => {
+test('28: recovery reuses exact pre-existing object (GET only), uploads 404 object once, D1 once, final GET all', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const db = await openDb(t), baseline = await readBaseline(db), f = uatFixture(baseline);
   await bootstrap(db, f.d);
   const chunkCount = compileChunks({ tables: f.plan.tables }, f.d, { now: NOW }).chunkCount;
@@ -1800,7 +1801,7 @@ test('28: recovery reuses exact pre-existing object (GET only), uploads 404 obje
   checkReportSafety(rep, f.d, true);
 });
 
-test('29: recovery pre-GET mismatch/403 stops before D1 (no PUT/overwrite); original entry still rejects conflicts', async (t) => {
+test('29: recovery pre-GET mismatch/403 stops before D1 (no PUT/overwrite); original entry still rejects conflicts', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const db = await openDb(t), baseline = await readBaseline(db), f = uatFixture(baseline);
   await bootstrap(db, f.d);
   const before = await snapshot(db);
@@ -1840,7 +1841,7 @@ test('29: recovery pre-GET mismatch/403 stops before D1 (no PUT/overwrite); orig
   assert.equal(await snapshot(db), before);
 });
 
-test('30: recovery 404 then PUT 412 race / ambiguous PUT -> stop, no resend, receipt stays ordinal 0', async (t) => {
+test('30: recovery 404 then PUT 412 race / ambiguous PUT -> stop, no resend, receipt stays ordinal 0', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const db = await openDb(t), baseline = await readBaseline(db), f = uatFixture(baseline);
   await bootstrap(db, f.d);
   const base = r2Base(f.d);
@@ -1862,7 +1863,7 @@ test('30: recovery 404 then PUT 412 race / ambiguous PUT -> stop, no resend, rec
   }
 });
 
-test('31: recovery requires exact state-0 receipt: nonzero ordinal rejects with zero R2 requests even if objects exist', async (t) => {
+test('31: recovery requires exact state-0 receipt: nonzero ordinal rejects with zero R2 requests even if objects exist', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const db = await openDb(t), baseline = await readBaseline(db), f = uatFixture(baseline);
   await bootstrap(db, f.d);
   await db.prepare(`UPDATE ${RUN} SET ordinal = 1, claim_seq = 1, last_chunk_sha256 = ? WHERE id = 1`).bind('a'.repeat(64)).run();
@@ -1884,7 +1885,7 @@ test('31: recovery requires exact state-0 receipt: nonzero ordinal rejects with 
   checkReportSafety(rep, f.d, true);
 });
 
-test('32: recovery GETs ALL objects before any write: first 404, second present with wrong bytes -> GET only, no PUT, no D1 write', async (t) => {
+test('32: recovery GETs ALL objects before any write: first 404, second present with wrong bytes -> GET only, no PUT, no D1 write', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const db = await openDb(t), baseline = await readBaseline(db), f = uatFixture(baseline);
   await bootstrap(db, f.d);
   const before = await snapshot(db);

@@ -9,11 +9,13 @@ import type {
   AdminUnit,
   LogResponse,
 } from '../../shared/administrasi';
+import type { KunciApiCreateResponse, KunciApiListResponse } from '../../shared/integrasi';
 import type { AppEnv } from '../env';
 import { requestMeta } from '../lib/request';
 import { readJson } from '../lib/validation';
 import { getAuth, requireRole, requireSession } from '../middleware/session';
 import * as svc from '../services/administrasi';
+import * as integrasi from '../services/integrasi';
 
 export const administrasiRoutes = new Hono<AppEnv>();
 
@@ -65,4 +67,19 @@ administrasiRoutes.patch('/jenis-dokumen/:id', async (c) => {
   return c.json<{ item: AdminJenisDokumen }>(
     await svc.updateJenis(c.env, getAuth(c), c.req.param('id'), body, requestMeta(c)),
   );
+});
+
+// Integration API keys (docs/RENCANA-API-INTEGRASI.md). The plain key is only in the POST response.
+administrasiRoutes.get('/kunci-api', async (c) => {
+  return c.json<KunciApiListResponse>(await integrasi.listKunci(c.env));
+});
+
+administrasiRoutes.post('/kunci-api', async (c) => {
+  const body = await readJson(c.req);
+  return c.json<KunciApiCreateResponse>(await integrasi.createKunci(c.env, getAuth(c), body, requestMeta(c)), 201);
+});
+
+administrasiRoutes.delete('/kunci-api/:id', async (c) => {
+  await integrasi.deleteKunciApi(c.env, getAuth(c), c.req.param('id'), requestMeta(c));
+  return c.body(null, 204);
 });

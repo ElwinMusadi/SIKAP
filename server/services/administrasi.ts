@@ -104,6 +104,8 @@ export const LOG_CATEGORY_PREFIXES: Record<LogCategory, readonly string[]> = {
   dokumen: ['DOKUMEN'],
   pengajuan: ['PENGAJUAN'],
   sistem: ['CONFIG', 'WA', 'BACKUP', 'REF', 'JENIS'],
+  // String prefix: covers APIKEY_* (key management) and API_* (integration requests).
+  integrasi: ['API'],
 };
 
 /** `[prefix, successor)` so `action >= lo AND action < hi` ⇔ action starts with prefix (BINARY collation). */

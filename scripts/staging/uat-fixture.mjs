@@ -43,9 +43,11 @@ const JABATAN = 'Jabatan Sintetis UAT';
 const JENIS_JABATAN = 'Pelaksana';
 
 // Every application table except reference/seed tables (ref_*, jenis_dokumen*, pengaturan).
+// kunci_api (0009): a pristine target must not already hold integration API keys.
 export const EMPTY_TABLES = Object.freeze([
   'pegawai', 'akun', 'sesi', 'rate_limit', 'arsip_dokumen', 'arsip_dokumen_versi', 'arsip_dokumen_riwayat',
   'pengajuan_perubahan', 'log_aktivitas', 'notifikasi_outbox', 'backup_job', 'backup_part', 'r2_purge_queue',
+  'kunci_api',
 ]);
 
 const encoder = new TextEncoder();

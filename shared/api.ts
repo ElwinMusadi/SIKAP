@@ -23,6 +23,8 @@ export type ApiErrorCode =
   | 'NOT_FOUND' // 404
   | 'CONFLICT' // 409 — `fields` may name the conflicting field ('nip' | 'nik') or reason ('stale')
   | 'RATE_LIMITED' // 429
+  | 'API_KEY_INVALID' // 401 — /api/v1: missing, malformed, unknown, deleted or expired API key (generic on purpose)
+  | 'API_SCOPE_DENIED' // 403 — /api/v1: valid key without the scope this endpoint needs
   | 'INTERNAL_ERROR'; // 500 — never leaks internals
 
 export interface ApiErrorBody {

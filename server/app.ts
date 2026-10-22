@@ -11,6 +11,7 @@ import { backupRoutes } from './routes/backup';
 import { authRoutes } from './routes/auth';
 import { documentRoutes } from './routes/documents';
 import { healthRoutes } from './routes/health';
+import { integrasiV1Routes } from './routes/integrasi-v1';
 import { meRoutes } from './routes/me';
 import { pegawaiRoutes } from './routes/pegawai';
 import { refRoutes } from './routes/ref';
@@ -56,6 +57,8 @@ export function createApp() {
   app.route('/admin', administrasiRoutes);
   app.route('/admin', backupRoutes);
   app.route('/documents', documentRoutes);
+  // Integration API (API key, no session): own prefix so no /admin session guard runs here.
+  app.route('/v1', integrasiV1Routes);
 
   app.notFound(notFound);
   app.onError(onError);

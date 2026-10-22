@@ -43,6 +43,8 @@ export const MESSAGES = {
   csrf: 'Permintaan ditolak.',
   notFound: 'Sumber daya tidak ditemukan.',
   rateLimited: 'Terlalu banyak percobaan. Coba lagi nanti.',
+  apiKeyInvalid: 'Kunci API tidak valid atau sudah tidak berlaku.',
+  apiScopeDenied: 'Kunci API ini tidak memiliki izin untuk permintaan tersebut.',
   internal: 'Terjadi kesalahan pada server. Silakan coba lagi.',
   validation: 'Data yang dikirim tidak valid.',
 } as const;
@@ -66,4 +68,6 @@ export const errors = {
     new ApiError(409, 'CONFLICT', message, field ? { fields: { [field]: message } } : {}),
   rateLimited: (retryAfterSeconds: number) =>
     new ApiError(429, 'RATE_LIMITED', MESSAGES.rateLimited, { retryAfterSeconds }),
+  apiKeyInvalid: () => new ApiError(401, 'API_KEY_INVALID', MESSAGES.apiKeyInvalid),
+  apiScopeDenied: () => new ApiError(403, 'API_SCOPE_DENIED', MESSAGES.apiScopeDenied),
 };

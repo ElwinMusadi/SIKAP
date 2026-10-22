@@ -9,6 +9,7 @@ export const BACKUP_TABLES = [
   'arsip_dokumen_riwayat', 'pengajuan_perubahan', 'pengaturan', 'log_aktivitas',
 ] as const;
 // No session tokens, login throttles, notification recipient queues, purge queues or leases.
+// No integration API keys (kunci_api): a restore must never revive a deleted key.
 export type BackupTable = (typeof BACKUP_TABLES)[number];
 export type BackupStatus = 'RUNNING' | 'DONE' | 'FAILED';
 export interface BackupPart {

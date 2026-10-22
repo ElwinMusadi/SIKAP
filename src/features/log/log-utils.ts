@@ -17,6 +17,7 @@ export const CATEGORY_LABELS: Record<LogCategory, string> = {
   dokumen: 'Dokumen',
   pengajuan: 'Pengajuan',
   sistem: 'Sistem',
+  integrasi: 'Integrasi',
 };
 
 export const RESULT_LABELS: Record<LogResult, string> = {
@@ -97,6 +98,7 @@ const CATEGORY_PREFIXES: Record<LogCategory, readonly string[]> = {
   dokumen: ['DOKUMEN'],
   pengajuan: ['PENGAJUAN'],
   sistem: ['CONFIG', 'WA', 'BACKUP', 'REF', 'JENIS'],
+  integrasi: ['API', 'APIKEY'],
 };
 
 /** Readable names for the audit action codes the server writes; the raw code stays available as a title. */
@@ -139,6 +141,11 @@ const ACTION_LABELS: Record<string, string> = {
   BACKUP_CREATE: 'Mulai backup',
   BACKUP_DONE: 'Backup selesai',
   BACKUP_FAILED: 'Backup gagal',
+  APIKEY_CREATE: 'Buat kunci API',
+  APIKEY_DELETE: 'Hapus kunci API',
+  API_PEGAWAI_READ: 'Data pegawai dibaca lewat API',
+  API_AUTH_FAILED: 'Kunci API ditolak',
+  API_RATE_LIMITED: 'Permintaan API dibatasi',
 };
 
 /** Category of an action code ("PENGAJUAN_APPROVE" → pengajuan; also "dokumen.approve"). */

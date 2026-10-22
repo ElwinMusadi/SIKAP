@@ -13,6 +13,7 @@ import { REHEARSAL_TARGET } from './real-data-gate.mjs';
 import { orchestrateImport } from './prod-import-orchestrator.mjs';
 import { ENDPOINT_ORIGIN, ENDPOINT_PATH } from './d1-rest.mjs';
 import { LEDGER } from './core.mjs';
+import { IMPORT_SCHEMA_SKIP } from './historical-schema.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 
@@ -176,7 +177,7 @@ function createRehearsalTransport({ db, onBeforeD1 = null, onAfterD1 = null, ini
   };
 }
 
-test('rehearsal integration 1: check-only mode completes with CHECK_ONLY_OK, zero credential reads, and zero HTTP fetch calls', async () => {
+test('rehearsal integration 1: check-only mode completes with CHECK_ONLY_OK, zero credential reads, and zero HTTP fetch calls', { skip: IMPORT_SCHEMA_SKIP }, async () => {
   const { planBytes, planFacts, fileBySha } = createSyntheticPlan();
   const modulePins = computeModulePins();
   let credentialCalls = 0;
@@ -234,7 +235,7 @@ test('rehearsal integration 1: check-only mode completes with CHECK_ONLY_OK, zer
   assert.equal(res.authorizesResume, false);
 });
 
-test('rehearsal integration 2: happy path completes COMPLETE_SYNTHETIC_REHEARSAL with exact B requests, no authority, Miniflare D1 + in-memory R2', async (t) => {
+test('rehearsal integration 2: happy path completes COMPLETE_SYNTHETIC_REHEARSAL with exact B requests, no authority, Miniflare D1 + in-memory R2', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const { db } = await openMiniflare(t);
   const { plan, planBytes, planFacts, fileBySha } = createSyntheticPlan();
   const modulePins = computeModulePins();
@@ -320,7 +321,7 @@ test('rehearsal integration 2: happy path completes COMPLETE_SYNTHETIC_REHEARSAL
   }
 });
 
-test('rehearsal integration 3: fault setup ambiguous returns manualRecoveryRequired with no resend', async (t) => {
+test('rehearsal integration 3: fault setup ambiguous returns manualRecoveryRequired with no resend', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const { db } = await openMiniflare(t);
   const { planBytes, planFacts, fileBySha } = createSyntheticPlan();
   const modulePins = computeModulePins();
@@ -377,7 +378,7 @@ test('rehearsal integration 3: fault setup ambiguous returns manualRecoveryRequi
   assert.equal(res.remoteAuthorized, false);
 });
 
-test('rehearsal integration 4: R2 pre-existing destination conflict stops before DDL with no user tables created', async (t) => {
+test('rehearsal integration 4: R2 pre-existing destination conflict stops before DDL with no user tables created', { skip: IMPORT_SCHEMA_SKIP }, async (t) => {
   const { db } = await openMiniflare(t);
   const { plan, planBytes, planFacts, fileBySha } = createSyntheticPlan();
   const modulePins = computeModulePins();

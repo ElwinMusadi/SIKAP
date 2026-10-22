@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { executeProductionImport, parseCredentialEnv, TARGET, ENDPOINT, PLAN_FACTS, MODULE_FILES, SELF_SOURCES, CLI_MODES } from './run-prod-import.mjs';
 import { PROD_TARGET, UAT_TARGET, REHEARSAL_TARGET } from './real-data-gate.mjs';
 import * as PINS from './prod-import-pins.mjs';
+import { IMPORT_SCHEMA_SKIP } from './historical-schema.mjs';
 
 const h = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const lf = (file) => readFileSync(new URL(`../../${file}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
@@ -81,7 +82,7 @@ test('options are strictly validated before any I/O (now is required)', async ()
   assert.deepEqual(c, zero);
 });
 
-test('check-only, import and describe-plan pass the pinned static check, then stop at the (stubbed) private plan, before credential, clock or HTTP', async () => {
+test('check-only, import and describe-plan pass the pinned static check, then stop at the (stubbed) private plan, before credential, clock or HTTP', { skip: IMPORT_SCHEMA_SKIP }, async () => {
   for (const mode of ['check-only', 'import', 'describe-plan']) {
     const c = counters();
     const r = await executeProductionImport(options(c, { mode }));

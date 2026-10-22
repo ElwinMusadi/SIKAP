@@ -15,6 +15,7 @@ Aplikasi internal UPTD Pendapatan Daerah Wilayah Kota Kupang untuk mengelola dat
 | [`MIGRATION_PLAN.md`](MIGRATION_PLAN.md) | Keputusan pemilik produk, arsitektur target, skema D1, API, redesign UI, fase, dan rencana cutover |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | Deploy otomatis dari `main`, penyiapan secret, dan rollback |
 | [`docs/RENCANA-REDESIGN-UIUX.md`](docs/RENCANA-REDESIGN-UIUX.md) / [`docs/POLA-UI.md`](docs/POLA-UI.md) | Design system v2 dan pola komponen UI |
+| [`docs/API-INTEGRASI.md`](docs/API-INTEGRASI.md) / [`docs/RENCANA-API-INTEGRASI.md`](docs/RENCANA-API-INTEGRASI.md) | Kontrak API integrasi `/api/v1` untuk aplikasi lain (PINTU), serta rencana dan keputusannya |
 
 ## Stack
 
@@ -86,6 +87,22 @@ Kunci ini mengenkripsi token WhatsApp. Simpan cadangannya dengan aman; mengganti
 migrasi ulang membuat token tersimpan tidak dapat dibaca. Worker cron pengirim notifikasi
 harus menggunakan nilai `SETTINGS_ENC_KEY` yang sama dengan Pages pada environment tersebut.
 Jangan menyalin kunci produksi ke preview atau menaruhnya di repo.
+
+## API integrasi (v1)
+
+Aplikasi lain (pertama: PINTU) membaca data pegawai aktif lewat `GET /api/v1/*` dengan
+`Authorization: Bearer <kunci>`. Kontrak lengkapnya ada di [`docs/API-INTEGRASI.md`](docs/API-INTEGRASI.md).
+
+- Admin membuat dan menghapus kunci di **Pengaturan Sistem → Integrasi API**. Kunci hanya
+  ditampilkan sekali, SIKAP hanya menyimpan hash SHA-256-nya, masa berlakunya wajib (90/180/365 hari),
+  dan kunci yang dihapus langsung tidak berlaku.
+- Hasil pencarian hanya berisi data identifikasi (NIP, nama, status, pangkat, jabatan, unit). Email
+  dan no HP hanya ada di detail per NIP, dan setiap pembacaan detail dicatat di Log Aktivitas
+  (kategori Integrasi).
+- Batas laju 60 permintaan per menit per kunci. Kunci yang salah dibatasi per IP, dan hanya
+  kegagalan pertama dalam tiap jendela waktu yang dicatat.
+- Tabel `kunci_api` (migrasi `0009`) sengaja tidak ikut backup logis, supaya pemulihan tidak
+  menghidupkan lagi kunci yang sudah dihapus.
 
 ## Verifikasi dokumen dan WhatsApp
 

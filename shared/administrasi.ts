@@ -7,7 +7,7 @@ import { LOG_RESULT, STATUS_KEPEGAWAIAN, type LogResult, type StatusKepegawaian 
 // Ordered ts DESC,id DESC, max 25 rows; cursor is opaque, filters preserved on next page.
 // `q` searches description/action/actor_nama/actor_nip, literal substring, <=100 chars.
 // category matches action prefixes from LOG_CATEGORIES, never arbitrary SQL.
-export const LOG_CATEGORIES = ['auth', 'pegawai', 'dokumen', 'pengajuan', 'sistem'] as const;
+export const LOG_CATEGORIES = ['auth', 'pegawai', 'dokumen', 'pengajuan', 'sistem', 'integrasi'] as const;
 export type LogCategory = (typeof LOG_CATEGORIES)[number];
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((v) => {
   const [y, m, d] = v.split('-').map(Number) as [number, number, number];

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, FilePen, FileText, History, KeyRound, Settings, Users, type LucideIcon } from 'lucide-react';
+import { ChevronDown, FilePen, FileText, History, KeyRound, Plug, Settings, Users, type LucideIcon } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { LOG_RESULT } from '@shared/enums';
 import { LOG_CATEGORIES, type LogCategory, type LogItem } from '@shared/administrasi';
@@ -37,6 +37,7 @@ const CATEGORY_ICON: Record<LogCategory, LucideIcon> = {
   dokumen: FileText,
   pengajuan: FilePen,
   sistem: Settings,
+  integrasi: Plug,
 };
 
 type Update = (patch: Partial<LogFilters>, replace?: boolean) => void;

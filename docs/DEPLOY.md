@@ -35,6 +35,37 @@ Tidak berubah oleh deploy:
 - **migrasi D1**, yang tidak dijalankan otomatis (redesign tidak mengubah skema; migrasi baru perlu keputusan dan backup terpisah);
 - domain dan Cloudflare Access.
 
+## Perubahan dengan migrasi D1
+
+Karena setiap push ke `main` langsung di-deploy, kode yang memakai tabel atau kolom baru akan galat
+di produksi bila migrasinya belum ada. Urutannya:
+
+1. Pastikan migrasinya **aditif** (tabel/kolom baru, tanpa mengubah atau menghapus yang lama), sehingga
+   kode lama tetap berjalan setelah migrasi diterapkan.
+2. Siapkan **direktori terisolasi** di luar repo yang tidak punya `wrangler.toml` atau `.env` di folder
+   induknya. Isinya `wrangler.toml` minimal dengan satu binding `DB` ke database `sikap-import-prod-20261020`
+   (ID dari pemilik, tidak ditulis ke repo) dan salinan berkas migrasi. Cocokkan SHA-256 salinan itu dengan
+   berkas di repo.
+3. Catat bookmark D1 Time Travel sebagai titik pulih: `wrangler d1 time-travel info DB`.
+4. Terapkan **hanya berkas migrasi baru**: `wrangler d1 execute DB --remote --file <berkas>.sql`.
+5. Verifikasi read-only bahwa tabel/kolomnya ada.
+6. Baru setelah itu push kode ke `main`.
+
+**Jangan pernah** memakai `wrangler d1 migrations apply` atau `db:migrate:production` ke produksi. Skema
+produksi dibangun oleh importer, jadi D1 produksi tidak punya tabel `d1_migrations` (dicek 22 Okt 2026).
+`migrations apply` akan menganggap 0001 dan seterusnya belum diterapkan dan menjalankan ulang semuanya.
+Setiap migrasi produksi diterapkan per berkas lewat langkah di atas, dan dicatat (nama berkas, SHA-256,
+bookmark, waktu) di `MIGRATION_PLAN.md` atau catatan rilis.
+
+Pemulihan bila migrasi bermasalah: `wrangler d1 time-travel restore DB --bookmark <bookmark>` dari direktori
+terisolasi yang sama. Perintah ini juga mengembalikan semua data yang berubah setelah bookmark, jadi hanya
+dipakai atas keputusan pemilik.
+
+Setiap langkah produksi di atas butuh persetujuan pemilik. Migrasi 0001–0008 adalah skema impor dan
+tidak boleh diubah (dijaga `scripts/import/historical-schema.test.mjs`); migrasi baru selalu berupa
+berkas bernomor berikutnya. Contoh pertama: `0009_kunci_api.sql` untuk API integrasi
+([`RENCANA-API-INTEGRASI.md`](RENCANA-API-INTEGRASI.md) §10).
+
 ## Jangan memakai integrasi Git Cloudflare
 
 Dashboard `sikap-v2` → *Settings* → *Build* menawarkan *Connect to a repository*. **Jangan dipakai**

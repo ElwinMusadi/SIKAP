@@ -1,4 +1,5 @@
 import type { Bindings } from '../../server/env';
+import { API_AUTH_FAIL_LIMIT, API_RATE_LIMIT } from '../../shared/integrasi';
 import { LOGIN_IP_LIMIT } from '../../server/services/auth';
 import { flushOutbox } from '../../server/services/notifikasi';
 import { drainPurgeQueue, purgeExpired } from '../../server/services/purge';
@@ -18,6 +19,8 @@ export async function cleanupExpired(db: D1Database, nowMs: number, batchSize = 
   // deleting them by a blanket cutoff could silently bypass a future throttle.
   const loginFloor = new Date(nowMs - LOGIN_IP_LIMIT.windowMinutes * 60_000).toISOString();
   const waTestFloor = new Date(nowMs - 10 * 60_000).toISOString();
+  const apiKeyFloor = new Date(nowMs - API_RATE_LIMIT.windowSeconds * 1000).toISOString();
+  const apiAuthFloor = new Date(nowMs - API_AUTH_FAIL_LIMIT.windowMinutes * 60_000).toISOString();
   const [sessions, windows] = await db.batch([
     db.prepare(`DELETE FROM sesi WHERE token_hash IN
       (SELECT token_hash FROM sesi WHERE expires_at <= ?1 ORDER BY expires_at LIMIT ?2)`)
@@ -26,8 +29,10 @@ export async function cleanupExpired(db: D1Database, nowMs: number, batchSize = 
       (SELECT key FROM rate_limit
        WHERE (key LIKE 'login-ip:%' AND window_start <= ?1)
           OR (key LIKE 'wa-test:%' AND window_start <= ?2)
+          OR (key LIKE 'api:%' AND window_start <= ?4)
+          OR (key LIKE 'api-auth-ip:%' AND window_start <= ?5)
        ORDER BY window_start LIMIT ?3)`)
-      .bind(loginFloor, waTestFloor, limit),
+      .bind(loginFloor, waTestFloor, limit, apiKeyFloor, apiAuthFloor),
   ]);
   return { sessions: sessions?.meta.changes ?? 0, rateWindows: windows?.meta.changes ?? 0 };
 }

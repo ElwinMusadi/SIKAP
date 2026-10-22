@@ -1,5 +1,5 @@
 import { useId, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
-import { Bell, Check, DatabaseBackup, Eye, EyeOff, KeyRound, ListTree, MessageCircle, RefreshCw, Send, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { Bell, Check, DatabaseBackup, Eye, EyeOff, KeyRound, ListTree, MessageCircle, Plug, RefreshCw, Send, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import {
@@ -27,6 +27,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReferensiPanel } from '@/features/referensi/referensi-panel';
 import BackupPanel from '@/features/backup/backup-panel';
+import { IntegrasiPanel } from '@/features/integrasi/integrasi-panel';
 import { errorMessage, isApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
@@ -59,6 +60,7 @@ const SECTIONS: { id: string; label: string; description: string; icon: LucideIc
   { id: 'whatsapp', label: 'WhatsApp', description: 'Provider pengiriman pesan dan antrean pengiriman.', icon: MessageCircle },
   { id: 'referensi', label: 'Referensi', description: 'Pangkat/golongan, unit kerja, dan jenjang pendidikan.', icon: ListTree },
   { id: 'backup', label: 'Backup', description: 'Ekspor data logis dan riwayat backup.', icon: DatabaseBackup },
+  { id: 'integrasi', label: 'Integrasi API', description: 'Kunci API untuk aplikasi lain (mis. PINTU) yang membaca data pegawai.', icon: Plug },
 ];
 type SectionId = (typeof SECTIONS)[number]['id'];
 
@@ -97,7 +99,7 @@ export default function PengaturanPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Pengaturan Sistem" description="Kelola notifikasi, koneksi WhatsApp, data referensi, dan backup SIKAP." />
+      <PageHeader title="Pengaturan Sistem" description="Kelola notifikasi, koneksi WhatsApp, data referensi, backup, dan integrasi API SIKAP." />
       <Tabs value={section} onValueChange={changeSection} orientation={orientation} className="flex flex-col gap-6 lg:flex-row lg:items-start">
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 lg:sticky lg:top-20 lg:w-52 lg:shrink-0 lg:overflow-visible">
           <TabsList
@@ -129,6 +131,7 @@ export default function PengaturanPage() {
                 {s.id === 'whatsapp' ? <WhatsAppSection /> : null}
                 {s.id === 'referensi' ? <ReferensiPanel /> : null}
                 {s.id === 'backup' ? <BackupPanel /> : null}
+                {s.id === 'integrasi' ? <IntegrasiPanel /> : null}
               </>
             ) : null}
           </TabsContent>
