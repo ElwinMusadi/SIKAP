@@ -92,9 +92,10 @@ CI (`.github/workflows/ci.yml`): job `verify` (typecheck, lint, test api/web/mig
 ## TODO / pekerjaan terbuka
 
 - **API integrasi PINTU** ([`docs/RENCANA-API-INTEGRASI.md`](docs/RENCANA-API-INTEGRASI.md)):
-  - Fase 1–3 (backend, UI, dokumentasi) selesai di `main`, tetapi belum di-commit.
-  - Rilis (Fase 4): migrasi `0009` **sudah diterapkan** ke D1 produksi pada 22 Okt 2026 (bookmark Time Travel sebelum migrasi ada di rencana §10). Langkah berikutnya: commit + push kode (deploy otomatis), lalu uji asap `/api/v1`. Setiap langkah butuh izin pemilik.
-  - Sisi PINTU (Fase 5) dikerjakan di repo PINTU.
+  - Fase 1–4 selesai 22 Okt 2026: migrasi `0009` diterapkan ke D1 produksi, kode tayang (commit `7a7ba84`), dan uji asap tanpa data pribadi lulus.
+  - Fase 5 (sisi PINTU) tayang 22 Okt 2026, commit PINTU `adfd5c1`. D-075 opsi A: PINTU hanya memakai NIP + Nama; email/no HP dari SIKAP dibuang, tidak disimpan.
+  - Berikutnya, pemilik membuat kunci "PINTU (produksi)" di Pengaturan Sistem → Integrasi API dan memasang `SIKAP_API_BASE_URL` + `SIKAP_API_KEY` di Laravel Cloud.
+  - Setelah itu uji ujung-ke-ujung (Fase 6). Pemilih PINTU menampilkan "belum dikonfigurasi" sampai env dipasang.
 - **Backup otomatis belum ada**: binding `BACKUPS` + bucket privat + Worker cron (`workers/cron`) + kebijakan retensi ≥ 30 hari; D1 Time Travel sebagai pemulihan konsisten.
 - WAF Rate Limiting untuk `/api/auth/login`.
 - WhatsApp tetap nonaktif sampai diminta pemilik.
