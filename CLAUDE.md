@@ -87,15 +87,12 @@ CI (`.github/workflows/ci.yml`): job `verify` (typecheck, lint, test api/web/mig
 | Copier menolak folder induk berisi | Folder induk baru yang kosong per salinan |
 | Disk C: penuh saat ekstraksi | Hapus salinan dry-run lama atas izin pemilik |
 | Token tanpa kedaluwarsa (`forever`) | Driver menolak (`CREDENTIAL_INVALID`) sebelum request; pemilik membuat ulang dengan TTL |
+| Administrator PINTU mengetik ulang NIP/nama pegawai | API integrasi `/api/v1` + kunci API dikelola di SIKAP; PINTU memilih pegawai dari SIKAP (PINTU `adfd5c1`, D-075 opsi A: hanya NIP + Nama). Migrasi `0009` diterapkan per berkas, kode SIKAP `7a7ba84`, uji ujung-ke-ujung berhasil 22 Okt 2026 |
 | CI: lint (literal BOM, variabel tak terpakai) dan tes path gaya Windows di Linux | `﻿`; cek prefix terlarang sebelum `path.isAbsolute` |
 
 ## TODO / pekerjaan terbuka
 
-- **API integrasi PINTU** ([`docs/RENCANA-API-INTEGRASI.md`](docs/RENCANA-API-INTEGRASI.md)):
-  - Fase 1–4 selesai 22 Okt 2026: migrasi `0009` diterapkan ke D1 produksi, kode tayang (commit `7a7ba84`), dan uji asap tanpa data pribadi lulus.
-  - Fase 5 (sisi PINTU) tayang 22 Okt 2026, commit PINTU `adfd5c1`. D-075 opsi A: PINTU hanya memakai NIP + Nama; email/no HP dari SIKAP dibuang, tidak disimpan.
-  - Berikutnya, pemilik membuat kunci "PINTU (produksi)" di Pengaturan Sistem → Integrasi API dan memasang `SIKAP_API_BASE_URL` + `SIKAP_API_KEY` di Laravel Cloud.
-  - Setelah itu uji ujung-ke-ujung (Fase 6). Pemilih PINTU menampilkan "belum dikonfigurasi" sampai env dipasang.
+- **Rotasi kunci API "PINTU (produksi)"** sebelum kedaluwarsa (bawaan 365 hari sejak 22 Okt 2026; tanggalnya di Pengaturan Sistem → Integrasi API). Langkahnya: buat kunci baru → ganti `SIKAP_API_KEY` di Laravel Cloud → hapus kunci lama (`docs/API-INTEGRASI.md` §1). Rotasi belum pernah diuji.
 - **Backup otomatis belum ada**: binding `BACKUPS` + bucket privat + Worker cron (`workers/cron`) + kebijakan retensi ≥ 30 hari; D1 Time Travel sebagai pemulihan konsisten.
 - WAF Rate Limiting untuk `/api/auth/login`.
 - WhatsApp tetap nonaktif sampai diminta pemilik.

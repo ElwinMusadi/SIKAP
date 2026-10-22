@@ -1,6 +1,6 @@
 # Rencana API integrasi SIKAP → PINTU
 
-Disusun 22 Oktober 2026. Status: **keputusan §9 disetujui pemilik (22 Okt 2026)**, dengan satu perubahan: email dan no HP ikut dibagikan, tetapi hanya lewat endpoint detail yang tercatat di log. Siap mulai Fase 1; belum ada kode yang ditulis.
+Disusun 22 Oktober 2026. Status: **keputusan §9 disetujui pemilik (22 Okt 2026)**, dengan satu perubahan: email dan no HP ikut dibagikan, tetapi hanya lewat endpoint detail yang tercatat di log. **Semua fase (0–6) selesai 22 Okt 2026:** API v1 tayang di SIKAP, PINTU sudah memakainya, dan uji ujung-ke-ujung berhasil.
 
 Tujuan: saat Administrator PINTU (`portal-uptdkotakupang`) menambah akun petugas, ia bisa **memilih pegawai yang sudah ada di SIKAP**, bukan mengetik ulang NIP dan nama. SIKAP menjadi sumber data pegawai. Akses API (membuat dan menghapus kunci) **dikelola Admin di SIKAP**.
 
@@ -197,7 +197,7 @@ Semua perubahan SIKAP dikerjakan langsung di `main` (aturan pemilik). Push hanya
 | **3. Dokumentasi** (selesai 22 Okt 2026, belum di-commit) | `docs/API-INTEGRASI.md` (kontrak, contoh `curl` dengan kunci fiktif, galat, batas laju, rotasi); `CLAUDE.md`, `README.md`, `POLA-UI.md` bila perlu | `docs/` | 0,5 hari |
 | **4. Rilis SIKAP** (kode tayang 22 Okt 2026, commit `7a7ba84`; tinggal kunci "PINTU (produksi)" oleh pemilik) | Migrasi produksi + push + verifikasi (§10), lalu pemilik membuat kunci "PINTU (produksi)" | – | 0,5 hari |
 | **5. PINTU** (tayang 22 Okt 2026, commit PINTU `adfd5c1`; menunggu kunci + env di Laravel Cloud; repo PINTU, aturannya sendiri: FormRequest/Actions/Policy, PHPUnit, `KONTEKS-PROYEK.md`, keputusan D-075) | `config/services.php` `sikap` + env `SIKAP_API_BASE_URL`, `SIKAP_API_KEY`, `SIKAP_API_TIMEOUT_SECONDS`; `app/Actions/CariPegawaiSikap.php` & `AmbilPegawaiSikap.php` meniru `LookUpVehicle`; proxy `GET /api/akun/pegawai-sikap` (+`/{nip}`) dengan `can('create', User::class)` + throttle, menandai `sudahPunyaAkun`; saat simpan dengan sumber SIKAP, server PINTU **mengambil ulang detail NIP** dan memakai nama dari SIKAP; combobox "Cari pegawai SIKAP" di sheet Tambah akun (NIP & Nama terisi dan terkunci, tombol "Isi manual"); tes `Http::fake` (header terkirim, 401/429/5xx, timeout, non-admin 403) | repo PINTU | 1–1,5 hari |
-| **6. Uji ujung-ke-ujung** | Admin PINTU memilih pegawai → akun dibuat → tautan aktivasi; cek Log Aktivitas SIKAP; uji rotasi kunci | – | 0,5 hari |
+| **6. Uji ujung-ke-ujung** (berhasil 22 Okt 2026 menurut laporan pemilik; uji rotasi kunci belum) | Admin PINTU memilih pegawai → akun dibuat → tautan aktivasi; cek Log Aktivitas SIKAP; uji rotasi kunci | – | 0,5 hari |
 
 Fase 5 sebaiknya dikerjakan di sesi terpisah yang dibuka di repo PINTU, dengan kontrak `docs/API-INTEGRASI.md` sebagai acuan.
 
@@ -240,7 +240,10 @@ Urutan (setiap langkah produksi dengan persetujuan pemilik):
    - Efek samping: satu entri `API_AUTH_FAILED` di Log Aktivitas untuk IP penguji.
    - Uji dengan kunci asli belum dilakukan, karena butuh login Admin produksi oleh pemilik.
 6. **Sisi PINTU tayang** 22 Okt 2026 (commit PINTU `adfd5c1`, keputusan D-075 opsi A). Pemilih menampilkan "belum dikonfigurasi" sampai `SIKAP_API_*` dipasang.
-7. **Belum:** pemilik membuat kunci "PINTU (produksi)" dan memasang env PINTU di Laravel Cloud (`SIKAP_API_BASE_URL`, `SIKAP_API_KEY`, `SIKAP_API_TIMEOUT_SECONDS` opsional). Sesudahnya uji ujung-ke-ujung (Fase 6): pilih pegawai di Tambah akun PINTU, lalu pastikan Log Aktivitas SIKAP mencatat `API_PEGAWAI_READ` dan "Terakhir dipakai" pada kunci terisi.
+7. **Kunci dan env PINTU dipasang pemilik** 22 Okt 2026: kunci "PINTU (produksi)" dibuat di SIKAP, dan `SIKAP_API_*` dipasang di Laravel Cloud.
+8. **Uji ujung-ke-ujung (Fase 6) berhasil** 22 Okt 2026 menurut laporan pemilik: API SIKAP menjawab dari PINTU.
+   - Pemeriksaan lanjutan yang disarankan: Log Aktivitas SIKAP kategori Integrasi berisi `API_PEGAWAI_READ` dengan klien "PINTU (produksi)", dan "Terakhir dipakai" pada kunci terisi.
+   - Uji rotasi kunci belum dilakukan; prosedurnya ada di `docs/API-INTEGRASI.md` §1. Lakukan sebelum kunci kedaluwarsa (lihat tanggalnya di Pengaturan Sistem → Integrasi API).
 4. Commit + push ke `main`. Deploy otomatis berjalan, lalu health check.
 5. **Uji asap tanpa data pribadi**:
    - buat kunci sementara, cek `GET /v1/ping`, lalu cek 401 tanpa kunci dan 403/400 pada kasus salah;
